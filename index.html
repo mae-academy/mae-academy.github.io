@@ -26,7 +26,6 @@
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             width: 400px;
-            transition: all 0.3s ease;
         }
 
         .menu-title {
@@ -54,16 +53,8 @@
             transform: translateY(-2px);
         }
 
-        .menu-btn.secondary {
-            background-color: #6c757d;
-        }
-        .menu-btn.secondary:hover {
-            background-color: #545b62;
-        }
-
-        /* --- SIMULATOR STYLES (From your code) --- */
+        /* --- SIMULATOR STYLES --- */
         #simulator-app {
-            display: none; /* Hidden by default */
             width: 100%;
             display: flex;
             flex-direction: column;
@@ -80,13 +71,11 @@
             max-width: 95%; 
         }
         
-        /* Layout */
         .top-section { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
         canvas { background: #fff; border: 1px solid #ddd; border-radius: 4px; width: 100%; height: 350px; cursor: crosshair; }
         
         .bottom-section { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         
-        /* Controls */
         .controls { padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; }
         .control-group { margin-bottom: 15px; }
         .control-group label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 5px; color: #333; }
@@ -95,7 +84,6 @@
         button.btn-step { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background 0.2s; width: 100%; }
         button.btn-step:hover { background: #0056b3; }
 
-        /* Math Panel */
         .math-panel { padding: 15px; background: #e3f2fd; border-radius: 8px; border: 1px solid #bbdefb; color: #0d47a1; }
         .math-title { font-size: 1.1em; font-weight: bold; border-bottom: 1px solid #90caf9; padding-bottom: 8px; margin-bottom: 10px; }
         .equation { font-family: 'Courier New', Courier, monospace; font-weight: bold; background: rgba(255,255,255,0.6); padding: 8px; border-radius: 4px; text-align: center; margin-bottom: 15px; }
@@ -106,39 +94,34 @@
         .status-crit { color: #2e7d32; border-left: 5px solid #2e7d32; }
         .status-over { color: #f57c00; border-left: 5px solid #f57c00; }
 
-        /* Footer */
         .legend { display: flex; gap: 20px; justify-content: center; margin-top: 5px; font-size: 0.9em; }
         .legend-item { display: flex; align-items: center; gap: 5px; }
         .dot { width: 10px; height: 10px; border-radius: 50%; }
         
-        /* Utility */
-        .hidden { display: none !important; }
-        .back-link {
-            cursor: pointer;
-            color: #666;
-            margin-bottom: 10px;
-            display: inline-block;
-            text-decoration: underline;
-        }
+        /* Utility for showing/hiding screens */
+        .screen { display: none; }
+        .active-screen { display: block; }
+        .active-flex { display: flex !important; }
+
     </style>
 </head>
 <body>
 
-    <div id="main-menu" class="menu-container">
+    <div id="main-menu" class="menu-container screen active-screen">
         <h2 class="menu-title">Main Menu</h2>
         <button class="menu-btn" onclick="alert('Academics module coming soon!')">Academics</button>
-        <button class="menu-btn" onclick="showScreen('sim-menu')">Simulations</button>
+        <button class="menu-btn" onclick="navigateTo('sim-menu')">Simulations</button>
     </div>
 
-    <div id="sim-menu" class="menu-container hidden">
-        <div class="back-link" onclick="showScreen('main-menu')">← Back</div>
+    <div id="sim-menu" class="menu-container screen">
+        <div style="text-align:left; margin-bottom:10px; cursor:pointer; color:#666;" onclick="navigateTo('main-menu')">← Back</div>
         <h2 class="menu-title">Select Simulation</h2>
         <button class="menu-btn" onclick="startSimulator()">Control Systems</button>
     </div>
 
-    <div id="simulator-app" class="hidden">
+    <div id="simulator-app" class="screen">
         <div style="width: 900px; max-width: 95%; text-align: left; margin-bottom: 10px;">
-            <button onclick="exitSimulator()" style="background:none; border:none; color:#555; cursor:pointer; font-weight:bold; font-size:16px;">← Back to Menu</button>
+            <button onclick="navigateTo('sim-menu')" style="background:none; border:none; color:#555; cursor:pointer; font-weight:bold; font-size:16px;">← Back to Menu</button>
         </div>
 
         <div class="sim-container">
@@ -201,53 +184,44 @@
 
     <script>
         // --- Navigation Logic ---
-        function showScreen(screenId) {
-            // Hide all screens
-            document.getElementById('main-menu').classList.add('hidden');
-            document.getElementById('sim-menu').classList.add('hidden');
-            document.getElementById('simulator-app').classList.add('hidden');
-            document.getElementById('simulator-app').style.display = 'none'; // Ensure strict hiding
+        function navigateTo(screenId) {
+            // 1. Hide all screens
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(s => {
+                s.style.display = 'none';
+            });
 
-            // Show requested screen
-            document.getElementById(screenId).classList.remove('hidden');
+            // 2. Show target screen
+            const target = document.getElementById(screenId);
+            if (screenId === 'simulator-app') {
+                target.style.display = 'flex'; // Simulator needs flex layout
+            } else {
+                target.style.display = 'block'; // Menus use block
+            }
         }
 
         function startSimulator() {
-            showScreen('simulator-app');
-            document.getElementById('simulator-app').style.display = 'flex'; // Flex is needed for layout
+            navigateTo('simulator-app');
             
-            // Initialize simulator if not already running
+            // Initialize simulator only once
             if(!simRunning) {
                 initSimulator();
                 simRunning = true;
             }
         }
 
-        function exitSimulator() {
-            showScreen('sim-menu');
-        }
-
-        // --- Simulator Logic (From your Code) ---
-        let simRunning = false; // Flag to prevent double initialization
-
-        // Simulation Constants & State
+        // --- Simulator Logic ---
+        let simRunning = false; 
         let canvas, ctx;
         
-        // Physics State
         let state = {
-            pv: 0,          // Process Variable (Position)
-            velocity: 0,    // Rate of change
-            integral: 0,    // Accumulated Error
-            lastError: 0,
-            time: 0
+            pv: 0, velocity: 0, integral: 0, lastError: 0, time: 0
         };
 
-        // History for graphing
         let historyPV = [];
         let historySP = [];
-        const maxHistory = 400; // Width of graph in points
+        const maxHistory = 400; 
 
-        // Inputs
         let inputs = { sp: 50, kp: 20, ki: 0, kd: 5 };
 
         function initSimulator() {
@@ -258,26 +232,24 @@
             loop();
         }
 
-        // --- Physics Engine ---
         function updatePhysics() {
             const dt = 0.05; 
-            
             const error = inputs.sp - state.pv;
+            
+            // PID
             const P = inputs.kp * error;
             state.integral += error * dt;
             const I = inputs.ki * state.integral;
             const D = inputs.kd * (error - state.lastError) / dt;
-            
             const output = P + I + D;
             
+            // Plant
             const acceleration = output - (0.1 * state.velocity); 
-            
             state.velocity += acceleration * dt;
             state.pv += state.velocity * dt;
-            
             state.lastError = error;
-            state.time += dt;
 
+            // History
             historyPV.push(state.pv);
             historySP.push(inputs.sp);
             if (historyPV.length > maxHistory) {
@@ -286,19 +258,11 @@
             }
         }
 
-        // --- Math Analysis Logic ---
         function updateMathPanel() {
             const kp = parseFloat(inputs.kp);
             const kd = parseFloat(inputs.kd);
-            
             let wn = Math.sqrt(kp);
-            let zeta = 0;
-            
-            if (wn > 0) {
-                zeta = kd / (2 * wn);
-            } else {
-                zeta = 0; 
-            }
+            let zeta = (wn > 0) ? kd / (2 * wn) : 0;
 
             document.getElementById('math-wn').innerText = wn.toFixed(2) + " rad/s";
             document.getElementById('math-zeta').innerText = zeta.toFixed(3);
@@ -319,12 +283,11 @@
             }
         }
 
-        // --- Drawing Logic ---
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawGrid();
 
-            // Draw SP Line
+            // Draw SP
             ctx.beginPath();
             ctx.setLineDash([5, 5]);
             ctx.strokeStyle = '#999';
@@ -332,12 +295,11 @@
             for (let i = 0; i < historySP.length; i++) {
                 const x = (i / maxHistory) * canvas.width;
                 const y = mapY(historySP[i]);
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
+                (i === 0) ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
             }
             ctx.stroke();
 
-            // Draw PV Line
+            // Draw PV
             ctx.beginPath();
             ctx.setLineDash([]);
             ctx.strokeStyle = '#007bff';
@@ -345,8 +307,7 @@
             for (let i = 0; i < historyPV.length; i++) {
                 const x = (i / maxHistory) * canvas.width;
                 const y = mapY(historyPV[i]);
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
+                (i === 0) ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
             }
             ctx.stroke();
         }
@@ -354,8 +315,7 @@
         function mapY(val) {
             const minVal = -20;
             const maxVal = 140;
-            const range = maxVal - minVal;
-            return canvas.height - ((val - minVal) / range) * canvas.height;
+            return canvas.height - ((val - minVal) / (maxVal - minVal)) * canvas.height;
         }
 
         function drawGrid() {
@@ -364,27 +324,20 @@
             ctx.strokeStyle = "#eee";
             ctx.lineWidth = 1;
             ctx.setLineDash([]);
-
-            const steps = [-20, 0, 25, 50, 75, 100, 125];
-            steps.forEach(val => {
+            [-20, 0, 25, 50, 75, 100, 125].forEach(val => {
                 const y = mapY(val);
-                ctx.beginPath();
-                ctx.moveTo(30, y); 
-                ctx.lineTo(canvas.width, y);
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(canvas.width, y); ctx.stroke();
                 ctx.fillText(val, 5, y + 4);
             });
         }
 
-        // --- Event Listeners ---
         function setupInputs() {
             ['sp', 'kp', 'ki', 'kd'].forEach(id => {
                 const el = document.getElementById('inp-' + id);
-                const disp = document.getElementById('val-' + id);
                 el.addEventListener('input', (e) => {
                     inputs[id] = parseFloat(e.target.value);
-                    disp.innerText = inputs[id];
-                    updateMathPanel(); 
+                    document.getElementById('val-' + id).innerText = inputs[id];
+                    updateMathPanel();
                 });
             });
         }
@@ -396,13 +349,10 @@
         }
 
         function loop() {
-            // Only update and draw if we are on the simulator screen
-            // (Optional optimization: pause when hidden, but running it is fine for smoothness)
             updatePhysics();
             draw();
             requestAnimationFrame(loop);
         }
-
     </script>
 </body>
 </html>
