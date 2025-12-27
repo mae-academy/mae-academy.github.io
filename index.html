@@ -1,461 +1,418 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MAE Academy - Process Control</title>
+  <title>MAE Academy - </title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
     /* =========================================
-      GLOBAL
-    ========================================= */
-    :root{
-      --bg:#e2efff;
-      --text:#0b0b0b;
-      --muted:#222;
-      --card:#ffffff;
-      --border:#000;
-      --shadow:rgba(0,0,0,0.08);
-      --blue:#007bff;
-    }
-
-    *{ box-sizing:border-box; }
-
-    body{
-      margin:0;
-      background:var(--bg);
-      color:var(--text);
-      font-family: "AppleGothic","Apple SD Gothic Neo","SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
-      overflow-x:hidden;
+       GLOBAL STYLES
+       ========================================= */
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background-color: #e2efff;
+      margin: 0; padding: 20px;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh; color: #1a1a1a;
+      overflow-x: hidden;
     }
 
     /* Screen Management */
-    .screen{
-      display:none;
-      width:100%;
-      max-width:1200px;
-      margin:0 auto;
-      opacity:0;
-      transform:translateY(10px);
+    .screen {
+      display: none;
+      width: 100%;
+      max-width: 1200px;
+      flex-direction: column;
+      align-items: center;
+      opacity: 0;
+      transform: translateY(10px);
     }
-    .active-screen{ display:block; }
-    .enter{ animation: screenIn 420ms cubic-bezier(.2,.9,.2,1) forwards; }
-    @keyframes screenIn{ to{ opacity:1; transform:translateY(0);} }
-
-    /* =========================================
-      HOME (MATCH THE 2ND PIC)
-    ========================================= */
-    #home-screen{
-      min-height:100vh;
-      padding:70px 40px;
-      display:grid;
-      grid-template-columns: 1fr 520px; /* text left, card right */
-      gap:80px;
-      align-items:center;
-      justify-content:center;
+    .active-screen { display: flex !important; }
+    .screen.enter {
+      animation: screenIn 420ms cubic-bezier(.2,.9,.2,1) forwards;
+    }
+    @keyframes screenIn {
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    .hero-left{ max-width:640px; }
-
-    .hero-title{
-      margin:0;
-      line-height:0.95;
-      letter-spacing:-1.5px;
-      font-weight:900;
-      font-size:92px;
+    /* Home & Menu UI */
+    #home-screen, #sim-menu-screen {
+      justify-content: center;
+      align-items: center;
+      gap: 80px;
+      flex-wrap: wrap;
+      margin-top: 50px;
     }
-    .hero-title .thin{
-      font-weight:500;
-      display:block;
-      font-size:88px;
-      letter-spacing:-1.8px;
-    }
-
-    .hero-sub{
-      margin:30px 0 22px 0;
-      font-size:26px;
-      font-weight:700;
-      color:#121212;
+    .left-content {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      z-index: 10;
     }
 
-    .home-actions{
-      display:flex;
-      flex-direction:column;
-      gap:18px;
-      margin-top:18px;
-      max-width:420px;
+    .title-small {
+      font-size: 4rem;
+      font-weight: 500;
+      margin: 0;
+      line-height: 1;
+      letter-spacing: -2px;
+      font-family: 'Inter', sans-serif;
+    }
+    .title-bold {
+      font-size: 5rem;
+      font-weight: 900;
+      margin: 0;
+      line-height: 1;
+      letter-spacing: -2px;
+      font-family: 'Inter', sans-serif;
+    }
+    .subtitle {
+      font-size: 1.2rem;
+      margin: 10px 0 30px 0;
+      font-weight: 500;
     }
 
-    .pill-btn{
-      background:#fff;
-      border:3px solid var(--border);
-      border-radius:14px;
-      padding:16px 22px;
-      font-size:22px;
-      font-weight:800;
-      cursor:pointer;
-      width:100%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      box-shadow: 0 8px 0 rgba(0,0,0,0.06);
-      transition: transform .14s ease, box-shadow .14s ease, background .14s ease;
-      will-change:transform;
-      position:relative;
-      overflow:hidden;
+    /* Buttons */
+    .pill-btn {
+      background: white;
+      border: 2px solid black;
+      border-radius: 50px;
+      padding: 18px 40px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      width: 380px;
+      text-align: left;
+      transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+      will-change: transform;
     }
-    .pill-btn:hover{
+    .pill-btn:hover {
       transform: translateY(-3px);
-      box-shadow: 0 12px 0 rgba(0,0,0,0.05);
-      background:#f9fafb;
+      background-color: #f8f9fa;
+      box-shadow: 0 8px 0 rgba(0,0,0,0.08);
     }
-    .pill-btn:active{
+    .pill-btn:active {
       transform: translateY(1px);
-      box-shadow: 0 6px 0 rgba(0,0,0,0.05);
+      box-shadow: 0 2px 0 rgba(0,0,0,0.08);
     }
 
-    /* ID Card (right side) */
-    .id-card{
-      width:520px;
-      height:620px;
-      background:var(--card);
-      border:3px solid var(--border);
-      border-radius:34px;
-      box-shadow: 18px 18px 0 var(--shadow);
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
-      animation: floatCard 5s ease-in-out infinite;
+    /* ID Card (match your screenshot style) */
+    .id-card {
+      background: white;
+      border: 2px solid black;
+      border-radius: 28px;
+      width: 420px;
+      height: 560px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: space-between;
+      text-align: center;
+      box-shadow: 15px 15px 0px rgba(0,0,0,0.05);
+      padding: 18px;
+      overflow: hidden;
+      transform: translateY(0);
+      animation: floatCard 4.5s ease-in-out infinite;
     }
-    @keyframes floatCard{
-      0%,100%{ transform:translateY(0); }
-      50%{ transform:translateY(-8px); }
-    }
-
-    .id-body{
-      flex:1;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      padding:40px 30px 10px 30px;
-      gap:22px;
+    @keyframes floatCard {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
     }
 
-    .mae-logo{
-      width:78%;
-      max-width:360px;
-      height:auto;
-      object-fit:contain;
-      filter: drop-shadow(0 10px 18px rgba(0,0,0,0.10));
-      animation: popIn 700ms cubic-bezier(.2,.9,.2,1) both;
-    }
-    @keyframes popIn{
-      from{ opacity:0; transform:scale(0.94); }
-      to{ opacity:1; transform:scale(1); }
+    .id-card-top {
+      background: #fff;
+      border-radius: 18px;
+      height: 110px;
+      border: 2px solid #000;
+      border-bottom: none;
+      margin: 0;
     }
 
-    .mae-letters{
-      font-size:72px;
-      font-weight:900;
-      letter-spacing:18px;
-      padding-left:18px; /* to visually center because of letter-spacing */
-      margin:0;
-      line-height:1;
+    /* IMAGE AREA */
+    .id-photo {
+      flex: 1;
+      background: #fff;
+      border-left: 2px solid #000;
+      border-right: 2px solid #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+    }
+    .id-photo img{
+      width: 92%;
+      height: 92%;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.10));
+      animation: popIn 650ms cubic-bezier(.2,.9,.2,1) both;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
     }
 
-    .id-footer{
-      border-top:3px solid var(--border);
-      padding:18px 20px;
-      font-size:34px;
-      font-weight:900;
-      text-transform:uppercase;
-      text-align:center;
-      letter-spacing:0.4px;
+    .id-card-bottom {
+      background: #fff;
+      border-radius: 18px;
+      height: 110px;
+      border: 2px solid #000;
+      border-top: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+    .card-name {
+      font-size: 1.9rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      font-family: 'Inter', sans-serif;
+      line-height: 1.05;
+      letter-spacing: 0.5px;
     }
 
-    /* Responsive (phone/tablet) */
-    @media (max-width: 1100px){
-      #home-screen{
-        grid-template-columns: 1fr;
-        padding:50px 24px;
-        gap:40px;
-      }
-      .id-card{ width:min(520px, 95vw); height:620px; margin:0 auto; }
-      .hero-title{ font-size:72px; }
-      .hero-title .thin{ font-size:68px; }
-      .home-actions{ max-width:520px; }
-    }
-
-    @media (max-width: 520px){
-      .hero-title{ font-size:56px; }
-      .hero-title .thin{ font-size:52px; }
-      .hero-sub{ font-size:20px; }
-      .pill-btn{ font-size:18px; }
-      .id-footer{ font-size:26px; }
-      .mae-letters{ font-size:56px; letter-spacing:14px; padding-left:14px; }
-    }
-
-    /* =========================================
-      MENU SCREEN
-    ========================================= */
-    #sim-menu-screen{
-      min-height:100vh;
-      padding:40px 24px;
-      display:flex;
-      flex-direction:column;
-      gap:20px;
-    }
-
-    .menu-wrap{
-      max-width:900px;
-      margin:40px auto 0 auto;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:18px;
-      text-align:center;
-    }
-
-    .menu-title{
-      font-size:56px;
-      font-weight:900;
-      margin:0;
-      letter-spacing:-1px;
-    }
-    .menu-sub{
-      margin:0 0 10px 0;
-      font-size:20px;
-      font-weight:700;
-      color:#1a1a1a;
-    }
-
-    button.back-btn{
-      background:none;
-      border:none;
-      font-size:20px;
-      font-weight:900;
-      cursor:pointer;
-      color:#222;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      width:max-content;
+    /* Back button */
+    button.back-btn {
+      background: none;
+      border: none;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      color: #333;
+      margin-bottom: 10px;
       transition: transform .12s ease, color .12s ease;
     }
-    button.back-btn:hover{
-      color:var(--blue);
+    button.back-btn:hover {
+      color: #007bff;
       transform: translateX(-2px);
     }
 
     /* =========================================
-      SIMULATOR
-    ========================================= */
-    #simulator-app{
-      min-height:100vh;
-      padding:30px 20px 60px 20px;
-      display:flex;
-      flex-direction:column;
-      gap:14px;
+       SIMULATOR STYLES
+       ========================================= */
+    .sim-container {
+      background: white;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.12);
+      width: 1000px;
+      max-width: 100%;
+      animation: screenIn 420ms cubic-bezier(.2,.9,.2,1) both;
     }
 
-    .sim-container{
-      background:#fff;
-      padding:22px;
-      border-radius:18px;
-      box-shadow: 0 14px 30px rgba(0,0,0,0.10);
-      max-width:1100px;
-      margin:0 auto;
-      width:100%;
-    }
-
-    .visuals-row{
-      display:grid;
+    .visuals-row {
+      display: grid;
       grid-template-columns: 2fr 1fr;
-      gap:18px;
-      margin-bottom:18px;
+      gap: 20px;
+      margin-bottom: 20px;
     }
-    @media (max-width: 950px){
-      .visuals-row{ grid-template-columns:1fr; }
+    @media (max-width: 900px) {
+      .visuals-row { grid-template-columns: 1fr; }
+      .id-card { width: 95%; }
+      .pill-btn { width: 95%; }
+      .title-small { font-size: 3rem; }
+      .title-bold { font-size: 3.5rem; }
     }
 
-    .panel{
-      border:1px solid #eaeaea;
-      border-radius:14px;
-      padding:12px;
-      background:#fff;
-      position:relative;
+    .panel {
+      border: 1px solid #eee;
+      border-radius: 12px;
+      padding: 12px;
+      background: #fff;
+      position: relative;
       transition: transform .15s ease, box-shadow .15s ease;
     }
-    .panel:hover{
+    .panel:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 18px rgba(0,0,0,0.06);
+      box-shadow: 0 10px 18px rgba(0,0,0,0.06);
     }
-    .panel-label{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      font-weight:900;
-      color:#333;
-      margin-bottom:10px;
-      font-size:14px;
-      letter-spacing:0.2px;
+    .panel-label {
+      font-weight: 700;
+      color: #555;
+      margin-bottom: 10px;
+      display: block;
+      font-size: 0.9rem;
     }
 
-    canvas{
-      width:100%;
-      height:350px;
-      display:block;
-      border-radius:12px;
-      cursor:crosshair;
+    canvas {
+      width: 100%;
+      height: 350px;
+      cursor: crosshair;
+      display: block;
+      border-radius: 10px;
     }
-    #sPlaneCanvas{ background:#fafafa; }
-
-    .hint{
-      margin-top:10px;
-      font-size:12.5px;
-      font-weight:700;
-      color:#666;
+    #sPlaneCanvas {
+      background: #fafafa;
+      border-left: 1px solid #eee;
     }
 
-    .controls-area{
-      display:grid;
+    /* Controls Grid */
+    .controls-area {
+      display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap:16px;
-      background:#f8f9fa;
-      padding:18px;
-      border-radius:14px;
-      border:1px solid #e9ecef;
+      gap: 20px;
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #e9ecef;
+      animation: fadeUp 520ms cubic-bezier(.2,.9,.2,1) both;
     }
-    @media (max-width: 900px){
-      .controls-area{ grid-template-columns:1fr; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-
-    .control-column{ display:flex; flex-direction:column; gap:14px; }
-    .control-header{
-      font-weight:900;
-      font-size:14px;
-      text-transform:uppercase;
-      letter-spacing:0.8px;
-      border-bottom:2px solid #dedede;
-      padding-bottom:6px;
-      color:#1b1b1b;
+    @media (max-width: 800px) {
+      .controls-area { grid-template-columns: 1fr; }
     }
 
-    .control-group label{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      font-size:13px;
-      font-weight:800;
-      margin-bottom:6px;
-      color:#2b2b2b;
+    .control-column { display: flex; flex-direction: column; gap: 15px; }
+    .control-header {
+      font-weight: 900;
+      font-size: 1rem;
+      margin-bottom: 5px;
+      color: #222;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    input[type="range"]{ width:100%; cursor:pointer; }
+    .control-group label {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 5px;
+    }
+    input[type="range"] { width: 100%; cursor: pointer; }
 
-    select{
-      width:100%;
-      padding:10px;
-      border-radius:10px;
-      border:1px solid #cfcfcf;
-      font-weight:900;
-      font-family:inherit;
-      cursor:pointer;
-      background:#fff;
+    select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform .12s ease, box-shadow .12s ease;
     }
-    select:focus{ outline:none; box-shadow:0 0 0 4px rgba(0,123,255,0.14); }
+    select:focus { outline: none; box-shadow: 0 0 0 4px rgba(0,123,255,0.15); }
 
-    .mode-toggle{
-      display:flex;
-      background:#e9ecef;
-      border-radius:12px;
-      padding:4px;
-      gap:4px;
-      margin-bottom:6px;
+    /* Buttons */
+    button.btn-step {
+      background: #000;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 900;
+      width: 100%;
+      transition: transform 0.12s ease, background 0.2s ease;
+      will-change: transform;
     }
-    .mode-btn{
-      flex:1;
-      border:none;
-      background:transparent;
-      padding:10px 10px;
-      border-radius:10px;
-      font-weight:900;
-      cursor:pointer;
-      color:#666;
-      transition: background .18s ease, transform .12s ease, box-shadow .18s ease;
-      font-size:12.5px;
-    }
-    .mode-btn.active{
-      background:#fff;
-      color:#000;
-      box-shadow: 0 8px 14px rgba(0,0,0,0.10);
-    }
-    .mode-btn:active{ transform:scale(0.99); }
+    button.btn-step:hover { background: #333; transform: translateY(-2px); }
+    button.btn-step:active { transform: translateY(1px); }
 
-    button.btn-step{
-      background:#000;
-      color:#fff;
-      border:none;
-      padding:12px 12px;
-      border-radius:12px;
-      font-weight:900;
-      cursor:pointer;
-      transition: transform .12s ease, background .2s ease;
-    }
-    button.btn-step:hover{ background:#222; transform: translateY(-2px); }
-    button.btn-step:active{ transform: translateY(1px); }
-
-    .math-display{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-weight:800;
-      font-size:12.5px;
-      color:#222;
-      background:rgba(255,255,255,0.8);
-      border:1px solid #e8e8e8;
-      border-radius:12px;
-      padding:10px;
-      min-height:24px;
-      word-wrap:break-word;
+    /* Math & Status */
+    .math-display {
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      font-size: 0.82rem;
+      color: #333;
+      background: rgba(255,255,255,0.7);
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #eee;
+      min-height: 20px;
+      word-wrap: break-word;
     }
 
-    .status-badge{
-      margin-top:8px;
-      width:100%;
-      text-align:center;
-      font-weight:900;
-      padding:10px;
-      border-radius:12px;
+    .status-badge {
+      display: inline-block;
+      padding: 10px 10px;
+      border-radius: 10px;
+      font-weight: 900;
+      font-size: 0.9rem;
+      margin-top: 8px;
+      width: 100%;
+      text-align: center;
+      box-sizing: border-box;
       transition: transform .18s ease;
     }
-    .status-stable{ background:#d4edda; color:#155724; }
-    .status-unstable{ background:#f8d7da; color:#721c24; }
-    .status-badge.bump{ transform:scale(1.03); }
+    .status-stable { background: #d4edda; color: #155724; }
+    .status-unstable { background: #f8d7da; color: #721c24; }
+    .status-badge.bump { transform: scale(1.03); }
 
-    .warning-overlay{
-      position:absolute;
-      inset:0;
-      border-radius:14px;
-      background:rgba(255,255,255,0.94);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      flex-direction:column;
-      color:#d32f2f;
-      font-weight:900;
-      z-index:10;
+    /* Warning Overlay */
+    .warning-overlay {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(255,255,255,0.95);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #d32f2f;
+      font-weight: 900;
+      z-index: 10;
+      border-radius: 12px;
+      text-align: center;
       animation: shake 450ms ease both;
-      text-align:center;
-      padding:14px;
     }
-    @keyframes shake{
-      0%,100%{ transform:translateX(0); }
-      20%{ transform:translateX(-6px); }
-      40%{ transform:translateX(6px); }
-      60%{ transform:translateX(-4px); }
-      80%{ transform:translateX(4px); }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    /* Toggle Switch UI */
+    .mode-toggle {
+      display: flex;
+      background: #e9ecef;
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 10px;
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-weight: 900;
+      font-size: 0.85rem;
+      color: #666;
+      border-radius: 8px;
+      transition: background .18s ease, box-shadow .18s ease, transform .12s ease;
+    }
+    .mode-btn.active {
+      background: #fff;
+      color: #000;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.10);
+    }
+    .mode-btn:active { transform: scale(0.98); }
+
+    /* Small helper text */
+    .hint {
+      font-size: 0.78rem;
+      color: #666;
+      margin-top: 4px;
     }
   </style>
 </head>
@@ -463,78 +420,81 @@
 <body>
 
   <!-- HOME -->
-  <section id="home-screen" class="screen active-screen enter">
-    <div class="hero-left">
-      <h1 class="hero-title">
-        <span class="thin">Welcome to</span>
-        MAE Academy
-      </h1>
-
-      <div class="hero-sub">Learn &amp; Enjoy</div>
-
-      <div class="home-actions">
-        <button class="pill-btn" onclick="alert('Module under construction')">Academic Courses</button>
-        <button class="pill-btn" onclick="navigateTo('sim-menu-screen')">Practical Simulations</button>
+  <div id="home-screen" class="screen active-screen enter">
+    <div class="left-content">
+      <div>
+        <h1 class="title-small">Welcome to</h1>
+        <h1 class="title-bold">MAE Academy</h1>
+        <p class="subtitle">Learn & Enjoy</p>
       </div>
+
+      <button class="pill-btn" onclick="alert('Module under construction')">
+        Academic Courses <span>&#8594;</span>
+      </button>
+
+      <button class="pill-btn" onclick="navigateTo('sim-menu-screen')">
+        Practical Simulations <span>&#8594;</span>
+      </button>
     </div>
 
-    <!-- Right ID Card -->
+    <!-- ID CARD WITH IMAGE (SVG) -->
     <div class="id-card">
-      <div class="id-body">
-        <!-- Put your SVG here (see GitHub steps at the bottom) -->
-        <img class="mae-logo" src="assets/mae.svg" alt="MAE Logo" />
-        <div class="mae-letters">MAE</div>
+      <div class="id-card-top"></div>
+
+      <!-- Put your SVG here -->
+      <!-- Make sure you upload: assets/mae.svg -->
+      <div class="id-photo">
+        <img src="assets/mae.svg" alt="MAE Logo">
       </div>
 
-      <div class="id-footer">MOHAMMAD ABU ELYAN</div>
+      <div class="id-card-bottom">
+        <div class="card-name">MOHAMMAD ABU<br>ELYAN</div>
+      </div>
     </div>
-  </section>
+  </div>
 
   <!-- MENU -->
-  <section id="sim-menu-screen" class="screen">
-    <button class="back-btn" onclick="navigateTo('home-screen')">← Back</button>
+  <div id="sim-menu-screen" class="screen">
+    <button class="back-btn" style="align-self:flex-start; margin-left:max(0px, calc(50% - 600px));"
+      onclick="navigateTo('home-screen')">&#8592; Back</button>
 
-    <div class="menu-wrap">
-      <h1 class="menu-title">Simulations</h1>
-      <p class="menu-sub">Select a module to begin</p>
+    <div class="left-content" style="align-items:center; margin-top:20px;">
+      <h1 class="title-small" style="font-size:3rem;">Simulations</h1>
+      <p class="subtitle">Select a module to begin</p>
 
-      <div style="width:min(520px, 95vw); display:flex; flex-direction:column; gap:16px;">
-        <button class="pill-btn" onclick="startSimulator()">Process Control System</button>
-        <button class="pill-btn" style="opacity:.5; cursor:not-allowed;">Fluid Mechanics (Soon)</button>
-      </div>
+      <button class="pill-btn" onclick="startSimulator()">Process Control System <span>&#9654;</span></button>
+      <button class="pill-btn" style="opacity:0.5; cursor:not-allowed;">Fluid Mechanics (Soon)</button>
     </div>
-  </section>
+  </div>
 
   <!-- SIMULATOR -->
-  <section id="simulator-app" class="screen">
-    <button class="back-btn" onclick="navigateTo('sim-menu-screen')">← Back to Menu</button>
+  <div id="simulator-app" class="screen">
+    <button class="back-btn" style="align-self:flex-start; margin-left:max(0px, calc(50% - 500px));"
+      onclick="navigateTo('sim-menu-screen')">&#8592; Back to Menu</button>
 
     <div class="sim-container">
       <div class="visuals-row">
+
         <div class="panel">
-          <div class="panel-label">
-            <span>Time Response</span>
-            <span style="font-weight:800; color:#666;">(scroll to adjust SP)</span>
-          </div>
+          <span class="panel-label">Time Response (scroll to adjust SP)</span>
           <canvas id="simCanvas" width="600" height="350"></canvas>
-
           <div id="sim-warning" class="warning-overlay">
-            <div style="font-size:38px; margin-bottom:8px;">⚠️</div>
-            <div style="font-size:20px;">Unstable!</div>
-            <div style="font-size:13px; font-weight:800; margin-top:6px; color:#333;">System reset.</div>
+            <div style="font-size:2rem; margin-bottom:10px;">⚠️</div>
+            <div>Unstable!</div>
+            <div style="font-size:0.85rem; font-weight:700; margin-top:5px;">System reset.</div>
           </div>
-
           <div class="hint">Tip: scroll on the graph to change SP (Shift = fast, Ctrl = fine)</div>
         </div>
 
         <div class="panel">
-          <div class="panel-label">Root Locus (Poles)</div>
+          <span class="panel-label">Root Locus (Poles)</span>
           <canvas id="sPlaneCanvas" width="300" height="350"></canvas>
         </div>
+
       </div>
 
       <div class="controls-area">
-        <!-- Plant -->
+
         <div class="control-column">
           <div class="control-header">1. System Plant</div>
 
@@ -548,17 +508,17 @@
           </div>
 
           <div class="control-group param-1st" style="display:none;">
-            <label>Time Constant (τ): <span id="val-tau">1.0</span>s</label>
+            <label>Time Constant (&tau;): <span id="val-tau">1.0</span>s</label>
             <input type="range" id="inp-tau" min="0.5" max="5.0" step="0.1" value="1.0">
           </div>
 
           <div class="control-group param-2nd">
-            <label>Natural Freq (ωn): <span id="val-wn">5.0</span></label>
+            <label>Natural Freq (&omega;<sub>n</sub>): <span id="val-wn">5.0</span></label>
             <input type="range" id="inp-wn" min="1" max="15" step="0.5" value="5.0">
           </div>
 
           <div class="control-group param-2nd">
-            <label>Damping Ratio (ζ): <span id="val-zeta">0.5</span></label>
+            <label>Damping Ratio (&zeta;): <span id="val-zeta">0.5</span></label>
             <input type="range" id="inp-zeta" min="0" max="2.0" step="0.05" value="0.5">
           </div>
 
@@ -569,7 +529,6 @@
           </div>
         </div>
 
-        <!-- Controller -->
         <div class="control-column">
           <div class="control-header">2. Controller</div>
 
@@ -594,21 +553,21 @@
           </div>
 
           <div id="ctrl-design" style="display:none;">
-            <div style="font-size:13px; color:var(--blue); font-weight:900; margin-bottom:10px;">
+            <div style="font-size:0.85rem; color:#007bff; margin-bottom:10px; font-weight:900;">
               Auto-calculates PID for target response
             </div>
 
             <div class="control-group">
-              <label>Target ωn: <span id="val-twn">6.0</span></label>
+              <label>Target &omega;<sub>n</sub>: <span id="val-twn">6.0</span></label>
               <input type="range" id="inp-twn" min="1" max="20" step="0.5" value="6.0">
             </div>
 
             <div class="control-group">
-              <label>Target ζ: <span id="val-tzeta">0.7</span></label>
+              <label>Target &zeta;: <span id="val-tzeta">0.7</span></label>
               <input type="range" id="inp-tzeta" min="0.1" max="1.5" step="0.05" value="0.7">
             </div>
 
-            <div style="margin-top:10px; padding:10px; background:#e3f2fd; border-radius:12px; font-size:13px; font-weight:900;">
+            <div style="margin-top:10px; padding:10px; background:#e3f2fd; border-radius:10px; font-size:0.85rem; font-weight:900;">
               Result: Kp=<span id="res-kp">--</span> &nbsp; Kd=<span id="res-kd">--</span>
             </div>
           </div>
@@ -616,21 +575,21 @@
           <button class="btn-step" style="margin-top:10px;" onclick="triggerStep()">Trigger Step</button>
         </div>
 
-        <!-- Analysis -->
         <div class="control-column">
           <div class="control-header">3. Analysis</div>
 
-          <div style="font-size:13px; color:#666; font-weight:900;">Characteristic Equation:</div>
+          <div style="font-size:0.85rem; color:#666; font-weight:700;">Characteristic Equation:</div>
           <div id="math-char-eq" class="math-display">...</div>
 
-          <div style="font-size:13px; color:#666; font-weight:900; margin-top:10px;">Closed-Loop Poles:</div>
+          <div style="font-size:0.85rem; color:#666; margin-top:10px; font-weight:700;">Closed-Loop Poles:</div>
           <div id="math-roots" class="math-display">...</div>
 
           <div id="status-badge" class="status-badge status-stable">Stable</div>
         </div>
+
       </div>
     </div>
-  </section>
+  </div>
 
   <script>
     // =========================
@@ -641,14 +600,16 @@
         s.classList.remove('active-screen');
         s.classList.remove('enter');
       });
+
       const target = document.getElementById(id);
       target.classList.add('active-screen');
+      // retrigger animation
       requestAnimationFrame(() => target.classList.add('enter'));
     }
 
     function startSimulator() {
       navigateTo('simulator-app');
-      if (!window.simLoaded) { initSim(); window.simLoaded = true; }
+      if(!window.simLoaded) { initSim(); window.simLoaded = true; }
     }
 
     // =========================
@@ -666,11 +627,11 @@
     const MAX_HISTORY = 600;
 
     // Time base (for axis)
-    const DT_FRAME = 0.02;   // seconds per history sample
+    const DT_FRAME = 0.02;   // seconds per history sample (your updatePhysics total step)
     const Y_MIN = -20;
     const Y_MAX = 140;
 
-    let controlMode = 'manual';
+    let controlMode = 'manual'; // 'manual' or 'design'
     let lastStable = true;
 
     function initSim() {
@@ -683,8 +644,10 @@
       // Scroll-to-adjust SP (ONLY on the graph)
       canvas.addEventListener('wheel', (e) => {
         e.preventDefault();
+
         // sensitivity: normal = 1, Shift = 5, Ctrl = 0.2
         const step = e.ctrlKey ? 0.2 : (e.shiftKey ? 5 : 1);
+
         pid.sp += (e.deltaY < 0 ? step : -step);
         pid.sp = Math.max(0, Math.min(125, pid.sp));
       }, { passive: false });
@@ -700,7 +663,7 @@
       document.getElementById('mode-design').className = mode === 'design' ? 'mode-btn active' : 'mode-btn';
       document.getElementById('ctrl-manual').style.display = mode === 'manual' ? 'block' : 'none';
       document.getElementById('ctrl-design').style.display = mode === 'design' ? 'block' : 'none';
-      if (mode === 'design') runAutoTune();
+      if(mode === 'design') runAutoTune();
       analyze();
     }
 
@@ -709,8 +672,8 @@
         const el = document.getElementById(id);
         el.addEventListener('input', e => {
           obj[key] = parseFloat(e.target.value);
-          document.getElementById(id.replace('inp', 'val')).innerText = obj[key];
-          if (controlMode === 'design') runAutoTune();
+          document.getElementById(id.replace('inp','val')).innerText = obj[key];
+          if(controlMode === 'design') runAutoTune();
           analyze();
         });
       };
@@ -731,24 +694,25 @@
     function updateUI() {
       sys.order = parseInt(document.getElementById('sys-order').value);
 
-      document.querySelectorAll('.param-1st').forEach(e => e.style.display = sys.order === 1 ? 'block' : 'none');
-      document.querySelectorAll('.param-2nd').forEach(e => e.style.display = (sys.order === 2 || sys.order === 3) ? 'block' : 'none');
-      document.querySelectorAll('.param-3rd').forEach(e => e.style.display = sys.order === 3 ? 'block' : 'none');
+      // Visibility logic
+      document.querySelectorAll('.param-1st').forEach(e => e.style.display = sys.order===1 ? 'block':'none');
+      document.querySelectorAll('.param-2nd').forEach(e => e.style.display = (sys.order===2 || sys.order===3) ? 'block':'none');
+      document.querySelectorAll('.param-3rd').forEach(e => e.style.display = sys.order===3 ? 'block':'none');
 
       resetSim();
-      if (controlMode === 'design') runAutoTune();
+      if(controlMode === 'design') runAutoTune();
       analyze();
     }
 
     function runAutoTune() {
-      // Simple pole placement for 2nd order only
-      if (sys.order === 2) {
+      // Simple pole placement logic for the 2nd order only
+      if(sys.order === 2) {
         const ws2 = sys.wn * sys.wn;
         const target_w2 = design.wn * design.wn;
         const target_mid = 2 * design.zeta * design.wn;
 
         const req_Kp = (target_w2 / ws2) - 1;
-        const req_Kd = (target_mid - (2 * sys.zeta * sys.wn)) / ws2;
+        const req_Kd = (target_mid - (2*sys.zeta*sys.wn)) / ws2;
 
         pid.kp = Math.max(0, req_Kp);
         pid.kd = Math.max(0, req_Kd);
@@ -757,7 +721,7 @@
         document.getElementById('res-kp').innerText = pid.kp.toFixed(2);
         document.getElementById('res-kd').innerText = pid.kd.toFixed(2);
 
-        // sync sliders
+        // update slider visuals too
         document.getElementById('inp-kp').value = pid.kp;
         document.getElementById('val-kp').innerText = pid.kp.toFixed(2);
 
@@ -766,6 +730,7 @@
 
         document.getElementById('inp-ki').value = pid.ki;
         document.getElementById('val-ki').innerText = pid.ki.toFixed(2);
+
       } else {
         document.getElementById('res-kp').innerText = "N/A";
         document.getElementById('res-kd').innerText = "N/A";
@@ -789,35 +754,37 @@
       const SUB = 20;
       const DT = 0.02 / SUB;
 
-      for (let i = 0; i < SUB; i++) {
+      for(let i=0; i<SUB; i++) {
         const err = pid.sp - state.pv;
         state.integ += err * DT;
-        const u = (pid.kp * err) + (pid.ki * state.integ) + (pid.kd * (err - state.lastErr) / DT);
+        const u = (pid.kp * err) + (pid.ki * state.integ) + (pid.kd * (err - state.lastErr)/DT);
 
-        if (isNaN(u) || Math.abs(u) > 1e6) { handleCrash(); return; }
+        if(isNaN(u) || Math.abs(u) > 1e6) { handleCrash(); return; }
 
         if (sys.order === 1) {
           state.pv += ((u - state.pv) / sys.tau) * DT;
-        } else if (sys.order === 2) {
-          const w2 = sys.wn * sys.wn;
-          const force = (w2 * u) - (2 * sys.zeta * sys.wn * state.vel) - (w2 * state.pv);
+        }
+        else if (sys.order === 2) {
+          const w2 = sys.wn*sys.wn;
+          const force = (w2*u) - (2*sys.zeta*sys.wn*state.vel) - (w2*state.pv);
           state.vel += force * DT;
           state.pv += state.vel * DT;
-        } else if (sys.order === 3) {
-          const w2 = sys.wn * sys.wn;
-          const force = (w2 * u) - (2 * sys.zeta * sys.wn * state.vel) - (w2 * state.acc);
+        }
+        else if (sys.order === 3) {
+          const w2 = sys.wn*sys.wn;
+          const force = (w2*u) - (2*sys.zeta*sys.wn*state.vel) - (w2*state.acc);
           state.vel += force * DT;
-          state.acc += state.vel * DT; // x
+          state.acc += state.vel * DT;  // x
           const y_dot = sys.p3 * (state.acc - state.pv);
           state.pv += y_dot * DT;
         }
 
         state.lastErr = err;
-        if (Math.abs(state.pv) > 1e4) { handleCrash(); return; }
+        if(Math.abs(state.pv) > 1e4) { handleCrash(); return; }
       }
 
       history.push({ sp: pid.sp, pv: state.pv });
-      if (history.length > MAX_HISTORY) history.shift();
+      if(history.length > MAX_HISTORY) history.shift();
     }
 
     function handleCrash() {
@@ -838,19 +805,21 @@
         const C = pid.ki;
         eqHTML = `${A.toFixed(1)}s² + ${B.toFixed(1)}s + ${C.toFixed(1)} = 0`;
         roots = solveQuad(A, B, C);
-      } else if (sys.order === 2) {
-        const w2 = sys.wn * sys.wn;
-        const B = 2 * sys.zeta * sys.wn + w2 * pid.kd;
-        const C = w2 + w2 * pid.kp;
-        const D = w2 * pid.ki;
+      }
+      else if (sys.order === 2) {
+        const w2 = sys.wn*sys.wn;
+        const B = 2*sys.zeta*sys.wn + w2*pid.kd;
+        const C = w2 + w2*pid.kp;
+        const D = w2*pid.ki;
         eqHTML = `s³ + ${B.toFixed(1)}s² + ${C.toFixed(1)}s + ${D.toFixed(1)} = 0`;
         roots = solveCubic(B, C, D);
-      } else {
+      }
+      else {
         eqHTML = "Order 4 (Analysis Approx)";
         roots = [
-          { re: -sys.p3, im: 0 },
-          { re: -sys.zeta * sys.wn, im: sys.wn * Math.sqrt(Math.abs(1 - sys.zeta * sys.zeta)) },
-          { re: -sys.zeta * sys.wn, im: -sys.wn * Math.sqrt(Math.abs(1 - sys.zeta * sys.zeta)) }
+          {re: -sys.p3, im: 0},
+          {re: -sys.zeta*sys.wn, im: sys.wn*Math.sqrt(Math.abs(1-sys.zeta*sys.zeta))},
+          {re: -sys.zeta*sys.wn, im: -sys.wn*Math.sqrt(Math.abs(1-sys.zeta*sys.zeta))}
         ];
       }
 
@@ -859,8 +828,8 @@
       let txt = "";
       let stable = true;
       roots.forEach(r => {
-        if (r.re > 0.001) stable = false;
-        txt += `s = ${r.re.toFixed(2)} ${Math.abs(r.im) < 0.001 ? '' : '± j' + Math.abs(r.im).toFixed(2)}<br>`;
+        if(r.re > 0.001) stable = false;
+        txt += `s = ${r.re.toFixed(1)} ${Math.abs(r.im) < 0.001 ? '' : '± j'+Math.abs(r.im).toFixed(1)}<br>`;
       });
       document.getElementById('math-roots').innerHTML = txt;
 
@@ -868,9 +837,10 @@
       badge.innerText = stable ? "Stable" : "Unstable";
       badge.className = "status-badge " + (stable ? "status-stable" : "status-unstable");
 
-      if (stable !== lastStable) {
+      // little bump animation when status changes
+      if(stable !== lastStable){
         badge.classList.add('bump');
-        setTimeout(() => badge.classList.remove('bump'), 180);
+        setTimeout(()=>badge.classList.remove('bump'), 180);
         lastStable = stable;
       }
 
@@ -878,36 +848,30 @@
     }
 
     function solveQuad(a, b, c) {
-      if (Math.abs(a) < 1e-5) return [{ re: -c / b, im: 0 }];
-      const d = b * b - 4 * a * c;
-      if (d >= 0) return [
-        { re: (-b + Math.sqrt(d)) / (2 * a), im: 0 },
-        { re: (-b - Math.sqrt(d)) / (2 * a), im: 0 }
-      ];
-      return [
-        { re: -b / (2 * a), im: Math.sqrt(-d) / (2 * a) },
-        { re: -b / (2 * a), im: -Math.sqrt(-d) / (2 * a) }
-      ];
+      if(Math.abs(a)<1e-5) return [{re:-c/b, im:0}];
+      const d = b*b - 4*a*c;
+      if(d>=0) return [{re:(-b+Math.sqrt(d))/(2*a), im:0}, {re:(-b-Math.sqrt(d))/(2*a), im:0}];
+      return [{re:-b/(2*a), im:Math.sqrt(-d)/(2*a)}, {re:-b/(2*a), im:-Math.sqrt(-d)/(2*a)}];
     }
 
     function solveCubic(a, b, c) {
-      const p = b - a * a / 3;
-      const q = 2 * a * a * a / 27 - a * b / 3 + c;
-      const d = q * q / 4 + p * p * p / 27;
+      const p = b - a*a/3;
+      const q = 2*a*a*a/27 - a*b/3 + c;
+      const d = q*q/4 + p*p*p/27;
 
       let roots = [];
-      if (d > 0) {
-        const u = Math.cbrt(-q / 2 + Math.sqrt(d));
-        const v = Math.cbrt(-q / 2 - Math.sqrt(d));
-        roots.push({ re: u + v - a / 3, im: 0 });
-        roots.push({ re: -(u + v) / 2 - a / 3, im: (u - v) * Math.sqrt(3) / 2 });
-        roots.push({ re: -(u + v) / 2 - a / 3, im: -(u - v) * Math.sqrt(3) / 2 });
+      if(d>0) {
+        const u = Math.cbrt(-q/2 + Math.sqrt(d));
+        const v = Math.cbrt(-q/2 - Math.sqrt(d));
+        roots.push({re: u+v - a/3, im: 0});
+        roots.push({re: -(u+v)/2 - a/3, im: (u-v)*Math.sqrt(3)/2});
+        roots.push({re: -(u+v)/2 - a/3, im: -(u-v)*Math.sqrt(3)/2});
       } else {
-        const k = 2 * Math.sqrt(-p / 3);
-        const t = Math.acos(3 * q / (2 * p * k));
-        roots.push({ re: k * Math.cos(t / 3) - a / 3, im: 0 });
-        roots.push({ re: k * Math.cos((t + 2 * Math.PI) / 3) - a / 3, im: 0 });
-        roots.push({ re: k * Math.cos((t + 4 * Math.PI) / 3) - a / 3, im: 0 });
+        const k = 2 * Math.sqrt(-p/3);
+        const t = Math.acos(3*q/(2*p*k));
+        roots.push({re: k*Math.cos(t/3)-a/3, im:0});
+        roots.push({re: k*Math.cos((t+2*Math.PI)/3)-a/3, im:0});
+        roots.push({re: k*Math.cos((t+4*Math.PI)/3)-a/3, im:0});
       }
       return roots;
     }
@@ -916,7 +880,7 @@
     // Draw loop
     // =========================
     function loop() {
-      if (document.getElementById('simulator-app').classList.contains('active-screen')) {
+      if(document.getElementById('simulator-app').classList.contains('active-screen')) {
         updatePhysics();
         drawGraph();
       }
@@ -927,39 +891,38 @@
     // Time graph with TIME AXIS
     // =========================
     function drawGraph() {
-      ctx.clearRect(0, 0, 600, 350);
+      ctx.clearRect(0,0,600,350);
 
       const W = 600, H = 350;
       const LEFT_PAD = 44;
       const BOTTOM_PAD = 28;
-      const TOP_PAD = 12;
+      const TOP_PAD = 10;
 
       const plotX0 = LEFT_PAD;
       const plotY0 = TOP_PAD;
-      const plotW = W - LEFT_PAD - 10;
-      const plotH = H - TOP_PAD - BOTTOM_PAD;
+      const plotW  = W - LEFT_PAD - 10;
+      const plotH  = H - TOP_PAD - BOTTOM_PAD;
 
       const yToPix = (yVal) => {
         const t = (yVal - Y_MIN) / (Y_MAX - Y_MIN);
         return plotY0 + plotH - t * plotH;
       };
 
-      const xToPix = (i) => plotX0 + (i / (MAX_HISTORY - 1)) * plotW;
+      const xToPix = (i) => plotX0 + (i/(MAX_HISTORY-1)) * plotW;
 
       // Grid Y
-      ctx.strokeStyle = "#eee";
-      ctx.fillStyle = "#888";
-      ctx.font = "10px Arial";
-      [0, 25, 50, 75, 100, 125].forEach(v => {
+      ctx.strokeStyle="#eee";
+      ctx.fillStyle="#888";
+      ctx.font="10px Arial";
+      [0,25,50,75,100,125].forEach(v => {
         const y = yToPix(v);
         ctx.beginPath(); ctx.moveTo(plotX0, y); ctx.lineTo(plotX0 + plotW, y); ctx.stroke();
         ctx.fillText(v, 8, y + 3);
       });
 
       // Axes
-      ctx.strokeStyle = "#cfcfcf";
-      ctx.lineWidth = 1.5;
-
+      ctx.strokeStyle="#cfcfcf";
+      ctx.lineWidth=1.5;
       ctx.beginPath();
       ctx.moveTo(plotX0, plotY0);
       ctx.lineTo(plotX0, plotY0 + plotH);
@@ -970,17 +933,17 @@
       ctx.lineTo(plotX0 + plotW, plotY0 + plotH);
       ctx.stroke();
 
-      // Time axis ticks
-      const totalTime = (MAX_HISTORY - 1) * DT_FRAME;
-      const tickEvery = 2;
+      // Time axis
+      const totalTime = (MAX_HISTORY - 1) * DT_FRAME; // seconds
+      const tickEvery = 2; // seconds
 
-      ctx.fillStyle = "#666";
-      ctx.strokeStyle = "#ddd";
-      ctx.lineWidth = 1;
+      ctx.fillStyle="#666";
+      ctx.strokeStyle="#ddd";
+      ctx.lineWidth=1;
 
-      for (let t = 0; t <= totalTime + 1e-9; t += tickEvery) {
+      for(let t=0; t<=totalTime + 1e-9; t += tickEvery){
         const i = t / DT_FRAME;
-        const x = plotX0 + (i / (MAX_HISTORY - 1)) * plotW;
+        const x = plotX0 + (i/(MAX_HISTORY-1)) * plotW;
 
         ctx.beginPath();
         ctx.moveTo(x, plotY0 + plotH);
@@ -991,34 +954,34 @@
       }
 
       // SP label
-      ctx.fillStyle = "#111";
-      ctx.font = "12px Arial";
-      ctx.fillText(`SP: ${pid.sp.toFixed(1)} (scroll to adjust)`, plotX0, 16);
+      ctx.fillStyle="#111";
+      ctx.font="12px Arial";
+      ctx.fillText(`SP: ${pid.sp.toFixed(1)} (scroll to adjust)`, plotX0, 14);
 
-      if (history.length < 2) return;
+      if(history.length < 2) return;
 
       // SP dashed
       ctx.beginPath();
-      ctx.strokeStyle = "#bbb";
-      ctx.setLineDash([6, 6]);
-      ctx.lineWidth = 2;
-      history.forEach((h, i) => {
+      ctx.strokeStyle="#bbb";
+      ctx.setLineDash([6,6]);
+      ctx.lineWidth=2;
+      history.forEach((h,i) => {
         const x = xToPix(i);
         const y = yToPix(h.sp);
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
       });
       ctx.stroke();
 
       // PV solid
       ctx.beginPath();
-      ctx.strokeStyle = "#007bff";
+      ctx.strokeStyle="#007bff";
       ctx.setLineDash([]);
-      ctx.lineWidth = 3;
-      history.forEach((h, i) => {
+      ctx.lineWidth=3;
+      history.forEach((h,i) => {
         const x = xToPix(i);
         let y = yToPix(h.pv);
         y = Math.max(plotY0 - 200, Math.min(plotY0 + plotH + 200, y));
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
       });
       ctx.stroke();
     }
@@ -1027,25 +990,25 @@
     // S-plane
     // =========================
     function drawSPlane(roots) {
-      sCtx.clearRect(0, 0, 300, 350);
-      const w = 300, h = 350, cx = w / 2, cy = h / 2, sc = 10;
+      sCtx.clearRect(0,0,300,350);
+      const w=300, h=350, cx=w/2, cy=h/2, sc=10;
 
-      sCtx.strokeStyle = "#ccc";
+      sCtx.strokeStyle="#ccc";
       sCtx.beginPath();
-      sCtx.moveTo(cx, 0); sCtx.lineTo(cx, h);
-      sCtx.moveTo(0, cy); sCtx.lineTo(w, cy);
+      sCtx.moveTo(cx,0); sCtx.lineTo(cx,h);
+      sCtx.moveTo(0,cy); sCtx.lineTo(w,cy);
       sCtx.stroke();
 
       roots.forEach(r => {
-        const x = cx + r.re * sc;
-        const y = cy - r.im * sc;
+        let x = cx + r.re*sc;
+        let y = cy - r.im*sc;
 
-        if (x > -50 && x < w + 50 && y > -50 && y < h + 50) {
-          sCtx.strokeStyle = "red";
-          sCtx.lineWidth = 2;
+        if(x>-50 && x<w+50 && y>-50 && y<h+50) {
+          sCtx.strokeStyle="red";
+          sCtx.lineWidth=2;
           sCtx.beginPath();
-          sCtx.moveTo(x - 5, y - 5); sCtx.lineTo(x + 5, y + 5);
-          sCtx.moveTo(x + 5, y - 5); sCtx.lineTo(x - 5, y + 5);
+          sCtx.moveTo(x-5,y-5); sCtx.lineTo(x+5,y+5);
+          sCtx.moveTo(x+5,y-5); sCtx.lineTo(x-5,y+5);
           sCtx.stroke();
         }
       });
@@ -1053,14 +1016,11 @@
   </script>
 
   <!--
-    ✅ HOW TO ADD THE SVG TO GITHUB (so the logo appears)
-    1) Open your GitHub repo (mae-academy.github.io)
-    2) Click “Add file” → “Create new file”
-    3) Name it: assets/mae.svg   (this creates the assets folder)
-    4) Paste your SVG code inside, then “Commit changes”
-       OR: “Add file” → “Upload files” and upload mae.svg into the assets folder
-    5) Keep this line in the HTML:
-       <img class="mae-logo" src="assets/mae.svg" alt="MAE Logo" />
+    ✅ HOW TO ADD THE SVG TO GITHUB
+    1) In your repo, create a folder called: assets
+    2) Upload your SVG logo and name it: mae.svg
+    3) So it becomes: assets/mae.svg
+    4) This line uses it: <img src="assets/mae.svg" ...>
   -->
 </body>
 </html>
