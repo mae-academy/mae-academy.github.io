@@ -3,20 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PID Simulator with Root Locus (S-Plane)</title>
+    <title>Advanced PID & Characteristic Equation Simulator</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 1000px; max-width: 98%; }
+        .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 900px; max-width: 95%; }
         
-        /* Layout Grid */
-        .visual-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
+        /* Layout */
+        .top-section { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        canvas { background: #fff; border: 1px solid #ddd; border-radius: 4px; width: 100%; height: 350px; cursor: crosshair; }
         
-        .panel-box { border: 1px solid #ddd; border-radius: 4px; padding: 10px; background: #fff; }
-        .panel-title { font-weight: bold; color: #444; margin-bottom: 10px; display: block; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-
-        canvas { width: 100%; height: 350px; cursor: crosshair; display: block; }
-        #sPlaneCanvas { background: #fafafa; height: 350px; }
-
         .bottom-section { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         
         /* Controls */
@@ -31,29 +26,32 @@
         /* Math Panel */
         .math-panel { padding: 15px; background: #e3f2fd; border-radius: 8px; border: 1px solid #bbdefb; color: #0d47a1; }
         .math-title { font-size: 1.1em; font-weight: bold; border-bottom: 1px solid #90caf9; padding-bottom: 8px; margin-bottom: 10px; }
-        .equation { font-family: 'Courier New', Courier, monospace; font-weight: bold; background: rgba(255,255,255,0.6); padding: 8px; border-radius: 4px; text-align: center; margin-bottom: 15px; font-size: 0.9em; }
-        .metric { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9em; }
-        .status-box { margin-top: 15px; padding: 10px; background: white; border-radius: 4px; text-align: center; font-weight: bold; font-size: 0.9em; }
+        .equation { font-family: 'Courier New', Courier, monospace; font-weight: bold; background: rgba(255,255,255,0.6); padding: 8px; border-radius: 4px; text-align: center; margin-bottom: 15px; }
+        .metric { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .status-box { margin-top: 15px; padding: 10px; background: white; border-radius: 4px; text-align: center; font-weight: bold; }
         
-        .status-stable { color: #2e7d32; border-left: 5px solid #2e7d32; }
-        .status-unstable { color: #d32f2f; border-left: 5px solid #d32f2f; }
-        .status-oscillating { color: #f57c00; border-left: 5px solid #f57c00; }
+        .status-under { color: #d32f2f; border-left: 5px solid #d32f2f; }
+        .status-crit { color: #2e7d32; border-left: 5px solid #2e7d32; }
+        .status-over { color: #f57c00; border-left: 5px solid #f57c00; }
+
+        /* Footer */
+        .legend { display: flex; gap: 20px; justify-content: center; margin-top: 5px; font-size: 0.9em; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 style="margin: 0 0 15px 0; color: #333;">PID Simulator with S-Plane Analysis</h2>
-
-    <div class="visual-grid">
-        <div class="panel-box">
-            <span class="panel-title">Time Domain Response (Step Response)</span>
-            <canvas id="simCanvas" width="600" height="350"></canvas>
-        </div>
+    <div class="top-section">
+        <h2 style="margin: 0; color: #333;">Control Strategy Simulator</h2>
+        <div style="font-size: 0.9em; color: #666;">Step Response Analysis</div>
         
-        <div class="panel-box">
-            <span class="panel-title">S-Plane (Pole Locations)</span>
-            <canvas id="sPlaneCanvas" width="300" height="350"></canvas>
+        <canvas id="simCanvas" width="900" height="350"></canvas>
+        
+        <div class="legend">
+            <div class="legend-item"><div class="dot" style="background: #ccc; height: 2px; width: 20px;"></div> Set Point (SP)</div>
+            <div class="legend-item"><div class="dot" style="background: #007bff;"></div> Process Variable (PV)</div>
         </div>
     </div>
 
@@ -68,8 +66,8 @@
                 <input type="range" id="inp-kp" min="0" max="100" step="1" value="20">
             </div>
             <div class="control-group">
-                <label>Integral (Ki): <span id="val-ki">10</span></label>
-                <input type="range" id="inp-ki" min="0" max="100" step="1" value="10">
+                <label>Integral (Ki): <span id="val-ki">0</span></label>
+                <input type="range" id="inp-ki" min="0" max="100" step="0.1" value="0">
             </div>
             <div class="control-group">
                 <label>Derivative (Kd): <span id="val-kd">5</span></label>
@@ -79,54 +77,77 @@
         </div>
 
         <div class="math-panel">
-            <div class="math-title">Characteristic Equation</div>
-            <div class="equation" id="char-eq-display">s³ + As² + Bs + C = 0</div>
+            <div class="math-title">Characteristic Equation Analysis</div>
+            <div class="equation">s² + 2ζωn s + ωn² = 0</div>
             
             <div class="metric">
-                <span>Calculated Poles (Roots):</span>
+                <span>Natural Freq (ωn):</span>
+                <span id="math-wn" style="font-weight: bold;">--</span>
             </div>
-            <div id="roots-display" style="font-family: monospace; margin-left: 10px; font-size: 0.85em;">
-                --
+            <div class="metric">
+                <span>Damping Ratio (ζ):</span>
+                <span id="math-zeta" style="font-weight: bold;">--</span>
             </div>
             
-            <div id="status-display" class="status-box status-stable">
-                System Stable
+            <div id="status-display" class="status-box status-under">
+                Calculating...
+            </div>
+            <div style="font-size: 0.8em; margin-top: 10px; color: #555;">
+                *Analysis assumes a pure 2nd-order system model (1/s²) controlled by PD logic for educational clarity.
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // --- Constants & Setup ---
+    // --- Simulation Constants & State ---
     const canvas = document.getElementById('simCanvas');
     const ctx = canvas.getContext('2d');
-    const sCanvas = document.getElementById('sPlaneCanvas');
-    const sCtx = sCanvas.getContext('2d');
     
     // Physics State
-    let state = { pv: 0, velocity: 0, integral: 0, lastError: 0, time: 0 };
+    let state = {
+        pv: 0,          // Process Variable (Position)
+        velocity: 0,    // Rate of change
+        integral: 0,    // Accumulated Error
+        lastError: 0,
+        time: 0
+    };
+
+    // History for graphing
     let historyPV = [];
     let historySP = [];
-    const maxHistory = 400; 
-    let inputs = { sp: 50, kp: 20, ki: 10, kd: 5 };
+    const maxHistory = 400; // Width of graph in points
 
-    // --- Physics Engine (60fps) ---
+    // Inputs
+    let inputs = { sp: 50, kp: 20, ki: 0, kd: 5 };
+
+    // --- Physics Engine (Run at 60fps) ---
     function updatePhysics() {
-        const dt = 0.05; 
+        const dt = 0.05; // Time step
+        
+        // Error Calculation
         const error = inputs.sp - state.pv;
         
         // PID Calculation
+        // P Term
         const P = inputs.kp * error;
+        
+        // I Term
         state.integral += error * dt;
         const I = inputs.ki * state.integral;
-        const D = inputs.kd * (error - state.lastError) / dt; // Derivative on Error
+        
+        // D Term (Derivative on PV to avoid derivative kick on SP change, or Error based)
+        // Using Error based here for standard textbook formula s^2+...
+        const D = inputs.kd * (error - state.lastError) / dt;
         
         const output = P + I + D;
         
-        // Plant: Double Integrator with slight damping (1/s(s+0.1))
-        // accel + 0.1*vel = output
-        const damping = 0.1;
-        const acceleration = output - (damping * state.velocity); 
+        // Plant Physics: Simple Double Integrator (Mass = 1)
+        // Acceleration = Force (Output)
+        // Velocity += Acceleration * dt
+        // PV += Velocity * dt
+        // Added small natural damping (0.1) to simulate minimal air resistance
+        const acceleration = output - (0.1 * state.velocity); 
         
         state.velocity += acceleration * dt;
         state.pv += state.velocity * dt;
@@ -134,230 +155,158 @@
         state.lastError = error;
         state.time += dt;
 
-        // History
+        // Update History
         historyPV.push(state.pv);
         historySP.push(inputs.sp);
-        if (historyPV.length > maxHistory) { historyPV.shift(); historySP.shift(); }
-    }
-
-    // --- Cubic Equation Solver (Cardano's Method) ---
-    function solveCharacteristicEq(kp, ki, kd) {
-        // Plant: Gp = 1 / (s(s + 0.1)) => s^2 + 0.1s
-        // Controller: Gc = (Kd*s^2 + Kp*s + Ki) / s
-        // 1 + Gc*Gp = 0 => s(s^2 + 0.1s) + Kd*s^2 + Kp*s + Ki = 0
-        // s^3 + 0.1s^2 + Kd*s^2 + Kp*s + Ki = 0
-        // s^3 + (0.1 + Kd)s^2 + (Kp)s + (Ki) = 0
-        
-        const a = 0.1 + kd;
-        const b = kp;
-        const c = ki;
-        
-        // Solving x^3 + ax^2 + bx + c = 0
-        // Convert to depressed cubic t^3 + pt + q = 0
-        // x = t - a/3
-        
-        const p = (3*b - a*a) / 3;
-        const q = (2*a*a*a - 9*a*b + 27*c) / 27;
-        
-        const delta = (q*q)/4 + (p*p*p)/27; // Discriminant
-        
-        let roots = [];
-        
-        if (Math.abs(delta) < 1e-9) { 
-            // D = 0: All real roots, at least two equal
-            const t1 = -2 * Math.cbrt(q/2);
-            const t2 = Math.cbrt(q/2);
-            roots.push({ re: t1 - a/3, im: 0 });
-            roots.push({ re: t2 - a/3, im: 0 }); // Double root
-            roots.push({ re: t2 - a/3, im: 0 });
-        } else if (delta > 0) {
-            // D > 0: One real, two complex conjugate
-            const u = Math.cbrt(-q/2 + Math.sqrt(delta));
-            const v = Math.cbrt(-q/2 - Math.sqrt(delta));
-            const t1 = u + v;
-            roots.push({ re: t1 - a/3, im: 0 });
-            
-            const realPart = -(u+v)/2 - a/3;
-            const imagPart = (u-v)*Math.sqrt(3)/2;
-            roots.push({ re: realPart, im: imagPart });
-            roots.push({ re: realPart, im: -imagPart });
-        } else {
-            // D < 0: Three distinct real roots (Casus irreducibilis)
-            const r = Math.sqrt(- (p*p*p)/27);
-            const phi = Math.acos( -q / (2*r) );
-            const t1 = 2 * Math.cbrt(r) * Math.cos(phi/3); // Wait, trig form uses sqrt(-p/3)
-            // Correct Trig solution:
-            const radius = 2 * Math.sqrt(-p/3);
-            const angle = Math.acos(-q/2 * Math.sqrt(-27/(p*p*p)));
-            
-            const x1 = radius * Math.cos(angle/3) - a/3;
-            const x2 = radius * Math.cos((angle + 2*Math.PI)/3) - a/3;
-            const x3 = radius * Math.cos((angle + 4*Math.PI)/3) - a/3;
-            
-            roots.push({ re: x1, im: 0 });
-            roots.push({ re: x2, im: 0 });
-            roots.push({ re: x3, im: 0 });
+        if (historyPV.length > maxHistory) {
+            historyPV.shift();
+            historySP.shift();
         }
-        return roots;
     }
 
-    // --- Math & S-Plane Logic ---
-    function updateAnalysis() {
+    // --- Math Analysis Logic ---
+    function updateMathPanel() {
+        // Theoretical Model: s^2 + (Kd)s + Kp = 0
+        // Standard Form: s^2 + 2*zeta*wn*s + wn^2 = 0
+        // Therefore: wn^2 = Kp  -> wn = sqrt(Kp)
+        // And: 2*zeta*wn = Kd -> zeta = Kd / (2*wn)
+        
         const kp = parseFloat(inputs.kp);
-        const ki = parseFloat(inputs.ki);
         const kd = parseFloat(inputs.kd);
         
-        // 1. Update Equation Display
-        const aVal = (0.1 + kd).toFixed(2);
-        document.getElementById('char-eq-display').innerText = 
-            `s³ + ${aVal}s² + ${kp}s + ${ki} = 0`;
-
-        // 2. Solve Roots
-        const roots = solveCharacteristicEq(kp, ki, kd);
+        let wn = Math.sqrt(kp);
+        let zeta = 0;
         
-        // 3. Update Text Display
-        let rootStr = "";
-        let isStable = true;
-        let isOscillating = false;
-
-        roots.forEach(r => {
-            const re = r.re.toFixed(2);
-            const im = Math.abs(r.im).toFixed(2);
-            if (r.re > 0.01) isStable = false; // Right Half Plane
-            if (Math.abs(r.im) > 0.01) isOscillating = true;
-            
-            rootStr += `s = ${re} ${Math.abs(r.im) > 0.001 ? '± j'+im : ''} <br>`;
-        });
-        document.getElementById('roots-display').innerHTML = rootStr;
-
-        // 4. Update Status
-        const statusBox = document.getElementById('status-display');
-        if (!isStable) {
-            statusBox.innerText = "UNSTABLE (Poles in RHP)";
-            statusBox.className = "status-box status-unstable";
-        } else if (isOscillating) {
-            statusBox.innerText = "STABLE but OSCILLATING (Complex Poles)";
-            statusBox.className = "status-box status-oscillating";
+        if (wn > 0) {
+            zeta = kd / (2 * wn);
         } else {
-            statusBox.innerText = "STABLE & OVERDAMPED (Real Poles)";
-            statusBox.className = "status-box status-stable";
+            zeta = 0; // Avoid divide by zero
         }
 
-        // 5. Draw S-Plane
-        drawSPlane(roots);
+        // Update Text
+        document.getElementById('math-wn').innerText = wn.toFixed(2) + " rad/s";
+        document.getElementById('math-zeta').innerText = zeta.toFixed(3);
+
+        // Update Status Box
+        const statusBox = document.getElementById('status-display');
+        if (kp === 0) {
+            statusBox.innerText = "SYSTEM OFF";
+            statusBox.className = "status-box";
+        } else if (zeta < 1.0) {
+            statusBox.innerText = "UNDERDAMPED (Oscillating)";
+            statusBox.className = "status-box status-under";
+        } else if (Math.abs(zeta - 1.0) < 0.05) {
+            statusBox.innerText = "CRITICALLY DAMPED (Fastest)";
+            statusBox.className = "status-box status-crit";
+        } else {
+            statusBox.innerText = "OVERDAMPED (Slow/Sluggish)";
+            statusBox.className = "status-box status-over";
+        }
     }
 
-    function drawSPlane(roots) {
-        // Clear
-        sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
-        const w = sCanvas.width;
-        const h = sCanvas.height;
-        const cx = w/2 + 50; // Shift origin slightly right to see left plane better
-        const cy = h/2;
-        const scale = 15; // Pixels per unit
-
-        // Draw Axes
-        sCtx.strokeStyle = "#ccc";
-        sCtx.lineWidth = 1;
-        
-        // Real Axis
-        sCtx.beginPath(); sCtx.moveTo(0, cy); sCtx.lineTo(w, cy); sCtx.stroke();
-        // Imag Axis
-        sCtx.beginPath(); sCtx.moveTo(cx, 0); sCtx.lineTo(cx, h); sCtx.stroke();
-        
-        // Labels
-        sCtx.fillStyle = "#666";
-        sCtx.font = "10px Arial";
-        sCtx.fillText("Real (σ)", w - 40, cy - 5);
-        sCtx.fillText("Imag (jω)", cx + 5, 10);
-
-        // Draw Roots (X marks)
-        roots.forEach(r => {
-            const x = cx + r.re * scale;
-            const y = cy - r.im * scale; // Canvas Y is inverted
-            
-            drawX(sCtx, x, y, "#d32f2f");
-        });
-    }
-
-    function drawX(ctx, x, y, color) {
-        const size = 6;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x - size, y - size);
-        ctx.lineTo(x + size, y + size);
-        ctx.moveTo(x + size, y - size);
-        ctx.lineTo(x - size, y + size);
-        ctx.stroke();
-    }
-
-    // --- Main Graph Drawing ---
-    function drawGraph() {
+    // --- Drawing Logic ---
+    function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Grid
-        ctx.font = "10px Arial";
+        // Draw Grid & Y-Axis
+        drawGrid();
+
+        // Draw SP Line
+        ctx.beginPath();
+        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = '#999';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < historySP.length; i++) {
+            const x = (i / maxHistory) * canvas.width;
+            const y = mapY(historySP[i]);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Draw PV Line
+        ctx.beginPath();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = '#007bff';
+        ctx.lineWidth = 3;
+        for (let i = 0; i < historyPV.length; i++) {
+            const x = (i / maxHistory) * canvas.width;
+            const y = mapY(historyPV[i]);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+    }
+
+    // Helper: Map Value to Y pixels
+    function mapY(val) {
+        // Range: -20 to 120 (to allow overshoot visibility)
+        const minVal = -20;
+        const maxVal = 140;
+        const range = maxVal - minVal;
+        return canvas.height - ((val - minVal) / range) * canvas.height;
+    }
+
+    // Helper: Draw Grid and Labels
+    function drawGrid() {
+        ctx.font = "12px Arial";
         ctx.fillStyle = "#888";
         ctx.strokeStyle = "#eee";
-        ctx.beginPath();
-        [0, 25, 50, 75, 100, 125].forEach(val => {
-            const y = mapY(val);
-            ctx.moveTo(30, y); ctx.lineTo(canvas.width, y);
-            ctx.fillText(val, 5, y+3);
-        });
-        ctx.stroke();
+        ctx.lineWidth = 1;
+        ctx.setLineDash([]);
 
-        // SP Line
-        ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
-        historySP.forEach((val, i) => {
-            const x = (i/maxHistory)*canvas.width;
+        // Horizontal Lines (Y Axis)
+        const steps = [-20, 0, 25, 50, 75, 100, 125];
+        steps.forEach(val => {
             const y = mapY(val);
-            (i===0)? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-        });
-        ctx.stroke();
+            
+            // Grid line
+            ctx.beginPath();
+            ctx.moveTo(30, y); // Start after padding for text
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
 
-        // PV Line
-        ctx.beginPath(); ctx.setLineDash([]); ctx.strokeStyle = '#007bff'; ctx.lineWidth = 2;
-        historyPV.forEach((val, i) => {
-            const x = (i/maxHistory)*canvas.width;
-            const y = mapY(val);
-            (i===0)? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+            // Label
+            ctx.fillText(val, 5, y + 4);
         });
-        ctx.stroke();
     }
 
-    function mapY(val) {
-        return canvas.height - ((val + 20) / 160) * canvas.height; 
-    }
-
-    // --- Loop & Events ---
-    function loop() {
-        updatePhysics();
-        drawGraph();
-        requestAnimationFrame(loop);
-    }
-    
-    function setupEvents() {
+    // --- Event Listeners ---
+    function setupInputs() {
         ['sp', 'kp', 'ki', 'kd'].forEach(id => {
-            document.getElementById('inp-'+id).addEventListener('input', (e) => {
+            const el = document.getElementById('inp-' + id);
+            const disp = document.getElementById('val-' + id);
+            el.addEventListener('input', (e) => {
                 inputs[id] = parseFloat(e.target.value);
-                document.getElementById('val-'+id).innerText = inputs[id];
-                updateAnalysis();
+                disp.innerText = inputs[id];
+                updateMathPanel(); // Update math immediately on slider move
             });
         });
-        updateAnalysis(); // Initial Calc
     }
 
     function triggerStep() {
-        inputs.sp = (inputs.sp === 50) ? 80 : 50;
+        // Reset inputs and jump SP
+        inputs.sp = (inputs.sp === 50) ? 80 : 50; // Toggle between 50 and 80
         document.getElementById('inp-sp').value = inputs.sp;
         document.getElementById('val-sp').innerText = inputs.sp;
+        
+        // Optional: Reset pv to 0 to see full rise? 
+        // No, let's just change SP to see response from current state.
     }
 
-    setupEvents();
+    // --- Main Loop ---
+    function loop() {
+        updatePhysics();
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    // Start
+    setupInputs();
+    updateMathPanel();
     loop();
 
 </script>
+
 </body>
 </html>
