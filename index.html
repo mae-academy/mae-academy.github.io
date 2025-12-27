@@ -8,27 +8,26 @@
     <style>
         /* --- GLOBAL STYLES --- */
         body { 
-            font-family: 'Inter', 'Segoe UI', Helvetica, sans-serif; 
+            font-family: 'Inter', 'Segoe UI', sans-serif; 
             background-color: #e2efff; /* Light Blue from your image */
             margin: 0; 
-            padding: 20px; /* Added padding for small screens */
+            padding: 0;
             display: flex;
             justify-content: center;
-            align-items: center; /* Centers vertically */
+            align-items: center;
             min-height: 100vh;
             color: #000;
-            overflow-y: auto; /* Allows scrolling if screen is too small */
         }
 
-        /* --- SCREEN 1: HOME UI --- */
+        /* --- SCREEN 1: HOME UI (MATCHING YOUR IMAGE) --- */
         #home-screen {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 80px;
+            gap: 100px; /* Space between text and card */
             width: 100%;
             max-width: 1200px;
-            flex-wrap: wrap; /* Allows stacking on mobile/tablets */
+            padding: 20px;
         }
 
         /* Left Side: Text & Buttons */
@@ -36,12 +35,11 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
-            z-index: 10; /* Ensures buttons are on top */
         }
 
         .title-small {
-            font-size: 4rem; /* Slightly smaller to fit standard laptops */
-            font-weight: 500;
+            font-size: 5rem;
+            font-weight: 500; /* Regular weight */
             margin: 0;
             line-height: 1;
             letter-spacing: -2px;
@@ -49,7 +47,7 @@
 
         .title-bold {
             font-size: 5rem;
-            font-weight: 900;
+            font-weight: 900; /* Extra bold */
             margin: 0;
             line-height: 1;
             letter-spacing: -2px;
@@ -57,8 +55,8 @@
 
         .subtitle {
             font-size: 1.2rem;
-            margin-top: 10px;
-            margin-bottom: 30px;
+            margin-top: 20px;
+            margin-bottom: 20px;
             font-weight: 500;
         }
 
@@ -66,30 +64,27 @@
         .pill-btn {
             background: white;
             border: 2px solid black;
-            border-radius: 50px;
-            padding: 18px 40px;
+            border-radius: 50px; /* Fully rounded ends */
+            padding: 15px 40px;
             font-size: 1.1rem;
             font-weight: 700;
             cursor: pointer;
-            width: 320px;
+            width: 320px; /* Fixed width to match look */
             text-align: left;
-            transition: transform 0.1s, background 0.1s;
+            transition: transform 0.2s, background 0.2s;
             display: flex;
             align-items: center;
             margin-bottom: 15px;
-            box-shadow: 0 4px 0 rgba(0,0,0,0.1); /* Solid shadow */
-            position: relative; /* Needed for z-index */
-            z-index: 20; /* High priority for clicking */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
 
         .pill-btn:hover {
-            transform: translateY(-2px);
+            transform: translateY(-3px);
             background-color: #f8f9fa;
         }
 
         .pill-btn:active {
-            transform: translateY(2px);
-            box-shadow: none;
+            transform: translateY(0);
         }
 
         /* Right Side: The ID Card */
@@ -104,48 +99,93 @@
             align-items: center;
             justify-content: center;
             text-align: center;
-            box-shadow: 15px 15px 0px rgba(0,0,0,0.05);
+            box-shadow: 10px 10px 0px rgba(0,0,0,0.05); /* Slight shadow */
             padding: 20px;
-            position: relative;
         }
 
-        .logo-box { margin-bottom: 40px; }
-        .card-title { font-size: 3.5rem; font-weight: 900; letter-spacing: 5px; margin: 10px 0; }
-        .card-name { font-size: 1.2rem; font-weight: 700; text-transform: uppercase; }
+        /* CSS Logo construction to mimic the Crown/M shape */
+        .logo-box {
+            margin-bottom: 40px;
+        }
+        
+        /* A simple CSS representation of the M/Crown logo */
+        .crown-icon {
+            width: 100px;
+            height: 80px;
+            position: relative;
+            border-bottom: 5px solid black;
+        }
+        .crown-icon::before, .crown-icon::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            width: 0; 
+            height: 0; 
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 50px solid black;
+        }
+        .crown-icon::before { left: 0; }
+        .crown-icon::after { right: 0; }
+        .crown-mid {
+            position: absolute;
+            bottom: 0;
+            left: 35px;
+            width: 0; 
+            height: 0; 
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 70px solid black;
+        }
 
-        /* --- SCREEN 2: SIMULATOR --- */
+        .card-title {
+            font-size: 3.5rem;
+            font-weight: 900;
+            letter-spacing: 5px;
+            margin: 10px 0;
+        }
+
+        .card-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+
+        /* --- SCREEN 2: SIMULATOR (Existing Code) --- */
         #simulator-app {
             display: none; /* Hidden by default */
+            width: 100%;
             flex-direction: column;
             align-items: center;
-            width: 100%;
-            max-width: 1000px;
+            padding-top: 20px;
         }
 
         .sim-container { 
             background: white; 
-            padding: 25px; 
+            padding: 20px; 
             border-radius: 12px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
-            width: 100%; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
+            width: 900px; 
+            max-width: 95%; 
         }
         
         .top-section { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-        canvas { background: #fff; border: 1px solid #ddd; border-radius: 4px; width: 100%; height: 350px; }
+        canvas { background: #fff; border: 1px solid #ddd; border-radius: 4px; width: 100%; height: 350px; cursor: crosshair; }
         
         .bottom-section { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-        @media (max-width: 768px) { .bottom-section { grid-template-columns: 1fr; } }
-
+        
         .controls { padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; }
         .control-group { margin-bottom: 15px; }
-        .control-group label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 5px; }
+        .control-group label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 5px; color: #333; }
         .control-group input[type="range"] { width: 100%; cursor: pointer; }
         
-        button.btn-step { background: #000; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; }
+        button.btn-step { background: #000; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background 0.2s; width: 100%; }
         button.btn-step:hover { background: #333; }
 
         .math-panel { padding: 15px; background: #e3f2fd; border-radius: 8px; border: 1px solid #bbdefb; color: #0d47a1; }
-        .equation { font-family: monospace; font-weight: bold; background: rgba(255,255,255,0.6); padding: 8px; text-align: center; margin-bottom: 15px; }
+        .math-title { font-size: 1.1em; font-weight: bold; border-bottom: 1px solid #90caf9; padding-bottom: 8px; margin-bottom: 10px; }
+        .equation { font-family: 'Courier New', Courier, monospace; font-weight: bold; background: rgba(255,255,255,0.6); padding: 8px; border-radius: 4px; text-align: center; margin-bottom: 15px; }
         .metric { display: flex; justify-content: space-between; margin-bottom: 8px; }
         .status-box { margin-top: 15px; padding: 10px; background: white; border-radius: 4px; text-align: center; font-weight: bold; }
         
@@ -153,13 +193,18 @@
         .status-crit { color: #2e7d32; border-left: 5px solid #2e7d32; }
         .status-over { color: #f57c00; border-left: 5px solid #f57c00; }
 
-        /* Mobile Adjustments */
-        @media (max-width: 900px) {
-            #home-screen { flex-direction: column-reverse; gap: 40px; text-align: center; padding-bottom: 50px; }
+        .legend { display: flex; gap: 20px; justify-content: center; margin-top: 5px; font-size: 0.9em; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        /* Responsive Design for Mobile */
+        @media (max-width: 1000px) {
+            #home-screen { flex-direction: column-reverse; gap: 40px; text-align: center; }
             .left-content { align-items: center; }
+            .pill-btn { width: 100%; max-width: 320px; justify-content: center; }
             .title-small, .title-bold { font-size: 3rem; }
-            .pill-btn { justify-content: center; text-align: center; }
         }
+
     </style>
 </head>
 <body>
@@ -173,11 +218,11 @@
                 <p class="subtitle">Learn & Enjoy</p>
             </div>
 
-            <button class="pill-btn" onclick="alert('Academic Courses are coming soon!')">
+            <button class="pill-btn" onclick="alert('Course module under construction!')">
                 Academic Courses
             </button>
             
-            <button class="pill-btn" onclick="openSimulator()">
+            <button class="pill-btn" onclick="startSimulator()">
                 Practical Simulations
             </button>
         </div>
@@ -190,6 +235,7 @@
                     <line x1="20" y1="78" x2="80" y2="78" stroke="black" stroke-width="6" />
                 </svg>
             </div>
+            
             <div class="card-title">MAE</div>
             <div class="card-name">MOHAMMAD ABU ELYAN</div>
         </div>
@@ -197,7 +243,7 @@
     </div>
 
     <div id="simulator-app">
-        <div style="width: 100%; text-align: left; margin-bottom: 20px;">
+        <div style="width: 900px; max-width: 95%; text-align: left; margin-bottom: 20px;">
             <button onclick="goHome()" style="background:none; border:none; color:#000; cursor:pointer; font-weight:bold; font-size:18px; display:flex; align-items:center;">
                 <span style="font-size: 24px; margin-right: 5px;">&#8592;</span> Back to Home
             </button>
@@ -210,9 +256,9 @@
                 
                 <canvas id="simCanvas" width="900" height="350"></canvas>
                 
-                <div style="display: flex; gap: 20px; justify-content: center; margin-top: 5px;">
-                    <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;background:#ccc;border-radius:50%;"></div> Set Point</div>
-                    <div style="display:flex;align-items:center;gap:5px;"><div style="width:10px;height:10px;background:#007bff;border-radius:50%;"></div> Process Variable</div>
+                <div class="legend">
+                    <div class="legend-item"><div class="dot" style="background: #ccc; height: 2px; width: 20px;"></div> Set Point (SP)</div>
+                    <div class="legend-item"><div class="dot" style="background: #007bff;"></div> Process Variable (PV)</div>
                 </div>
             </div>
 
@@ -238,26 +284,35 @@
                 </div>
 
                 <div class="math-panel">
-                    <div style="font-weight:bold; border-bottom:1px solid #90caf9; margin-bottom:10px;">Math Model</div>
+                    <div class="math-title">Math Model</div>
                     <div class="equation">s² + 2ζωn s + ωn² = 0</div>
-                    <div class="metric"><span>Natural Freq (ωn):</span> <span id="math-wn" style="font-weight: bold;">--</span></div>
-                    <div class="metric"><span>Damping Ratio (ζ):</span> <span id="math-zeta" style="font-weight: bold;">--</span></div>
-                    <div id="status-display" class="status-box status-under">Calculating...</div>
+                    
+                    <div class="metric">
+                        <span>Natural Freq (ωn):</span>
+                        <span id="math-wn" style="font-weight: bold;">--</span>
+                    </div>
+                    <div class="metric">
+                        <span>Damping Ratio (ζ):</span>
+                        <span id="math-zeta" style="font-weight: bold;">--</span>
+                    </div>
+                    
+                    <div id="status-display" class="status-box status-under">
+                        Calculating...
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- Navigation Logic ---
-        function openSimulator() {
+        // --- Navigation ---
+        function startSimulator() {
             document.getElementById('home-screen').style.display = 'none';
             document.getElementById('simulator-app').style.display = 'flex';
             
-            // Start simulation logic if it hasn't run yet
-            if (!window.simRunning) {
+            if(!simRunning) {
                 initSimulator();
-                window.simRunning = true;
+                simRunning = true;
             }
         }
 
@@ -266,26 +321,20 @@
             document.getElementById('home-screen').style.display = 'flex';
         }
 
-        // --- Simulator Logic ---
+        // --- Simulator Engine ---
+        let simRunning = false; 
         let canvas, ctx;
-        let state = { pv: 0, velocity: 0, integral: 0, lastError: 0 };
+        let state = { pv: 0, velocity: 0, integral: 0, lastError: 0, time: 0 };
         let historyPV = [], historySP = [];
+        const maxHistory = 400; 
         let inputs = { sp: 50, kp: 20, ki: 0, kd: 5 };
 
         function initSimulator() {
             canvas = document.getElementById('simCanvas');
-            if (canvas) {
-                ctx = canvas.getContext('2d');
-                setupInputs();
-                updateMathPanel();
-                requestAnimationFrame(loop);
-            }
-        }
-
-        function loop() {
-            updatePhysics();
-            draw();
-            requestAnimationFrame(loop);
+            ctx = canvas.getContext('2d');
+            setupInputs();
+            updateMathPanel();
+            loop();
         }
 
         function updatePhysics() {
@@ -303,56 +352,7 @@
 
             historyPV.push(state.pv);
             historySP.push(inputs.sp);
-            if (historyPV.length > 400) { historyPV.shift(); historySP.shift(); }
-        }
-
-        function draw() {
-            if (!ctx) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Grid
-            ctx.font = "12px Arial"; ctx.fillStyle = "#888"; ctx.strokeStyle = "#eee"; ctx.lineWidth = 1;
-            [-20, 0, 25, 50, 75, 100, 125].forEach(val => {
-                const y = mapY(val);
-                ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-                ctx.fillText(val, 5, y + 4);
-            });
-
-            // Lines
-            ctx.lineWidth = 2;
-            
-            // SP
-            ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.strokeStyle = '#999';
-            historySP.forEach((val, i) => {
-                const x = (i / 400) * canvas.width;
-                const y = mapY(val);
-                (i === 0) ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-            });
-            ctx.stroke();
-
-            // PV
-            ctx.beginPath(); ctx.setLineDash([]); ctx.strokeStyle = '#007bff'; ctx.lineWidth = 3;
-            historyPV.forEach((val, i) => {
-                const x = (i / 400) * canvas.width;
-                const y = mapY(val);
-                (i === 0) ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-            });
-            ctx.stroke();
-        }
-
-        function mapY(val) { return canvas.height - ((val + 20) / 160) * canvas.height; }
-
-        function setupInputs() {
-            ['sp', 'kp', 'ki', 'kd'].forEach(id => {
-                const el = document.getElementById('inp-' + id);
-                if(el) {
-                    el.addEventListener('input', (e) => {
-                        inputs[id] = parseFloat(e.target.value);
-                        document.getElementById('val-' + id).innerText = inputs[id];
-                        updateMathPanel();
-                    });
-                }
-            });
+            if (historyPV.length > maxHistory) { historyPV.shift(); historySP.shift(); }
         }
 
         function updateMathPanel() {
@@ -360,20 +360,57 @@
             const kd = parseFloat(inputs.kd);
             let wn = Math.sqrt(kp);
             let zeta = (wn > 0) ? kd / (2 * wn) : 0;
-            
-            const wnEl = document.getElementById('math-wn');
-            const zetaEl = document.getElementById('math-zeta');
-            const statusEl = document.getElementById('status-display');
-            
-            if(wnEl) wnEl.innerText = wn.toFixed(2) + " rad/s";
-            if(zetaEl) zetaEl.innerText = zeta.toFixed(3);
 
-            if(statusEl) {
-                if (kp === 0) { statusEl.innerText = "OFF"; statusEl.className = "status-box"; }
-                else if (zeta < 1.0) { statusEl.innerText = "UNDERDAMPED"; statusEl.className = "status-box status-under"; }
-                else if (Math.abs(zeta - 1.0) < 0.05) { statusEl.innerText = "CRITICALLY DAMPED"; statusEl.className = "status-box status-crit"; }
-                else { statusEl.innerText = "OVERDAMPED"; statusEl.className = "status-box status-over"; }
+            document.getElementById('math-wn').innerText = wn.toFixed(2) + " rad/s";
+            document.getElementById('math-zeta').innerText = zeta.toFixed(3);
+
+            const statusBox = document.getElementById('status-display');
+            if (kp === 0) { statusBox.innerText = "OFF"; statusBox.className = "status-box"; }
+            else if (zeta < 1.0) { statusBox.innerText = "UNDERDAMPED"; statusBox.className = "status-box status-under"; }
+            else if (Math.abs(zeta - 1.0) < 0.05) { statusBox.innerText = "CRITICALLY DAMPED"; statusBox.className = "status-box status-crit"; }
+            else { statusBox.innerText = "OVERDAMPED"; statusBox.className = "status-box status-over"; }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            // SP Line
+            ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
+            for (let i = 0; i < historySP.length; i++) {
+                const x = (i / maxHistory) * canvas.width;
+                const y = mapY(historySP[i]);
+                (i === 0) ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
             }
+            ctx.stroke();
+            // PV Line
+            ctx.beginPath(); ctx.setLineDash([]); ctx.strokeStyle = '#007bff'; ctx.lineWidth = 3;
+            for (let i = 0; i < historyPV.length; i++) {
+                const x = (i / maxHistory) * canvas.width;
+                const y = mapY(historyPV[i]);
+                (i === 0) ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        function mapY(val) { return canvas.height - ((val - -20) / (140 - -20)) * canvas.height; }
+        
+        function drawGrid() {
+            ctx.font = "12px Arial"; ctx.fillStyle = "#888"; ctx.strokeStyle = "#eee"; ctx.lineWidth = 1; ctx.setLineDash([]);
+            [-20, 0, 25, 50, 75, 100, 125].forEach(val => {
+                const y = mapY(val);
+                ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+                ctx.fillText(val, 5, y + 4);
+            });
+        }
+
+        function setupInputs() {
+            ['sp', 'kp', 'ki', 'kd'].forEach(id => {
+                document.getElementById('inp-' + id).addEventListener('input', (e) => {
+                    inputs[id] = parseFloat(e.target.value);
+                    document.getElementById('val-' + id).innerText = inputs[id];
+                    updateMathPanel();
+                });
+            });
         }
 
         function triggerStep() {
@@ -381,6 +418,8 @@
             document.getElementById('inp-sp').value = inputs.sp;
             document.getElementById('val-sp').innerText = inputs.sp;
         }
+
+        function loop() { updatePhysics(); draw(); requestAnimationFrame(loop); }
     </script>
 </body>
 </html>
