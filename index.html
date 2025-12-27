@@ -1,314 +1,408 @@
-make a main UI then make Buttons with name "Academics" "Simulations" then when i enter "Simulations"make button for "Control Systems" then make this code:
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced PID & Characteristic Equation Simulator</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 900px; max-width: 95%; }
-        
-        /* Layout */
-        .top-section { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-        canvas { background: #fff; border: 1px solid #ddd; border-radius: 4px; width: 100%; height: 350px; cursor: crosshair; }
-        
-        .bottom-section { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-        
-        /* Controls */
-        .controls { padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; }
-        .control-group { margin-bottom: 15px; }
-        .control-group label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 5px; color: #333; }
-        .control-group input[type="range"] { width: 100%; cursor: pointer; }
-        
-        button.btn-step { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background 0.2s; width: 100%; }
-        button.btn-step:hover { background: #0056b3; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Educational Portal</title>
+    <style>
+        /* --- GLOBAL STYLES --- */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f0f2f5; 
+            margin: 0; 
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
 
-        /* Math Panel */
-        .math-panel { padding: 15px; background: #e3f2fd; border-radius: 8px; border: 1px solid #bbdefb; color: #0d47a1; }
-        .math-title { font-size: 1.1em; font-weight: bold; border-bottom: 1px solid #90caf9; padding-bottom: 8px; margin-bottom: 10px; }
-        .equation { font-family: 'Courier New', Courier, monospace; font-weight: bold; background: rgba(255,255,255,0.6); padding: 8px; border-radius: 4px; text-align: center; margin-bottom: 15px; }
-        .metric { display: flex; justify-content: space-between; margin-bottom: 8px; }
-        .status-box { margin-top: 15px; padding: 10px; background: white; border-radius: 4px; text-align: center; font-weight: bold; }
-        
-        .status-under { color: #d32f2f; border-left: 5px solid #d32f2f; }
-        .status-crit { color: #2e7d32; border-left: 5px solid #2e7d32; }
-        .status-over { color: #f57c00; border-left: 5px solid #f57c00; }
+        /* --- MENU UI STYLES --- */
+        .menu-container {
+            margin-top: 100px;
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 400px;
+            transition: all 0.3s ease;
+        }
 
-        /* Footer */
-        .legend { display: flex; gap: 20px; justify-content: center; margin-top: 5px; font-size: 0.9em; }
-        .legend-item { display: flex; align-items: center; gap: 5px; }
-        .dot { width: 10px; height: 10px; border-radius: 50%; }
-    </style>
+        .menu-title {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        .menu-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background-color: #007bff;
+            color: white;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .menu-btn:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .menu-btn.secondary {
+            background-color: #6c757d;
+        }
+        .menu-btn.secondary:hover {
+            background-color: #545b62;
+        }
+
+        /* --- SIMULATOR STYLES (From your code) --- */
+        #simulator-app {
+            display: none; /* Hidden by default */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+        }
+
+        .sim-container { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
+            width: 900px; 
+            max-width: 95%; 
+        }
+        
+        /* Layout */
+        .top-section { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        canvas { background: #fff; border: 1px solid #ddd; border-radius: 4px; width: 100%; height: 350px; cursor: crosshair; }
+        
+        .bottom-section { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        
+        /* Controls */
+        .controls { padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; }
+        .control-group { margin-bottom: 15px; }
+        .control-group label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 5px; color: #333; }
+        .control-group input[type="range"] { width: 100%; cursor: pointer; }
+        
+        button.btn-step { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background 0.2s; width: 100%; }
+        button.btn-step:hover { background: #0056b3; }
+
+        /* Math Panel */
+        .math-panel { padding: 15px; background: #e3f2fd; border-radius: 8px; border: 1px solid #bbdefb; color: #0d47a1; }
+        .math-title { font-size: 1.1em; font-weight: bold; border-bottom: 1px solid #90caf9; padding-bottom: 8px; margin-bottom: 10px; }
+        .equation { font-family: 'Courier New', Courier, monospace; font-weight: bold; background: rgba(255,255,255,0.6); padding: 8px; border-radius: 4px; text-align: center; margin-bottom: 15px; }
+        .metric { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .status-box { margin-top: 15px; padding: 10px; background: white; border-radius: 4px; text-align: center; font-weight: bold; }
+        
+        .status-under { color: #d32f2f; border-left: 5px solid #d32f2f; }
+        .status-crit { color: #2e7d32; border-left: 5px solid #2e7d32; }
+        .status-over { color: #f57c00; border-left: 5px solid #f57c00; }
+
+        /* Footer */
+        .legend { display: flex; gap: 20px; justify-content: center; margin-top: 5px; font-size: 0.9em; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        
+        /* Utility */
+        .hidden { display: none !important; }
+        .back-link {
+            cursor: pointer;
+            color: #666;
+            margin-bottom: 10px;
+            display: inline-block;
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="top-section">
-        <h2 style="margin: 0; color: #333;">Control Strategy Simulator</h2>
-        <div style="font-size: 0.9em; color: #666;">Step Response Analysis</div>
-        
-        <canvas id="simCanvas" width="900" height="350"></canvas>
-        
-        <div class="legend">
-            <div class="legend-item"><div class="dot" style="background: #ccc; height: 2px; width: 20px;"></div> Set Point (SP)</div>
-            <div class="legend-item"><div class="dot" style="background: #007bff;"></div> Process Variable (PV)</div>
-        </div>
-    </div>
+    <div id="main-menu" class="menu-container">
+        <h2 class="menu-title">Main Menu</h2>
+        <button class="menu-btn" onclick="alert('Academics module coming soon!')">Academics</button>
+        <button class="menu-btn" onclick="showScreen('sim-menu')">Simulations</button>
+    </div>
 
-    <div class="bottom-section">
-        <div class="controls">
-            <div class="control-group">
-                <label>Set Point (SP): <span id="val-sp">50</span></label>
-                <input type="range" id="inp-sp" min="0" max="100" value="50">
-            </div>
-            <div class="control-group">
-                <label>Proportional (Kp): <span id="val-kp">20</span></label>
-                <input type="range" id="inp-kp" min="0" max="100" step="1" value="20">
-            </div>
-            <div class="control-group">
-                <label>Integral (Ki): <span id="val-ki">0</span></label>
-                <input type="range" id="inp-ki" min="0" max="100" step="0.1" value="0">
-            </div>
-            <div class="control-group">
-                <label>Derivative (Kd): <span id="val-kd">5</span></label>
-                <input type="range" id="inp-kd" min="0" max="100" step="1" value="5">
-            </div>
-            <button class="btn-step" onclick="triggerStep()">Trigger Step Change</button>
-        </div>
+    <div id="sim-menu" class="menu-container hidden">
+        <div class="back-link" onclick="showScreen('main-menu')">← Back</div>
+        <h2 class="menu-title">Select Simulation</h2>
+        <button class="menu-btn" onclick="startSimulator()">Control Systems</button>
+    </div>
 
-        <div class="math-panel">
-            <div class="math-title">Characteristic Equation Analysis</div>
-            <div class="equation">s² + 2ζωn s + ωn² = 0</div>
-            
-            <div class="metric">
-                <span>Natural Freq (ωn):</span>
-                <span id="math-wn" style="font-weight: bold;">--</span>
-            </div>
-            <div class="metric">
-                <span>Damping Ratio (ζ):</span>
-                <span id="math-zeta" style="font-weight: bold;">--</span>
-            </div>
-            
-            <div id="status-display" class="status-box status-under">
-                Calculating...
-            </div>
-            <div style="font-size: 0.8em; margin-top: 10px; color: #555;">
-                *Analysis assumes a pure 2nd-order system model (1/s²) controlled by PD logic for educational clarity.
-            </div>
-        </div>
-    </div>
-</div>
+    <div id="simulator-app" class="hidden">
+        <div style="width: 900px; max-width: 95%; text-align: left; margin-bottom: 10px;">
+            <button onclick="exitSimulator()" style="background:none; border:none; color:#555; cursor:pointer; font-weight:bold; font-size:16px;">← Back to Menu</button>
+        </div>
 
-<script>
-    // --- Simulation Constants & State ---
-    const canvas = document.getElementById('simCanvas');
-    const ctx = canvas.getContext('2d');
-    
-    // Physics State
-    let state = {
-        pv: 0,          // Process Variable (Position)
-        velocity: 0,    // Rate of change
-        integral: 0,    // Accumulated Error
-        lastError: 0,
-        time: 0
-    };
+        <div class="sim-container">
+            <div class="top-section">
+                <h2 style="margin: 0; color: #333;">Control Strategy Simulator</h2>
+                <div style="font-size: 0.9em; color: #666;">Step Response Analysis</div>
+                
+                <canvas id="simCanvas" width="900" height="350"></canvas>
+                
+                <div class="legend">
+                    <div class="legend-item"><div class="dot" style="background: #ccc; height: 2px; width: 20px;"></div> Set Point (SP)</div>
+                    <div class="legend-item"><div class="dot" style="background: #007bff;"></div> Process Variable (PV)</div>
+                </div>
+            </div>
 
-    // History for graphing
-    let historyPV = [];
-    let historySP = [];
-    const maxHistory = 400; // Width of graph in points
+            <div class="bottom-section">
+                <div class="controls">
+                    <div class="control-group">
+                        <label>Set Point (SP): <span id="val-sp">50</span></label>
+                        <input type="range" id="inp-sp" min="0" max="100" value="50">
+                    </div>
+                    <div class="control-group">
+                        <label>Proportional (Kp): <span id="val-kp">20</span></label>
+                        <input type="range" id="inp-kp" min="0" max="100" step="1" value="20">
+                    </div>
+                    <div class="control-group">
+                        <label>Integral (Ki): <span id="val-ki">0</span></label>
+                        <input type="range" id="inp-ki" min="0" max="100" step="0.1" value="0">
+                    </div>
+                    <div class="control-group">
+                        <label>Derivative (Kd): <span id="val-kd">5</span></label>
+                        <input type="range" id="inp-kd" min="0" max="100" step="1" value="5">
+                    </div>
+                    <button class="btn-step" onclick="triggerStep()">Trigger Step Change</button>
+                </div>
 
-    // Inputs
-    let inputs = { sp: 50, kp: 20, ki: 0, kd: 5 };
+                <div class="math-panel">
+                    <div class="math-title">Characteristic Equation Analysis</div>
+                    <div class="equation">s² + 2ζωn s + ωn² = 0</div>
+                    
+                    <div class="metric">
+                        <span>Natural Freq (ωn):</span>
+                        <span id="math-wn" style="font-weight: bold;">--</span>
+                    </div>
+                    <div class="metric">
+                        <span>Damping Ratio (ζ):</span>
+                        <span id="math-zeta" style="font-weight: bold;">--</span>
+                    </div>
+                    
+                    <div id="status-display" class="status-box status-under">
+                        Calculating...
+                    </div>
+                    <div style="font-size: 0.8em; margin-top: 10px; color: #555;">
+                        *Analysis assumes a pure 2nd-order system model (1/s²) controlled by PD logic.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    // --- Physics Engine (Run at 60fps) ---
-    function updatePhysics() {
-        const dt = 0.05; // Time step
-        
-        // Error Calculation
-        const error = inputs.sp - state.pv;
-        
-        // PID Calculation
-        // P Term
-        const P = inputs.kp * error;
-        
-        // I Term
-        state.integral += error * dt;
-        const I = inputs.ki * state.integral;
-        
-        // D Term (Derivative on PV to avoid derivative kick on SP change, or Error based)
-        // Using Error based here for standard textbook formula s^2+...
-        const D = inputs.kd * (error - state.lastError) / dt;
-        
-        const output = P + I + D;
-        
-        // Plant Physics: Simple Double Integrator (Mass = 1)
-        // Acceleration = Force (Output)
-        // Velocity += Acceleration * dt
-        // PV += Velocity * dt
-        // Added small natural damping (0.1) to simulate minimal air resistance
-        const acceleration = output - (0.1 * state.velocity); 
-        
-        state.velocity += acceleration * dt;
-        state.pv += state.velocity * dt;
-        
-        state.lastError = error;
-        state.time += dt;
+    <script>
+        // --- Navigation Logic ---
+        function showScreen(screenId) {
+            // Hide all screens
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('sim-menu').classList.add('hidden');
+            document.getElementById('simulator-app').classList.add('hidden');
+            document.getElementById('simulator-app').style.display = 'none'; // Ensure strict hiding
 
-        // Update History
-        historyPV.push(state.pv);
-        historySP.push(inputs.sp);
-        if (historyPV.length > maxHistory) {
-            historyPV.shift();
-            historySP.shift();
-        }
-    }
+            // Show requested screen
+            document.getElementById(screenId).classList.remove('hidden');
+        }
 
-    // --- Math Analysis Logic ---
-    function updateMathPanel() {
-        // Theoretical Model: s^2 + (Kd)s + Kp = 0
-        // Standard Form: s^2 + 2*zeta*wn*s + wn^2 = 0
-        // Therefore: wn^2 = Kp  -> wn = sqrt(Kp)
-        // And: 2*zeta*wn = Kd -> zeta = Kd / (2*wn)
-        
-        const kp = parseFloat(inputs.kp);
-        const kd = parseFloat(inputs.kd);
-        
-        let wn = Math.sqrt(kp);
-        let zeta = 0;
-        
-        if (wn > 0) {
-            zeta = kd / (2 * wn);
-        } else {
-            zeta = 0; // Avoid divide by zero
-        }
+        function startSimulator() {
+            showScreen('simulator-app');
+            document.getElementById('simulator-app').style.display = 'flex'; // Flex is needed for layout
+            
+            // Initialize simulator if not already running
+            if(!simRunning) {
+                initSimulator();
+                simRunning = true;
+            }
+        }
 
-        // Update Text
-        document.getElementById('math-wn').innerText = wn.toFixed(2) + " rad/s";
-        document.getElementById('math-zeta').innerText = zeta.toFixed(3);
+        function exitSimulator() {
+            showScreen('sim-menu');
+        }
 
-        // Update Status Box
-        const statusBox = document.getElementById('status-display');
-        if (kp === 0) {
-            statusBox.innerText = "SYSTEM OFF";
-            statusBox.className = "status-box";
-        } else if (zeta < 1.0) {
-            statusBox.innerText = "UNDERDAMPED (Oscillating)";
-            statusBox.className = "status-box status-under";
-        } else if (Math.abs(zeta - 1.0) < 0.05) {
-            statusBox.innerText = "CRITICALLY DAMPED (Fastest)";
-            statusBox.className = "status-box status-crit";
-        } else {
-            statusBox.innerText = "OVERDAMPED (Slow/Sluggish)";
-            statusBox.className = "status-box status-over";
-        }
-    }
+        // --- Simulator Logic (From your Code) ---
+        let simRunning = false; // Flag to prevent double initialization
 
-    // --- Drawing Logic ---
-    function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw Grid & Y-Axis
-        drawGrid();
+        // Simulation Constants & State
+        let canvas, ctx;
+        
+        // Physics State
+        let state = {
+            pv: 0,          // Process Variable (Position)
+            velocity: 0,    // Rate of change
+            integral: 0,    // Accumulated Error
+            lastError: 0,
+            time: 0
+        };
 
-        // Draw SP Line
-        ctx.beginPath();
-        ctx.setLineDash([5, 5]);
-        ctx.strokeStyle = '#999';
-        ctx.lineWidth = 2;
-        for (let i = 0; i < historySP.length; i++) {
-            const x = (i / maxHistory) * canvas.width;
-            const y = mapY(historySP[i]);
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
+        // History for graphing
+        let historyPV = [];
+        let historySP = [];
+        const maxHistory = 400; // Width of graph in points
 
-        // Draw PV Line
-        ctx.beginPath();
-        ctx.setLineDash([]);
-        ctx.strokeStyle = '#007bff';
-        ctx.lineWidth = 3;
-        for (let i = 0; i < historyPV.length; i++) {
-            const x = (i / maxHistory) * canvas.width;
-            const y = mapY(historyPV[i]);
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-    }
+        // Inputs
+        let inputs = { sp: 50, kp: 20, ki: 0, kd: 5 };
 
-    // Helper: Map Value to Y pixels
-    function mapY(val) {
-        // Range: -20 to 120 (to allow overshoot visibility)
-        const minVal = -20;
-        const maxVal = 140;
-        const range = maxVal - minVal;
-        return canvas.height - ((val - minVal) / range) * canvas.height;
-    }
+        function initSimulator() {
+            canvas = document.getElementById('simCanvas');
+            ctx = canvas.getContext('2d');
+            setupInputs();
+            updateMathPanel();
+            loop();
+        }
 
-    // Helper: Draw Grid and Labels
-    function drawGrid() {
-        ctx.font = "12px Arial";
-        ctx.fillStyle = "#888";
-        ctx.strokeStyle = "#eee";
-        ctx.lineWidth = 1;
-        ctx.setLineDash([]);
+        // --- Physics Engine ---
+        function updatePhysics() {
+            const dt = 0.05; 
+            
+            const error = inputs.sp - state.pv;
+            const P = inputs.kp * error;
+            state.integral += error * dt;
+            const I = inputs.ki * state.integral;
+            const D = inputs.kd * (error - state.lastError) / dt;
+            
+            const output = P + I + D;
+            
+            const acceleration = output - (0.1 * state.velocity); 
+            
+            state.velocity += acceleration * dt;
+            state.pv += state.velocity * dt;
+            
+            state.lastError = error;
+            state.time += dt;
 
-        // Horizontal Lines (Y Axis)
-        const steps = [-20, 0, 25, 50, 75, 100, 125];
-        steps.forEach(val => {
-            const y = mapY(val);
-            
-            // Grid line
-            ctx.beginPath();
-            ctx.moveTo(30, y); // Start after padding for text
-            ctx.lineTo(canvas.width, y);
-            ctx.stroke();
+            historyPV.push(state.pv);
+            historySP.push(inputs.sp);
+            if (historyPV.length > maxHistory) {
+                historyPV.shift();
+                historySP.shift();
+            }
+        }
 
-            // Label
-            ctx.fillText(val, 5, y + 4);
-        });
-    }
+        // --- Math Analysis Logic ---
+        function updateMathPanel() {
+            const kp = parseFloat(inputs.kp);
+            const kd = parseFloat(inputs.kd);
+            
+            let wn = Math.sqrt(kp);
+            let zeta = 0;
+            
+            if (wn > 0) {
+                zeta = kd / (2 * wn);
+            } else {
+                zeta = 0; 
+            }
 
-    // --- Event Listeners ---
-    function setupInputs() {
-        ['sp', 'kp', 'ki', 'kd'].forEach(id => {
-            const el = document.getElementById('inp-' + id);
-            const disp = document.getElementById('val-' + id);
-            el.addEventListener('input', (e) => {
-                inputs[id] = parseFloat(e.target.value);
-                disp.innerText = inputs[id];
-                updateMathPanel(); // Update math immediately on slider move
-            });
-        });
-    }
+            document.getElementById('math-wn').innerText = wn.toFixed(2) + " rad/s";
+            document.getElementById('math-zeta').innerText = zeta.toFixed(3);
 
-    function triggerStep() {
-        // Reset inputs and jump SP
-        inputs.sp = (inputs.sp === 50) ? 80 : 50; // Toggle between 50 and 80
-        document.getElementById('inp-sp').value = inputs.sp;
-        document.getElementById('val-sp').innerText = inputs.sp;
-        
-        // Optional: Reset pv to 0 to see full rise? 
-        // No, let's just change SP to see response from current state.
-    }
+            const statusBox = document.getElementById('status-display');
+            if (kp === 0) {
+                statusBox.innerText = "SYSTEM OFF";
+                statusBox.className = "status-box";
+            } else if (zeta < 1.0) {
+                statusBox.innerText = "UNDERDAMPED (Oscillating)";
+                statusBox.className = "status-box status-under";
+            } else if (Math.abs(zeta - 1.0) < 0.05) {
+                statusBox.innerText = "CRITICALLY DAMPED (Fastest)";
+                statusBox.className = "status-box status-crit";
+            } else {
+                statusBox.innerText = "OVERDAMPED (Slow/Sluggish)";
+                statusBox.className = "status-box status-over";
+            }
+        }
 
-    // --- Main Loop ---
-    function loop() {
-        updatePhysics();
-        draw();
-        requestAnimationFrame(loop);
-    }
+        // --- Drawing Logic ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
 
-    // Start
-    setupInputs();
-    updateMathPanel();
-    loop();
+            // Draw SP Line
+            ctx.beginPath();
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < historySP.length; i++) {
+                const x = (i / maxHistory) * canvas.width;
+                const y = mapY(historySP[i]);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
 
-</script>
+            // Draw PV Line
+            ctx.beginPath();
+            ctx.setLineDash([]);
+            ctx.strokeStyle = '#007bff';
+            ctx.lineWidth = 3;
+            for (let i = 0; i < historyPV.length; i++) {
+                const x = (i / maxHistory) * canvas.width;
+                const y = mapY(historyPV[i]);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
 
+        function mapY(val) {
+            const minVal = -20;
+            const maxVal = 140;
+            const range = maxVal - minVal;
+            return canvas.height - ((val - minVal) / range) * canvas.height;
+        }
+
+        function drawGrid() {
+            ctx.font = "12px Arial";
+            ctx.fillStyle = "#888";
+            ctx.strokeStyle = "#eee";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([]);
+
+            const steps = [-20, 0, 25, 50, 75, 100, 125];
+            steps.forEach(val => {
+                const y = mapY(val);
+                ctx.beginPath();
+                ctx.moveTo(30, y); 
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+                ctx.fillText(val, 5, y + 4);
+            });
+        }
+
+        // --- Event Listeners ---
+        function setupInputs() {
+            ['sp', 'kp', 'ki', 'kd'].forEach(id => {
+                const el = document.getElementById('inp-' + id);
+                const disp = document.getElementById('val-' + id);
+                el.addEventListener('input', (e) => {
+                    inputs[id] = parseFloat(e.target.value);
+                    disp.innerText = inputs[id];
+                    updateMathPanel(); 
+                });
+            });
+        }
+
+        function triggerStep() {
+            inputs.sp = (inputs.sp === 50) ? 80 : 50;
+            document.getElementById('inp-sp').value = inputs.sp;
+            document.getElementById('val-sp').innerText = inputs.sp;
+        }
+
+        function loop() {
+            // Only update and draw if we are on the simulator screen
+            // (Optional optimization: pause when hidden, but running it is fine for smoothness)
+            updatePhysics();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+    </script>
 </body>
 </html>
