@@ -1,1025 +1,474 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MAE Academy - Process Control v5 (UI + Animations + Time Axis + Scroll SP)</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAE Academy – Process Control</title>
 
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   GLOBAL
+========================================================= */
+:root{
+  --bg:#dcecff;
+  --ink:#0b0b0b;
+  --card:#ffffff;
+  --muted:#666;
+  --line:#000;
+  --accent:#007bff;
+}
 
-  <style>
-    /* =========================================
-       GLOBAL STYLES
-       ========================================= */
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background-color: #e2efff;
-      margin: 0; padding: 20px;
-      display: flex; flex-direction: column; align-items: center;
-      min-height: 100vh; color: #1a1a1a;
-      overflow-x: hidden;
-    }
+*{box-sizing:border-box}
 
-    /* Screen Management */
-    .screen {
-      display: none;
-      width: 100%;
-      max-width: 1200px;
-      flex-direction: column;
-      align-items: center;
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    .active-screen { display: flex !important; }
-    .screen.enter {
-      animation: screenIn 420ms cubic-bezier(.2,.9,.2,1) forwards;
-    }
-    @keyframes screenIn {
-      to { opacity: 1; transform: translateY(0); }
-    }
+html,body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:
+    "AppleGothic",
+    "Apple SD Gothic Neo",
+    "SF Pro Display",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+}
 
-    /* Home & Menu UI */
-    #home-screen, #sim-menu-screen {
-      justify-content: center;
-      align-items: center;
-      gap: 80px;
-      flex-wrap: wrap;
-      margin-top: 50px;
-    }
-    .left-content {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      z-index: 10;
-    }
+/* =========================================================
+   SCREEN SYSTEM
+========================================================= */
+.screen{
+  display:none;
+  min-height:100vh;
+  width:100%;
+}
+.screen.active{display:flex}
 
-    .title-small {
-      font-size: 4rem;
-      font-weight: 500;
-      margin: 0;
-      line-height: 1;
-      letter-spacing: -2px;
-      font-family: 'Inter', sans-serif;
-    }
-    .title-bold {
-      font-size: 5rem;
-      font-weight: 900;
-      margin: 0;
-      line-height: 1;
-      letter-spacing: -2px;
-      font-family: 'Inter', sans-serif;
-    }
-    .subtitle {
-      font-size: 1.2rem;
-      margin: 10px 0 30px 0;
-      font-weight: 500;
-    }
+/* =========================================================
+   HOME
+========================================================= */
+#home{
+  justify-content:center;
+  align-items:center;
+  padding:60px;
+}
 
-    /* Buttons */
-    .pill-btn {
-      background: white;
-      border: 2px solid black;
-      border-radius: 50px;
-      padding: 18px 40px;
-      font-size: 1.1rem;
-      font-weight: 700;
-      cursor: pointer;
-      width: 380px;
-      text-align: left;
-      transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 15px;
-      box-shadow: 0 4px 0 rgba(0,0,0,0.1);
-      will-change: transform;
-    }
-    .pill-btn:hover {
-      transform: translateY(-3px);
-      background-color: #f8f9fa;
-      box-shadow: 0 8px 0 rgba(0,0,0,0.08);
-    }
-    .pill-btn:active {
-      transform: translateY(1px);
-      box-shadow: 0 2px 0 rgba(0,0,0,0.08);
-    }
+.home-wrap{
+  width:100%;
+  max-width:1400px;
+  display:grid;
+  grid-template-columns:1.25fr .9fr;
+  gap:90px;
+  align-items:center;
+}
 
-    /* ID Card (match your screenshot style) */
-    .id-card {
-      background: white;
-      border: 2px solid black;
-      border-radius: 28px;
-      width: 420px;
-      height: 560px;
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      justify-content: space-between;
-      text-align: center;
-      box-shadow: 15px 15px 0px rgba(0,0,0,0.05);
-      padding: 18px;
-      overflow: hidden;
-      transform: translateY(0);
-      animation: floatCard 4.5s ease-in-out infinite;
-    }
-    @keyframes floatCard {
-      0%,100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
-    }
+.hero h1{
+  margin:0;
+  line-height:.95;
+  letter-spacing:-1px;
+}
+.hero .a{font-size:92px;font-weight:800}
+.hero .b{font-size:92px;font-weight:900}
 
-    .id-card-top {
-      background: #fff;
-      border-radius: 18px;
-      height: 110px;
-      border: 2px solid #000;
-      border-bottom: none;
-      margin: 0;
-    }
+.hero .sub{
+  margin:60px 0 30px;
+  font-size:22px;
+  font-weight:600;
+}
 
-    /* IMAGE AREA */
-    .id-photo {
-      flex: 1;
-      background: #fff;
-      border-left: 2px solid #000;
-      border-right: 2px solid #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 12px;
-    }
-    .id-photo img{
-      width: 92%;
-      height: 92%;
-      object-fit: contain;
-      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.10));
-      animation: popIn 650ms cubic-bezier(.2,.9,.2,1) both;
-    }
-    @keyframes popIn {
-      from { opacity: 0; transform: scale(0.92); }
-      to { opacity: 1; transform: scale(1); }
-    }
+.hero .btns{
+  width:420px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
 
-    .id-card-bottom {
-      background: #fff;
-      border-radius: 18px;
-      height: 110px;
-      border: 2px solid #000;
-      border-top: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px;
-    }
-    .card-name {
-      font-size: 1.9rem;
-      font-weight: 900;
-      text-transform: uppercase;
-      font-family: 'Inter', sans-serif;
-      line-height: 1.05;
-      letter-spacing: 0.5px;
-    }
+.pill{
+  height:66px;
+  border-radius:16px;
+  background:#fff;
+  border:3px solid var(--line);
+  font-size:22px;
+  font-weight:900;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  cursor:pointer;
+  box-shadow:0 7px 0 rgba(0,0,0,.15);
+  transition:.12s;
+}
+.pill:hover{transform:translateY(-2px)}
+.pill:active{
+  transform:translateY(3px);
+  box-shadow:0 3px 0 rgba(0,0,0,.15)
+}
 
-    /* Back button */
-    button.back-btn {
-      background: none;
-      border: none;
-      font-size: 1.1rem;
-      font-weight: bold;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      color: #333;
-      margin-bottom: 10px;
-      transition: transform .12s ease, color .12s ease;
-    }
-    button.back-btn:hover {
-      color: #007bff;
-      transform: translateX(-2px);
-    }
+/* ID CARD */
+.card{
+  width:520px;
+  aspect-ratio:3/4;
+  background:#fff;
+  border:4px solid #000;
+  border-radius:34px;
+  padding:36px 28px 26px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  align-items:center;
+  box-shadow:10px 12px 0 rgba(0,0,0,.08);
+}
+.logo{
+  flex:1;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+.logo img{width:76%}
+.card .mae{
+  font-size:74px;
+  font-weight:900;
+  letter-spacing:18px;
+  padding-left:18px;
+}
+.card .name{
+  font-size:36px;
+  font-weight:900;
+  white-space:nowrap;
+}
 
-    /* =========================================
-       SIMULATOR STYLES
-       ========================================= */
-    .sim-container {
-      background: white;
-      padding: 25px;
-      border-radius: 16px;
-      box-shadow: 0 10px 28px rgba(0,0,0,0.12);
-      width: 1000px;
-      max-width: 100%;
-      animation: screenIn 420ms cubic-bezier(.2,.9,.2,1) both;
-    }
+/* =========================================================
+   MENU
+========================================================= */
+#menu{
+  flex-direction:column;
+  align-items:center;
+  padding:60px;
+}
+.back{
+  align-self:flex-start;
+  margin-bottom:30px;
+  font-size:18px;
+  cursor:pointer;
+  font-weight:700;
+}
+.menu-wrap{
+  text-align:center;
+}
+.menu-wrap h2{
+  font-size:64px;
+  margin:0;
+}
+.menu-wrap p{
+  margin:20px 0 40px;
+  font-size:18px;
+}
 
-    .visuals-row {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 20px;
-      margin-bottom: 20px;
-    }
-    @media (max-width: 900px) {
-      .visuals-row { grid-template-columns: 1fr; }
-      .id-card { width: 95%; }
-      .pill-btn { width: 95%; }
-      .title-small { font-size: 3rem; }
-      .title-bold { font-size: 3.5rem; }
-    }
+/* =========================================================
+   SIMULATOR
+========================================================= */
+#sim{
+  flex-direction:column;
+  align-items:center;
+  padding:30px;
+}
 
-    .panel {
-      border: 1px solid #eee;
-      border-radius: 12px;
-      padding: 12px;
-      background: #fff;
-      position: relative;
-      transition: transform .15s ease, box-shadow .15s ease;
-    }
-    .panel:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 18px rgba(0,0,0,0.06);
-    }
-    .panel-label {
-      font-weight: 700;
-      color: #555;
-      margin-bottom: 10px;
-      display: block;
-      font-size: 0.9rem;
-    }
+.sim-wrap{
+  width:100%;
+  max-width:1200px;
+}
 
-    canvas {
-      width: 100%;
-      height: 350px;
-      cursor: crosshair;
-      display: block;
-      border-radius: 10px;
-    }
-    #sPlaneCanvas {
-      background: #fafafa;
-      border-left: 1px solid #eee;
-    }
+.row{
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:20px;
+}
 
-    /* Controls Grid */
-    .controls-area {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 20px;
-      background: #f8f9fa;
-      padding: 20px;
-      border-radius: 12px;
-      border: 1px solid #e9ecef;
-      animation: fadeUp 520ms cubic-bezier(.2,.9,.2,1) both;
-    }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @media (max-width: 800px) {
-      .controls-area { grid-template-columns: 1fr; }
-    }
+.panel{
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:8px;
+  padding:10px;
+  position:relative;
+}
 
-    .control-column { display: flex; flex-direction: column; gap: 15px; }
-    .control-header {
-      font-weight: 900;
-      font-size: 1rem;
-      margin-bottom: 5px;
-      color: #222;
-      border-bottom: 2px solid #ddd;
-      padding-bottom: 5px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
+.panel span{
+  font-weight:700;
+  font-size:13px;
+  color:#555;
+}
 
-    .control-group label {
-      display: flex;
-      justify-content: space-between;
-      font-weight: 600;
-      font-size: 0.9rem;
-      margin-bottom: 5px;
-    }
-    input[type="range"] { width: 100%; cursor: pointer; }
+canvas{
+  width:100%;
+  height:360px;
+  display:block;
+}
 
-    select {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-family: 'DM Sans', sans-serif;
-      font-weight: bold;
-      cursor: pointer;
-      transition: transform .12s ease, box-shadow .12s ease;
-    }
-    select:focus { outline: none; box-shadow: 0 0 0 4px rgba(0,123,255,0.15); }
+/* CONTROLS */
+.controls{
+  margin-top:20px;
+  background:#f8f9fa;
+  border-radius:8px;
+  padding:20px;
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:20px;
+}
 
-    /* Buttons */
-    button.btn-step {
-      background: #000;
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 900;
-      width: 100%;
-      transition: transform 0.12s ease, background 0.2s ease;
-      will-change: transform;
-    }
-    button.btn-step:hover { background: #333; transform: translateY(-2px); }
-    button.btn-step:active { transform: translateY(1px); }
+.col h4{
+  margin:0 0 10px;
+  font-size:14px;
+  font-weight:800;
+  border-bottom:2px solid #ddd;
+  padding-bottom:5px;
+}
 
-    /* Math & Status */
-    .math-display {
-      font-family: 'Courier New', monospace;
-      font-weight: bold;
-      font-size: 0.82rem;
-      color: #333;
-      background: rgba(255,255,255,0.7);
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid #eee;
-      min-height: 20px;
-      word-wrap: break-word;
-    }
+label{
+  display:flex;
+  justify-content:space-between;
+  font-size:13px;
+  font-weight:600;
+}
 
-    .status-badge {
-      display: inline-block;
-      padding: 10px 10px;
-      border-radius: 10px;
-      font-weight: 900;
-      font-size: 0.9rem;
-      margin-top: 8px;
-      width: 100%;
-      text-align: center;
-      box-sizing: border-box;
-      transition: transform .18s ease;
-    }
-    .status-stable { background: #d4edda; color: #155724; }
-    .status-unstable { background: #f8d7da; color: #721c24; }
-    .status-badge.bump { transform: scale(1.03); }
+input[type=range],select{
+  width:100%;
+}
 
-    /* Warning Overlay */
-    .warning-overlay {
-      position: absolute; top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(255,255,255,0.95);
-      display: none;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      color: #d32f2f;
-      font-weight: 900;
-      z-index: 10;
-      border-radius: 12px;
-      text-align: center;
-      animation: shake 450ms ease both;
-    }
-    @keyframes shake {
-      0%,100% { transform: translateX(0); }
-      20% { transform: translateX(-6px); }
-      40% { transform: translateX(6px); }
-      60% { transform: translateX(-4px); }
-      80% { transform: translateX(4px); }
-    }
+/* STATUS */
+.status{
+  margin-top:10px;
+  padding:6px;
+  font-weight:800;
+  text-align:center;
+  border-radius:4px;
+}
+.ok{background:#d4edda;color:#155724}
+.bad{background:#f8d7da;color:#721c24}
 
-    /* Toggle Switch UI */
-    .mode-toggle {
-      display: flex;
-      background: #e9ecef;
-      border-radius: 10px;
-      padding: 4px;
-      margin-bottom: 10px;
-    }
-    .mode-btn {
-      flex: 1;
-      padding: 10px;
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      font-weight: 900;
-      font-size: 0.85rem;
-      color: #666;
-      border-radius: 8px;
-      transition: background .18s ease, box-shadow .18s ease, transform .12s ease;
-    }
-    .mode-btn.active {
-      background: #fff;
-      color: #000;
-      box-shadow: 0 6px 14px rgba(0,0,0,0.10);
-    }
-    .mode-btn:active { transform: scale(0.98); }
-
-    /* Small helper text */
-    .hint {
-      font-size: 0.78rem;
-      color: #666;
-      margin-top: 4px;
-    }
-  </style>
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+@media(max-width:1000px){
+  .home-wrap{grid-template-columns:1fr;text-align:center}
+  .hero .btns{margin:auto}
+  .row{grid-template-columns:1fr}
+  .controls{grid-template-columns:1fr}
+}
+</style>
 </head>
 
 <body>
 
-  <!-- HOME -->
-  <div id="home-screen" class="screen active-screen enter">
-    <div class="left-content">
-      <div>
-        <h1 class="title-small">Welcome to</h1>
-        <h1 class="title-bold">MAE Academy</h1>
-        <p class="subtitle">Learn & Enjoy</p>
+<!-- HOME -->
+<section id="home" class="screen active">
+  <div class="home-wrap">
+    <div class="hero">
+      <h1 class="a">Welcome to</h1>
+      <h1 class="b">MAE Academy</h1>
+      <div class="sub">Learn & Enjoy</div>
+      <div class="btns">
+        <div class="pill">Academic Courses</div>
+        <div class="pill" onclick="go('menu')">Practical Simulations</div>
       </div>
-
-      <button class="pill-btn" onclick="alert('Module under construction')">
-        Academic Courses <span>&#8594;</span>
-      </button>
-
-      <button class="pill-btn" onclick="navigateTo('sim-menu-screen')">
-        Practical Simulations <span>&#8594;</span>
-      </button>
     </div>
 
-    <!-- ID CARD WITH IMAGE (SVG) -->
-    <div class="id-card">
-      <div class="id-card-top"></div>
-
-      <!-- Put your SVG here -->
-      <!-- Make sure you upload: assets/mae.svg -->
-      <div class="id-photo">
-        <img src="assets/mae.svg" alt="MAE Logo">
+    <div class="card">
+      <div class="logo">
+        <img src="assets/mae.svg">
       </div>
-
-      <div class="id-card-bottom">
-        <div class="card-name">MOHAMMAD ABU<br>ELYAN</div>
-      </div>
+      <div class="mae">MAE</div>
+      <div class="name">MOHAMMAD ABU ELYAN</div>
     </div>
   </div>
+</section>
 
-  <!-- MENU -->
-  <div id="sim-menu-screen" class="screen">
-    <button class="back-btn" style="align-self:flex-start; margin-left:max(0px, calc(50% - 600px));"
-      onclick="navigateTo('home-screen')">&#8592; Back</button>
-
-    <div class="left-content" style="align-items:center; margin-top:20px;">
-      <h1 class="title-small" style="font-size:3rem;">Simulations</h1>
-      <p class="subtitle">Select a module to begin</p>
-
-      <button class="pill-btn" onclick="startSimulator()">Process Control System <span>&#9654;</span></button>
-      <button class="pill-btn" style="opacity:0.5; cursor:not-allowed;">Fluid Mechanics (Soon)</button>
-    </div>
+<!-- MENU -->
+<section id="menu" class="screen">
+  <div class="back" onclick="go('home')">← Back</div>
+  <div class="menu-wrap">
+    <h2>Simulations</h2>
+    <p>Select a module</p>
+    <div class="pill" onclick="startSim()">Process Control System</div>
   </div>
+</section>
 
-  <!-- SIMULATOR -->
-  <div id="simulator-app" class="screen">
-    <button class="back-btn" style="align-self:flex-start; margin-left:max(0px, calc(50% - 500px));"
-      onclick="navigateTo('sim-menu-screen')">&#8592; Back to Menu</button>
+<!-- SIMULATOR -->
+<section id="sim" class="screen">
+  <div class="back" onclick="go('menu')">← Back</div>
+  <div class="sim-wrap">
 
-    <div class="sim-container">
-      <div class="visuals-row">
-
-        <div class="panel">
-          <span class="panel-label">Time Response (scroll to adjust SP)</span>
-          <canvas id="simCanvas" width="600" height="350"></canvas>
-          <div id="sim-warning" class="warning-overlay">
-            <div style="font-size:2rem; margin-bottom:10px;">⚠️</div>
-            <div>Unstable!</div>
-            <div style="font-size:0.85rem; font-weight:700; margin-top:5px;">System reset.</div>
-          </div>
-          <div class="hint">Tip: scroll on the graph to change SP (Shift = fast, Ctrl = fine)</div>
-        </div>
-
-        <div class="panel">
-          <span class="panel-label">Root Locus (Poles)</span>
-          <canvas id="sPlaneCanvas" width="300" height="350"></canvas>
-        </div>
-
+    <div class="row">
+      <div class="panel">
+        <span>Time Response (scroll mouse = SP)</span>
+        <canvas id="plot" width="800" height="360"></canvas>
       </div>
-
-      <div class="controls-area">
-
-        <div class="control-column">
-          <div class="control-header">1. System Plant</div>
-
-          <div class="control-group">
-            <label>System Order</label>
-            <select id="sys-order" onchange="updateUI()">
-              <option value="1">1st Order (Thermal)</option>
-              <option value="2" selected>2nd Order (Spring-Mass)</option>
-              <option value="3">3rd Order (Motor + Inductance)</option>
-            </select>
-          </div>
-
-          <div class="control-group param-1st" style="display:none;">
-            <label>Time Constant (&tau;): <span id="val-tau">1.0</span>s</label>
-            <input type="range" id="inp-tau" min="0.5" max="5.0" step="0.1" value="1.0">
-          </div>
-
-          <div class="control-group param-2nd">
-            <label>Natural Freq (&omega;<sub>n</sub>): <span id="val-wn">5.0</span></label>
-            <input type="range" id="inp-wn" min="1" max="15" step="0.5" value="5.0">
-          </div>
-
-          <div class="control-group param-2nd">
-            <label>Damping Ratio (&zeta;): <span id="val-zeta">0.5</span></label>
-            <input type="range" id="inp-zeta" min="0" max="2.0" step="0.05" value="0.5">
-          </div>
-
-          <div class="control-group param-3rd" style="display:none;">
-            <label>Lag Pole (p): <span id="val-p3">10.0</span></label>
-            <input type="range" id="inp-p3" min="1" max="20" step="1" value="10.0">
-            <div class="hint">Adds pole at s = -p</div>
-          </div>
-        </div>
-
-        <div class="control-column">
-          <div class="control-header">2. Controller</div>
-
-          <div class="mode-toggle">
-            <button class="mode-btn active" id="mode-manual" onclick="setMode('manual')">Manual (PID)</button>
-            <button class="mode-btn" id="mode-design" onclick="setMode('design')">Design (ζ, ω)</button>
-          </div>
-
-          <div id="ctrl-manual">
-            <div class="control-group">
-              <label>Kp: <span id="val-kp">5.0</span></label>
-              <input type="range" id="inp-kp" min="0" max="100" step="0.5" value="5.0">
-            </div>
-            <div class="control-group">
-              <label>Ki: <span id="val-ki">1.0</span></label>
-              <input type="range" id="inp-ki" min="0" max="50" step="0.5" value="1.0">
-            </div>
-            <div class="control-group">
-              <label>Kd: <span id="val-kd">2.0</span></label>
-              <input type="range" id="inp-kd" min="0" max="50" step="0.1" value="2.0">
-            </div>
-          </div>
-
-          <div id="ctrl-design" style="display:none;">
-            <div style="font-size:0.85rem; color:#007bff; margin-bottom:10px; font-weight:900;">
-              Auto-calculates PID for target response
-            </div>
-
-            <div class="control-group">
-              <label>Target &omega;<sub>n</sub>: <span id="val-twn">6.0</span></label>
-              <input type="range" id="inp-twn" min="1" max="20" step="0.5" value="6.0">
-            </div>
-
-            <div class="control-group">
-              <label>Target &zeta;: <span id="val-tzeta">0.7</span></label>
-              <input type="range" id="inp-tzeta" min="0.1" max="1.5" step="0.05" value="0.7">
-            </div>
-
-            <div style="margin-top:10px; padding:10px; background:#e3f2fd; border-radius:10px; font-size:0.85rem; font-weight:900;">
-              Result: Kp=<span id="res-kp">--</span> &nbsp; Kd=<span id="res-kd">--</span>
-            </div>
-          </div>
-
-          <button class="btn-step" style="margin-top:10px;" onclick="triggerStep()">Trigger Step</button>
-        </div>
-
-        <div class="control-column">
-          <div class="control-header">3. Analysis</div>
-
-          <div style="font-size:0.85rem; color:#666; font-weight:700;">Characteristic Equation:</div>
-          <div id="math-char-eq" class="math-display">...</div>
-
-          <div style="font-size:0.85rem; color:#666; margin-top:10px; font-weight:700;">Closed-Loop Poles:</div>
-          <div id="math-roots" class="math-display">...</div>
-
-          <div id="status-badge" class="status-badge status-stable">Stable</div>
-        </div>
-
+      <div class="panel">
+        <span>Root Locus</span>
+        <canvas id="roots" width="300" height="360"></canvas>
       </div>
     </div>
+
+    <div class="controls">
+      <div class="col">
+        <h4>Plant</h4>
+        <label>ωn <span id="vwn">5</span></label>
+        <input type="range" min="1" max="15" step=".5" value="5" id="wn">
+        <label>ζ <span id="vz">0.5</span></label>
+        <input type="range" min="0" max="2" step=".05" value=".5" id="z">
+      </div>
+
+      <div class="col">
+        <h4>PID</h4>
+        <label>Kp <span id="vkp">5</span></label>
+        <input type="range" min="0" max="50" step=".5" value="5" id="kp">
+        <label>Ki <span id="vki">1</span></label>
+        <input type="range" min="0" max="20" step=".2" value="1" id="ki">
+        <label>Kd <span id="vkd">2</span></label>
+        <input type="range" min="0" max="20" step=".2" value="2" id="kd">
+      </div>
+
+      <div class="col">
+        <h4>Status</h4>
+        <div id="stat" class="status ok">Stable</div>
+        <div style="margin-top:10px;font-size:13px;color:#555">
+          Time axis = real seconds<br>
+          Scroll mouse = change SP
+        </div>
+      </div>
+    </div>
+
   </div>
-
-  <script>
-    // =========================
-    // Navigation (with animation)
-    // =========================
-    function navigateTo(id) {
-      document.querySelectorAll('.screen').forEach(s => {
-        s.classList.remove('active-screen');
-        s.classList.remove('enter');
-      });
-
-      const target = document.getElementById(id);
-      target.classList.add('active-screen');
-      // retrigger animation
-      requestAnimationFrame(() => target.classList.add('enter'));
-    }
-
-    function startSimulator() {
-      navigateTo('simulator-app');
-      if(!window.simLoaded) { initSim(); window.simLoaded = true; }
-    }
-
-    // =========================
-    // Core Globals
-    // =========================
-    let canvas, ctx, sCanvas, sCtx;
-
-    let sys = { order: 2, tau: 1.0, wn: 5.0, zeta: 0.5, p3: 10.0 };
-    let pid = { sp: 50, kp: 5.0, ki: 1.0, kd: 2.0 };
-    let design = { wn: 6.0, zeta: 0.7 };
-
-    let state = { pv: 0, vel: 0, acc: 0, integ: 0, lastErr: 0 };
-    let history = [];
-
-    const MAX_HISTORY = 600;
-
-    // Time base (for axis)
-    const DT_FRAME = 0.02;   // seconds per history sample (your updatePhysics total step)
-    const Y_MIN = -20;
-    const Y_MAX = 140;
-
-    let controlMode = 'manual'; // 'manual' or 'design'
-    let lastStable = true;
-
-    function initSim() {
-      canvas = document.getElementById('simCanvas');
-      ctx = canvas.getContext('2d');
-
-      sCanvas = document.getElementById('sPlaneCanvas');
-      sCtx = sCanvas.getContext('2d');
-
-      // Scroll-to-adjust SP (ONLY on the graph)
-      canvas.addEventListener('wheel', (e) => {
-        e.preventDefault();
-
-        // sensitivity: normal = 1, Shift = 5, Ctrl = 0.2
-        const step = e.ctrlKey ? 0.2 : (e.shiftKey ? 5 : 1);
-
-        pid.sp += (e.deltaY < 0 ? step : -step);
-        pid.sp = Math.max(0, Math.min(125, pid.sp));
-      }, { passive: false });
-
-      bindInputs();
-      updateUI();
-      requestAnimationFrame(loop);
-    }
-
-    function setMode(mode) {
-      controlMode = mode;
-      document.getElementById('mode-manual').className = mode === 'manual' ? 'mode-btn active' : 'mode-btn';
-      document.getElementById('mode-design').className = mode === 'design' ? 'mode-btn active' : 'mode-btn';
-      document.getElementById('ctrl-manual').style.display = mode === 'manual' ? 'block' : 'none';
-      document.getElementById('ctrl-design').style.display = mode === 'design' ? 'block' : 'none';
-      if(mode === 'design') runAutoTune();
-      analyze();
-    }
-
-    function bindInputs() {
-      const bind = (id, obj, key) => {
-        const el = document.getElementById(id);
-        el.addEventListener('input', e => {
-          obj[key] = parseFloat(e.target.value);
-          document.getElementById(id.replace('inp','val')).innerText = obj[key];
-          if(controlMode === 'design') runAutoTune();
-          analyze();
-        });
-      };
-
-      bind('inp-tau', sys, 'tau');
-      bind('inp-wn', sys, 'wn');
-      bind('inp-zeta', sys, 'zeta');
-      bind('inp-p3', sys, 'p3');
-
-      bind('inp-kp', pid, 'kp');
-      bind('inp-ki', pid, 'ki');
-      bind('inp-kd', pid, 'kd');
-
-      bind('inp-twn', design, 'wn');
-      bind('inp-tzeta', design, 'zeta');
-    }
-
-    function updateUI() {
-      sys.order = parseInt(document.getElementById('sys-order').value);
-
-      // Visibility logic
-      document.querySelectorAll('.param-1st').forEach(e => e.style.display = sys.order===1 ? 'block':'none');
-      document.querySelectorAll('.param-2nd').forEach(e => e.style.display = (sys.order===2 || sys.order===3) ? 'block':'none');
-      document.querySelectorAll('.param-3rd').forEach(e => e.style.display = sys.order===3 ? 'block':'none');
-
-      resetSim();
-      if(controlMode === 'design') runAutoTune();
-      analyze();
-    }
-
-    function runAutoTune() {
-      // Simple pole placement logic for the 2nd order only
-      if(sys.order === 2) {
-        const ws2 = sys.wn * sys.wn;
-        const target_w2 = design.wn * design.wn;
-        const target_mid = 2 * design.zeta * design.wn;
-
-        const req_Kp = (target_w2 / ws2) - 1;
-        const req_Kd = (target_mid - (2*sys.zeta*sys.wn)) / ws2;
-
-        pid.kp = Math.max(0, req_Kp);
-        pid.kd = Math.max(0, req_Kd);
-        pid.ki = 0.5;
-
-        document.getElementById('res-kp').innerText = pid.kp.toFixed(2);
-        document.getElementById('res-kd').innerText = pid.kd.toFixed(2);
-
-        // update slider visuals too
-        document.getElementById('inp-kp').value = pid.kp;
-        document.getElementById('val-kp').innerText = pid.kp.toFixed(2);
-
-        document.getElementById('inp-kd').value = pid.kd;
-        document.getElementById('val-kd').innerText = pid.kd.toFixed(2);
-
-        document.getElementById('inp-ki').value = pid.ki;
-        document.getElementById('val-ki').innerText = pid.ki.toFixed(2);
-
-      } else {
-        document.getElementById('res-kp').innerText = "N/A";
-        document.getElementById('res-kd').innerText = "N/A";
-      }
-    }
-
-    function resetSim() {
-      state = { pv: 0, vel: 0, acc: 0, integ: 0, lastErr: 0 };
-      history = [];
-      document.getElementById('sim-warning').style.display = 'none';
-    }
-
-    function triggerStep() {
-      pid.sp = (pid.sp === 50) ? 80 : 50;
-    }
-
-    // =========================
-    // Physics update
-    // =========================
-    function updatePhysics() {
-      const SUB = 20;
-      const DT = 0.02 / SUB;
-
-      for(let i=0; i<SUB; i++) {
-        const err = pid.sp - state.pv;
-        state.integ += err * DT;
-        const u = (pid.kp * err) + (pid.ki * state.integ) + (pid.kd * (err - state.lastErr)/DT);
-
-        if(isNaN(u) || Math.abs(u) > 1e6) { handleCrash(); return; }
-
-        if (sys.order === 1) {
-          state.pv += ((u - state.pv) / sys.tau) * DT;
-        }
-        else if (sys.order === 2) {
-          const w2 = sys.wn*sys.wn;
-          const force = (w2*u) - (2*sys.zeta*sys.wn*state.vel) - (w2*state.pv);
-          state.vel += force * DT;
-          state.pv += state.vel * DT;
-        }
-        else if (sys.order === 3) {
-          const w2 = sys.wn*sys.wn;
-          const force = (w2*u) - (2*sys.zeta*sys.wn*state.vel) - (w2*state.acc);
-          state.vel += force * DT;
-          state.acc += state.vel * DT;  // x
-          const y_dot = sys.p3 * (state.acc - state.pv);
-          state.pv += y_dot * DT;
-        }
-
-        state.lastErr = err;
-        if(Math.abs(state.pv) > 1e4) { handleCrash(); return; }
-      }
-
-      history.push({ sp: pid.sp, pv: state.pv });
-      if(history.length > MAX_HISTORY) history.shift();
-    }
-
-    function handleCrash() {
-      document.getElementById('sim-warning').style.display = 'flex';
-      setTimeout(() => { resetSim(); }, 1500);
-    }
-
-    // =========================
-    // Math analysis
-    // =========================
-    function analyze() {
-      let roots = [];
-      let eqHTML = "";
-
-      if (sys.order === 1) {
-        const A = sys.tau + pid.kd;
-        const B = 1 + pid.kp;
-        const C = pid.ki;
-        eqHTML = `${A.toFixed(1)}s² + ${B.toFixed(1)}s + ${C.toFixed(1)} = 0`;
-        roots = solveQuad(A, B, C);
-      }
-      else if (sys.order === 2) {
-        const w2 = sys.wn*sys.wn;
-        const B = 2*sys.zeta*sys.wn + w2*pid.kd;
-        const C = w2 + w2*pid.kp;
-        const D = w2*pid.ki;
-        eqHTML = `s³ + ${B.toFixed(1)}s² + ${C.toFixed(1)}s + ${D.toFixed(1)} = 0`;
-        roots = solveCubic(B, C, D);
-      }
-      else {
-        eqHTML = "Order 4 (Analysis Approx)";
-        roots = [
-          {re: -sys.p3, im: 0},
-          {re: -sys.zeta*sys.wn, im: sys.wn*Math.sqrt(Math.abs(1-sys.zeta*sys.zeta))},
-          {re: -sys.zeta*sys.wn, im: -sys.wn*Math.sqrt(Math.abs(1-sys.zeta*sys.zeta))}
-        ];
-      }
-
-      document.getElementById('math-char-eq').innerText = eqHTML;
-
-      let txt = "";
-      let stable = true;
-      roots.forEach(r => {
-        if(r.re > 0.001) stable = false;
-        txt += `s = ${r.re.toFixed(1)} ${Math.abs(r.im) < 0.001 ? '' : '± j'+Math.abs(r.im).toFixed(1)}<br>`;
-      });
-      document.getElementById('math-roots').innerHTML = txt;
-
-      const badge = document.getElementById('status-badge');
-      badge.innerText = stable ? "Stable" : "Unstable";
-      badge.className = "status-badge " + (stable ? "status-stable" : "status-unstable");
-
-      // little bump animation when status changes
-      if(stable !== lastStable){
-        badge.classList.add('bump');
-        setTimeout(()=>badge.classList.remove('bump'), 180);
-        lastStable = stable;
-      }
-
-      drawSPlane(roots);
-    }
-
-    function solveQuad(a, b, c) {
-      if(Math.abs(a)<1e-5) return [{re:-c/b, im:0}];
-      const d = b*b - 4*a*c;
-      if(d>=0) return [{re:(-b+Math.sqrt(d))/(2*a), im:0}, {re:(-b-Math.sqrt(d))/(2*a), im:0}];
-      return [{re:-b/(2*a), im:Math.sqrt(-d)/(2*a)}, {re:-b/(2*a), im:-Math.sqrt(-d)/(2*a)}];
-    }
-
-    function solveCubic(a, b, c) {
-      const p = b - a*a/3;
-      const q = 2*a*a*a/27 - a*b/3 + c;
-      const d = q*q/4 + p*p*p/27;
-
-      let roots = [];
-      if(d>0) {
-        const u = Math.cbrt(-q/2 + Math.sqrt(d));
-        const v = Math.cbrt(-q/2 - Math.sqrt(d));
-        roots.push({re: u+v - a/3, im: 0});
-        roots.push({re: -(u+v)/2 - a/3, im: (u-v)*Math.sqrt(3)/2});
-        roots.push({re: -(u+v)/2 - a/3, im: -(u-v)*Math.sqrt(3)/2});
-      } else {
-        const k = 2 * Math.sqrt(-p/3);
-        const t = Math.acos(3*q/(2*p*k));
-        roots.push({re: k*Math.cos(t/3)-a/3, im:0});
-        roots.push({re: k*Math.cos((t+2*Math.PI)/3)-a/3, im:0});
-        roots.push({re: k*Math.cos((t+4*Math.PI)/3)-a/3, im:0});
-      }
-      return roots;
-    }
-
-    // =========================
-    // Draw loop
-    // =========================
-    function loop() {
-      if(document.getElementById('simulator-app').classList.contains('active-screen')) {
-        updatePhysics();
-        drawGraph();
-      }
-      requestAnimationFrame(loop);
-    }
-
-    // =========================
-    // Time graph with TIME AXIS
-    // =========================
-    function drawGraph() {
-      ctx.clearRect(0,0,600,350);
-
-      const W = 600, H = 350;
-      const LEFT_PAD = 44;
-      const BOTTOM_PAD = 28;
-      const TOP_PAD = 10;
-
-      const plotX0 = LEFT_PAD;
-      const plotY0 = TOP_PAD;
-      const plotW  = W - LEFT_PAD - 10;
-      const plotH  = H - TOP_PAD - BOTTOM_PAD;
-
-      const yToPix = (yVal) => {
-        const t = (yVal - Y_MIN) / (Y_MAX - Y_MIN);
-        return plotY0 + plotH - t * plotH;
-      };
-
-      const xToPix = (i) => plotX0 + (i/(MAX_HISTORY-1)) * plotW;
-
-      // Grid Y
-      ctx.strokeStyle="#eee";
-      ctx.fillStyle="#888";
-      ctx.font="10px Arial";
-      [0,25,50,75,100,125].forEach(v => {
-        const y = yToPix(v);
-        ctx.beginPath(); ctx.moveTo(plotX0, y); ctx.lineTo(plotX0 + plotW, y); ctx.stroke();
-        ctx.fillText(v, 8, y + 3);
-      });
-
-      // Axes
-      ctx.strokeStyle="#cfcfcf";
-      ctx.lineWidth=1.5;
-      ctx.beginPath();
-      ctx.moveTo(plotX0, plotY0);
-      ctx.lineTo(plotX0, plotY0 + plotH);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(plotX0, plotY0 + plotH);
-      ctx.lineTo(plotX0 + plotW, plotY0 + plotH);
-      ctx.stroke();
-
-      // Time axis
-      const totalTime = (MAX_HISTORY - 1) * DT_FRAME; // seconds
-      const tickEvery = 2; // seconds
-
-      ctx.fillStyle="#666";
-      ctx.strokeStyle="#ddd";
-      ctx.lineWidth=1;
-
-      for(let t=0; t<=totalTime + 1e-9; t += tickEvery){
-        const i = t / DT_FRAME;
-        const x = plotX0 + (i/(MAX_HISTORY-1)) * plotW;
-
-        ctx.beginPath();
-        ctx.moveTo(x, plotY0 + plotH);
-        ctx.lineTo(x, plotY0 + plotH + 6);
-        ctx.stroke();
-
-        ctx.fillText(`${t}s`, x - 8, plotY0 + plotH + 18);
-      }
-
-      // SP label
-      ctx.fillStyle="#111";
-      ctx.font="12px Arial";
-      ctx.fillText(`SP: ${pid.sp.toFixed(1)} (scroll to adjust)`, plotX0, 14);
-
-      if(history.length < 2) return;
-
-      // SP dashed
-      ctx.beginPath();
-      ctx.strokeStyle="#bbb";
-      ctx.setLineDash([6,6]);
-      ctx.lineWidth=2;
-      history.forEach((h,i) => {
-        const x = xToPix(i);
-        const y = yToPix(h.sp);
-        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      });
-      ctx.stroke();
-
-      // PV solid
-      ctx.beginPath();
-      ctx.strokeStyle="#007bff";
-      ctx.setLineDash([]);
-      ctx.lineWidth=3;
-      history.forEach((h,i) => {
-        const x = xToPix(i);
-        let y = yToPix(h.pv);
-        y = Math.max(plotY0 - 200, Math.min(plotY0 + plotH + 200, y));
-        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      });
-      ctx.stroke();
-    }
-
-    // =========================
-    // S-plane
-    // =========================
-    function drawSPlane(roots) {
-      sCtx.clearRect(0,0,300,350);
-      const w=300, h=350, cx=w/2, cy=h/2, sc=10;
-
-      sCtx.strokeStyle="#ccc";
-      sCtx.beginPath();
-      sCtx.moveTo(cx,0); sCtx.lineTo(cx,h);
-      sCtx.moveTo(0,cy); sCtx.lineTo(w,cy);
-      sCtx.stroke();
-
-      roots.forEach(r => {
-        let x = cx + r.re*sc;
-        let y = cy - r.im*sc;
-
-        if(x>-50 && x<w+50 && y>-50 && y<h+50) {
-          sCtx.strokeStyle="red";
-          sCtx.lineWidth=2;
-          sCtx.beginPath();
-          sCtx.moveTo(x-5,y-5); sCtx.lineTo(x+5,y+5);
-          sCtx.moveTo(x+5,y-5); sCtx.lineTo(x-5,y+5);
-          sCtx.stroke();
-        }
-      });
-    }
-  </script>
-
-  <!--
-    ✅ HOW TO ADD THE SVG TO GITHUB
-    1) In your repo, create a folder called: assets
-    2) Upload your SVG logo and name it: mae.svg
-    3) So it becomes: assets/mae.svg
-    4) This line uses it: <img src="assets/mae.svg" ...>
-  -->
+</section>
+
+<script>
+/* =========================================================
+   NAV
+========================================================= */
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function startSim(){
+  go('sim');
+  if(!window.started) init();
+}
+
+/* =========================================================
+   SIM CORE
+========================================================= */
+let plot = document.getElementById("plot");
+let ctx = plot.getContext("2d");
+let rcan = document.getElementById("roots");
+let rctx = rcan.getContext("2d");
+
+let sp = 50;
+let pv = 0, vel = 0, integ = 0, last = 0;
+let hist = [];
+let t = 0;
+
+function init(){
+  window.started = true;
+
+  plot.addEventListener("wheel",e=>{
+    e.preventDefault();
+    sp += e.deltaY>0?-5:5;
+    sp = Math.max(0,Math.min(150,sp));
+  });
+
+  document.querySelectorAll("input").forEach(i=>{
+    i.oninput = ()=>document.getElementById("v"+i.id).innerText=i.value;
+  });
+
+  loop();
+}
+
+function loop(){
+  physics();
+  drawPlot();
+  drawRoots();
+  requestAnimationFrame(loop);
+}
+
+function physics(){
+  let wn = +wnEl.value;
+  let z = +zEl.value;
+  let kp = +kpEl.value;
+  let ki = +kiEl.value;
+  let kd = +kdEl.value;
+
+  let err = sp - pv;
+  integ += err*.02;
+  let u = kp*err + ki*integ + kd*(err-last)/.02;
+
+  let acc = wn*wn*u - 2*z*wn*vel - wn*wn*pv;
+  vel += acc*.02;
+  pv += vel*.02;
+
+  last = err;
+  t += .02;
+
+  hist.push({t,sp,pv});
+  if(hist.length>600) hist.shift();
+
+  document.getElementById("stat").className =
+    Math.abs(pv)>1e4 ? "status bad":"status ok";
+}
+
+function drawPlot(){
+  ctx.clearRect(0,0,800,360);
+  ctx.strokeStyle="#ddd";
+  for(let i=0;i<=10;i++){
+    let y = i*36;
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(800,y);ctx.stroke();
+  }
+
+  ctx.beginPath();ctx.strokeStyle="#aaa";ctx.setLineDash([6,6]);
+  hist.forEach((h,i)=>{
+    let x = i/hist.length*800;
+    let y = 360-(h.sp/150)*360;
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  });
+  ctx.stroke();
+
+  ctx.beginPath();ctx.strokeStyle="#007bff";ctx.setLineDash([]);
+  hist.forEach((h,i)=>{
+    let x = i/hist.length*800;
+    let y = 360-(h.pv/150)*360;
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  });
+  ctx.stroke();
+}
+
+function drawRoots(){
+  rctx.clearRect(0,0,300,360);
+  rctx.strokeStyle="#ccc";
+  rctx.beginPath();
+  rctx.moveTo(150,0);rctx.lineTo(150,360);
+  rctx.moveTo(0,180);rctx.lineTo(300,180);
+  rctx.stroke();
+
+  let wn = +wnEl.value;
+  let z = +zEl.value;
+  let re = -z*wn;
+  let im = wn*Math.sqrt(Math.max(0,1-z*z));
+
+  plotX(re,im);
+  plotX(re,-im);
+}
+
+function plotX(re,im){
+  let x = 150 + re*10;
+  let y = 180 - im*10;
+  rctx.strokeStyle="red";
+  rctx.beginPath();
+  rctx.moveTo(x-5,y-5);
+  rctx.lineTo(x+5,y+5);
+  rctx.moveTo(x+5,y-5);
+  rctx.lineTo(x-5,y+5);
+  rctx.stroke();
+}
+
+const wnEl=wn, zEl=z, kpEl=kp, kiEl=ki, kdEl=kd;
+</script>
 </body>
 </html>
