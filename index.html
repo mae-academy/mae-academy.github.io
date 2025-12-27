@@ -3,25 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAE X Academy - Advanced Control</title>
+    <title>MAE Academy - Robust Simulator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&display=swap" rel="stylesheet">
     
     <style>
         /* --- GLOBAL STYLES --- */
         body { 
-            font-family: 'DM Sans', 'Segoe UI', sans-serif; 
+            font-family: 'DM Sans', sans-serif; 
             background-color: #e2efff; 
-            margin: 0; padding: 0;
+            margin: 0; padding: 20px;
             display: flex; justify-content: center; align-items: center;
             min-height: 100vh; color: #000;
         }
 
-        /* --- SCREEN 1: HOME UI --- */
+        /* --- HOME SCREEN --- */
         #home-screen {
             display: flex; justify-content: center; align-items: center;
-            gap: 100px; width: 100%; max-width: 1200px; padding: 20px;
+            gap: 100px; width: 100%; max-width: 1200px;
+            flex-wrap: wrap;
         }
 
         .left-content { display: flex; flex-direction: column; gap: 15px; }
@@ -48,9 +49,9 @@
         .card-title { font-size: 3.5rem; font-weight: 900; letter-spacing: 5px; margin: 10px 0; }
         .card-name { font-size: 1.2rem; font-weight: 700; text-transform: uppercase; }
 
-        /* --- SIMULATOR STYLES --- */
+        /* --- SIMULATOR --- */
         #simulator-app {
-            display: none; width: 100%; flex-direction: column; align-items: center; padding-top: 20px;
+            display: none; width: 100%; flex-direction: column; align-items: center;
         }
 
         .sim-container { 
@@ -63,7 +64,7 @@
         }
         @media (max-width: 900px) { .visuals-row { grid-template-columns: 1fr; } }
 
-        .panel { border: 1px solid #eee; border-radius: 8px; padding: 10px; background: #fff; }
+        .panel { border: 1px solid #eee; border-radius: 8px; padding: 10px; background: #fff; position: relative; }
         .panel-label { font-weight: 700; color: #555; margin-bottom: 10px; display: block; font-size: 0.9rem; }
 
         canvas { width: 100%; height: 350px; cursor: crosshair; display: block; }
@@ -85,13 +86,14 @@
         button.btn-step { background: #000; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-family: 'DM Sans', sans-serif; transition: 0.2s;}
         button.btn-step:hover { background: #333; }
 
-        .status-badge {
-            display: inline-block; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; margin-top: 5px;
+        .math-display { font-family: 'Courier New', monospace; font-weight: bold; font-size: 0.85rem; color: #333; background: rgba(255,255,255,0.5); padding: 5px; border-radius: 4px;}
+
+        .warning-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9); display: none;
+            justify-content: center; align-items: center; color: red; font-weight: bold;
+            z-index: 10; border-radius: 8px; text-align: center; padding: 20px;
         }
-        .status-stable { background: #d4edda; color: #155724; }
-        .status-unstable { background: #f8d7da; color: #721c24; }
-        
-        .math-display { font-family: 'Courier New', monospace; font-weight: bold; font-size: 0.9rem; color: #333; background: rgba(255,255,255,0.5); padding: 5px; border-radius: 4px;}
 
     </style>
 </head>
@@ -104,7 +106,7 @@
                 <h1 class="title-bold">MAE Academy</h1>
                 <p class="subtitle">Learn & Enjoy</p>
             </div>
-            <button class="pill-btn" onclick="alert('Course module under construction!')">Academic Courses</button>
+            <button class="pill-btn" onclick="alert('Module under construction')">Academic Courses</button>
             <button class="pill-btn" onclick="startSimulator()">Practical Simulations</button>
         </div>
         <div class="id-card">
@@ -120,82 +122,75 @@
     </div>
 
     <div id="simulator-app">
-        <div style="width: 1000px; max-width: 95%; text-align: left; margin-bottom: 20px;">
-            <button onclick="goHome()" style="background:none; border:none; color:#000; cursor:pointer; font-weight:bold; font-size:18px; display:flex; align-items:center; font-family: 'DM Sans', sans-serif;">
-                <span style="font-size: 24px; margin-right: 5px;">&#8592;</span> Back to Home
+        <div style="width: 1000px; max-width: 95%; text-align: left; margin-bottom: 10px;">
+            <button onclick="goHome()" style="background:none; border:none; color:#000; cursor:pointer; font-weight:bold; font-size:18px;">
+                &#8592; Back to Home
             </button>
         </div>
 
         <div class="sim-container">
             <div class="visuals-row">
                 <div class="panel">
-                    <span class="panel-label">Step Response (Time Domain)</span>
+                    <span class="panel-label">Step Response</span>
                     <canvas id="simCanvas" width="600" height="350"></canvas>
+                    <div id="sim-warning" class="warning-overlay">System Unstable!<br>Resetting...</div>
                 </div>
                 <div class="panel">
-                    <span class="panel-label">Root Locus (S-Plane)</span>
+                    <span class="panel-label">Root Locus</span>
                     <canvas id="sPlaneCanvas" width="300" height="350"></canvas>
-                    <div style="text-align:center; margin-top:5px; font-size:0.8rem; color:#666;">
-                        X = Closed Loop Poles
-                    </div>
                 </div>
             </div>
 
             <div class="controls-area">
-                
                 <div class="control-column">
                     <div class="control-header">1. System Plant</div>
                     <div class="control-group">
-                        <label>System Order</label>
+                        <label>Order</label>
                         <select id="sys-order" onchange="updateUI()">
-                            <option value="1">1st Order (Thermal/RC)</option>
-                            <option value="2" selected>2nd Order (Spring-Mass)</option>
+                            <option value="1">1st Order (Thermal)</option>
+                            <option value="2" selected>2nd Order (Mechanical)</option>
                         </select>
                     </div>
-
                     <div class="control-group param-1st" style="display:none;">
-                        <label>Time Constant (&tau;): <span id="val-tau">1.0</span>s</label>
-                        <input type="range" id="inp-tau" min="0.1" max="5.0" step="0.1" value="1.0">
-                    </div>
-
-                    <div class="control-group param-2nd">
-                        <label>Natural Freq (&omega;<sub>n</sub>): <span id="val-wn">5.0</span> rad/s</label>
-                        <input type="range" id="inp-wn" min="1" max="20" step="0.5" value="5.0">
+                        <label>Tau (&tau;): <span id="val-tau">1.0</span>s</label>
+                        <input type="range" id="inp-tau" min="0.5" max="5.0" step="0.1" value="1.0">
                     </div>
                     <div class="control-group param-2nd">
-                        <label>Damping Ratio (&zeta;): <span id="val-zeta">0.5</span></label>
+                        <label>Omega (&omega;<sub>n</sub>): <span id="val-wn">5.0</span></label>
+                        <input type="range" id="inp-wn" min="1" max="10" step="0.5" value="5.0">
+                    </div>
+                    <div class="control-group param-2nd">
+                        <label>Zeta (&zeta;): <span id="val-zeta">0.5</span></label>
                         <input type="range" id="inp-zeta" min="0" max="2.0" step="0.05" value="0.5">
                     </div>
                 </div>
 
                 <div class="control-column">
-                    <div class="control-header">2. PID Controller</div>
+                    <div class="control-header">2. Controller</div>
                     <div class="control-group">
-                        <label>Proportional (Kp): <span id="val-kp">20</span></label>
-                        <input type="range" id="inp-kp" min="0" max="100" step="1" value="20">
+                        <label>Kp: <span id="val-kp">5.0</span></label>
+                        <input type="range" id="inp-kp" min="0" max="50" step="0.5" value="5.0">
                     </div>
                     <div class="control-group">
-                        <label>Integral (Ki): <span id="val-ki">10</span></label>
-                        <input type="range" id="inp-ki" min="0" max="100" step="1" value="10">
+                        <label>Ki: <span id="val-ki">1.0</span></label>
+                        <input type="range" id="inp-ki" min="0" max="20" step="0.5" value="1.0">
                     </div>
                     <div class="control-group">
-                        <label>Derivative (Kd): <span id="val-kd">5</span></label>
-                        <input type="range" id="inp-kd" min="0" max="50" step="0.5" value="5">
+                        <label>Kd: <span id="val-kd">2.0</span></label>
+                        <input type="range" id="inp-kd" min="0" max="20" step="0.1" value="2.0">
                     </div>
-                    <button class="btn-step" onclick="triggerStep()">Trigger Step Input</button>
+                    <button class="btn-step" onclick="triggerStep()">Trigger Step</button>
                 </div>
 
-                <div class="control-column" style="background: white; padding: 15px; border-radius: 6px; border:1px solid #ddd;">
-                    <div class="control-header">3. Analysis</div>
-                    <div style="font-size:0.8rem; margin-bottom:5px; color:#666;">Characteristic Equation:</div>
-                    <div id="math-char-eq" class="math-display">s² + 2s + 1 = 0</div>
-                    
-                    <div style="font-size:0.8rem; margin: 10px 0 5px; color:#666;">Closed-Loop Poles:</div>
-                    <div id="math-roots" class="math-display">--</div>
-
-                    <div id="status-badge" class="status-badge status-stable">Stable</div>
+                <div class="control-column">
+                    <div class="control-header">3. Status</div>
+                    <div class="math-display" id="math-roots">Calculating...</div>
+                    <div style="margin-top:10px; font-size:0.9rem;">
+                        <b>Graph Limits:</b><br>
+                        Vertical: -20 to 140<br>
+                        Horizontal: 0 to 10s
+                    </div>
                 </div>
-
             </div>
         </div>
     </div>
@@ -205,272 +200,112 @@
         function startSimulator() {
             document.getElementById('home-screen').style.display = 'none';
             document.getElementById('simulator-app').style.display = 'flex';
-            if(!simRunning) { initSimulator(); simRunning = true; }
+            if(!window.simLoaded) { initSim(); window.simLoaded = true; }
         }
         function goHome() {
             document.getElementById('simulator-app').style.display = 'none';
             document.getElementById('home-screen').style.display = 'flex';
         }
 
-        // --- Simulator State ---
-        let simRunning = false;
+        // --- Core Variables ---
         let canvas, ctx, sCanvas, sCtx;
-        let state = { pv: 0, vel: 0, integral: 0, lastError: 0 };
-        let historyPV = [], historySP = [];
-        const maxHistory = 400;
-        
         let sys = { order: 2, tau: 1.0, wn: 5.0, zeta: 0.5 };
-        let pid = { sp: 50, kp: 20, ki: 10, kd: 5 };
+        let pid = { sp: 50, kp: 5.0, ki: 1.0, kd: 2.0 }; // Reduced defaults for stability
+        let state = { pv: 0, vel: 0, integ: 0, lastErr: 0 };
+        let history = []; // {sp, pv}
 
-        function initSimulator() {
+        function initSim() {
             canvas = document.getElementById('simCanvas');
             ctx = canvas.getContext('2d');
             sCanvas = document.getElementById('sPlaneCanvas');
             sCtx = sCanvas.getContext('2d');
             
-            setupInputs();
-            updateUI(); 
-            loop();
+            bindInputs();
+            updateUI();
+            requestAnimationFrame(loop);
+        }
+
+        function bindInputs() {
+            const bind = (id, obj, key) => {
+                const el = document.getElementById(id);
+                el.addEventListener('input', e => {
+                    obj[key] = parseFloat(e.target.value);
+                    document.getElementById(id.replace('inp','val')).innerText = obj[key];
+                    analyze();
+                });
+            };
+            bind('inp-tau', sys, 'tau');
+            bind('inp-wn', sys, 'wn');
+            bind('inp-zeta', sys, 'zeta');
+            bind('inp-kp', pid, 'kp');
+            bind('inp-ki', pid, 'ki');
+            bind('inp-kd', pid, 'kd');
+            analyze();
         }
 
         function updateUI() {
-            const order = document.getElementById('sys-order').value;
-            sys.order = parseInt(order);
-            
-            if(sys.order === 1) {
-                document.querySelectorAll('.param-1st').forEach(el => el.style.display = 'block');
-                document.querySelectorAll('.param-2nd').forEach(el => el.style.display = 'none');
-            } else {
-                document.querySelectorAll('.param-1st').forEach(el => el.style.display = 'none');
-                document.querySelectorAll('.param-2nd').forEach(el => el.style.display = 'block');
-            }
-            // Clear history on system switch
-            state = { pv: 0, vel: 0, integral: 0, lastError: 0 };
-            historyPV = []; historySP = [];
-            analyzeSystem();
+            sys.order = parseInt(document.getElementById('sys-order').value);
+            document.querySelectorAll('.param-1st').forEach(e => e.style.display = sys.order===1 ? 'block':'none');
+            document.querySelectorAll('.param-2nd').forEach(e => e.style.display = sys.order===2 ? 'block':'none');
+            resetSim();
+            analyze();
         }
 
-        // --- Physics Engine (Discrete Time) ---
-        function updatePhysics() {
-            const dt = 0.02; // 50Hz
-            const error = pid.sp - state.pv;
-            
-            // PID
-            const P = pid.kp * error;
-            state.integral += error * dt;
-            const I = pid.ki * state.integral;
-            const D = pid.kd * (error - state.lastError) / dt;
-            const u = P + I + D;
-
-            if (sys.order === 1) {
-                // 1st Order: tau*y' + y = u
-                const y_dot = (u - state.pv) / sys.tau;
-                state.pv += y_dot * dt;
-            } 
-            else {
-                // 2nd Order: y'' + 2*zeta*wn*y' + wn^2*y = wn^2*u
-                const accel = (sys.wn * sys.wn * u) - (2 * sys.zeta * sys.wn * state.vel) - (sys.wn * sys.wn * state.pv);
-                state.vel += accel * dt;
-                state.pv += state.vel * dt;
-            }
-            state.lastError = error;
-
-            historyPV.push(state.pv);
-            historySP.push(pid.sp);
-            if(historyPV.length > maxHistory) { historyPV.shift(); historySP.shift(); }
-        }
-
-        // --- Robust Math Analysis ---
-        function analyzeSystem() {
-            let roots = [];
-            let charEqHTML = "";
-
-            if (sys.order === 1) {
-                // Char Eq: (tau + Kd)s^2 + (1 + Kp)s + Ki = 0
-                const A = sys.tau + pid.kd;
-                const B = 1 + pid.kp;
-                const C = pid.ki;
-                charEqHTML = `${A.toFixed(1)}s² + ${B.toFixed(1)}s + ${C.toFixed(1)} = 0`;
-                roots = solveQuadratic(A, B, C);
-            } 
-            else {
-                // Char Eq: s^3 + (2*zeta*wn + wn^2*Kd)s^2 + (wn^2 + wn^2*Kp)s + wn^2*Ki = 0
-                const w2 = sys.wn * sys.wn;
-                const B = (2 * sys.zeta * sys.wn) + (w2 * pid.kd);
-                const C = w2 + (w2 * pid.kp);
-                const D = w2 * pid.ki;
-                charEqHTML = `s³ + ${B.toFixed(1)}s² + ${C.toFixed(1)}s + ${D.toFixed(1)} = 0`;
-                roots = solveCubicNormalized(B, C, D); 
-            }
-
-            document.getElementById('math-char-eq').innerText = charEqHTML;
-            
-            let rootsHTML = "";
-            let stable = true;
-            roots.forEach(r => {
-                if(r.re > 0.001) stable = false;
-                const sign = r.im >= 0 ? '+' : '-';
-                const imAbs = Math.abs(r.im);
-                if(imAbs < 0.001) rootsHTML += `s = ${r.re.toFixed(2)}<br>`;
-                else rootsHTML += `s = ${r.re.toFixed(2)} ${sign} j${imAbs.toFixed(2)}<br>`;
-            });
-            document.getElementById('math-roots').innerHTML = rootsHTML;
-
-            const badge = document.getElementById('status-badge');
-            if(stable) {
-                badge.innerText = "Stable";
-                badge.className = "status-badge status-stable";
-            } else {
-                badge.innerText = "Unstable";
-                badge.className = "status-badge status-unstable";
-            }
-
-            drawSPlane(roots);
-        }
-
-        // --- Robust Solvers (No crashes!) ---
-        function solveQuadratic(a, b, c) {
-            if (Math.abs(a) < 1e-6) {
-                // Becomes linear bx + c = 0 -> x = -c/b
-                if (Math.abs(b) < 1e-6) return [];
-                return [{ re: -c / b, im: 0 }];
-            }
-            const delta = b * b - 4 * a * c;
-            if (delta >= 0) {
-                return [
-                    { re: (-b + Math.sqrt(delta)) / (2 * a), im: 0 },
-                    { re: (-b - Math.sqrt(delta)) / (2 * a), im: 0 }
-                ];
-            } else {
-                return [
-                    { re: -b / (2 * a), im: Math.sqrt(-delta) / (2 * a) },
-                    { re: -b / (2 * a), im: -Math.sqrt(-delta) / (2 * a) }
-                ];
-            }
-        }
-
-        function solveCubicNormalized(a, b, c) {
-            // Solves x^3 + ax^2 + bx + c = 0
-            // Based on Cardano's method
-            const p = b - (a * a) / 3;
-            const q = (2 * a * a * a) / 27 - (a * b) / 3 + c;
-            const delta = (q * q) / 4 + (p * p * p) / 27;
-
-            let roots = [];
-
-            if (delta > 0) {
-                const u = Math.cbrt(-q / 2 + Math.sqrt(delta));
-                const v = Math.cbrt(-q / 2 - Math.sqrt(delta));
-                roots.push({ re: u + v - a / 3, im: 0 });
-                roots.push({ re: -(u + v) / 2 - a / 3, im: (u - v) * Math.sqrt(3) / 2 });
-                roots.push({ re: -(u + v) / 2 - a / 3, im: -(u - v) * Math.sqrt(3) / 2 });
-            } else if (Math.abs(delta) < 1e-9) {
-                const u = Math.cbrt(-q / 2);
-                roots.push({ re: 2 * u - a / 3, im: 0 });
-                roots.push({ re: -u - a / 3, im: 0 });
-                roots.push({ re: -u - a / 3, im: 0 });
-            } else {
-                const phi = Math.acos(-q / 2 / Math.sqrt(-(p * p * p) / 27));
-                const r = 2 * Math.sqrt(-p / 3);
-                roots.push({ re: r * Math.cos(phi / 3) - a / 3, im: 0 });
-                roots.push({ re: r * Math.cos((phi + 2 * Math.PI) / 3) - a / 3, im: 0 });
-                roots.push({ re: r * Math.cos((phi + 4 * Math.PI) / 3) - a / 3, im: 0 });
-            }
-            return roots;
-        }
-
-        // --- Drawing ---
-        function drawSPlane(roots) {
-            sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
-            const w = sCanvas.width, h = sCanvas.height;
-            const cx = w/2, cy = h/2;
-            const scale = 15; // Pixels per unit
-
-            // Axes
-            sCtx.strokeStyle = "#ddd"; sCtx.lineWidth = 1;
-            for(let i=-10; i<=10; i++) {
-                sCtx.beginPath(); sCtx.moveTo(cx+i*scale*2, 0); sCtx.lineTo(cx+i*scale*2, h); sCtx.stroke();
-                sCtx.beginPath(); sCtx.moveTo(0, cy+i*scale*2); sCtx.lineTo(w, cy+i*scale*2); sCtx.stroke();
-            }
-
-            sCtx.strokeStyle = "#888"; sCtx.lineWidth = 2;
-            sCtx.beginPath(); sCtx.moveTo(0, cy); sCtx.lineTo(w, cy); sCtx.stroke(); // Real
-            sCtx.beginPath(); sCtx.moveTo(cx, 0); sCtx.lineTo(cx, h); sCtx.stroke(); // Imag
-            
-            sCtx.fillStyle = "#666"; sCtx.font = "12px DM Sans";
-            sCtx.fillText("Real (σ)", w-45, cy-5); sCtx.fillText("Imag (jω)", cx+5, 15);
-
-            // Draw Poles (X)
-            roots.forEach(r => {
-                // Safety check for NaN
-                if (isNaN(r.re) || isNaN(r.im)) return;
-
-                const x = cx + r.re * scale;
-                const y = cy - r.im * scale;
-                
-                // Draw only if within bounds (optional, but keeps canvas clean)
-                if (x > -50 && x < w + 50 && y > -50 && y < h + 50) {
-                    const size = 6;
-                    sCtx.strokeStyle = "#d32f2f"; sCtx.lineWidth = 3;
-                    sCtx.beginPath();
-                    sCtx.moveTo(x-size, y-size); sCtx.lineTo(x+size, y+size);
-                    sCtx.moveTo(x+size, y-size); sCtx.lineTo(x-size, y+size);
-                    sCtx.stroke();
-                }
-            });
-        }
-
-        function drawGraph() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // Grid
-            ctx.strokeStyle = "#eee"; ctx.lineWidth = 1; ctx.font = "10px sans-serif"; ctx.fillStyle = "#888";
-            [0, 25, 50, 75, 100, 125].forEach(val => {
-                const y = mapY(val);
-                ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-                ctx.fillText(val, 5, y+3);
-            });
-
-            if(historySP.length > 1) {
-                ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.strokeStyle = '#aaa'; ctx.lineWidth = 2;
-                historySP.forEach((val, i) => {
-                    const x = (i/maxHistory)*canvas.width; const y = mapY(val);
-                    (i===0)? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-                });
-                ctx.stroke();
-
-                ctx.beginPath(); ctx.setLineDash([]); ctx.strokeStyle = '#007bff'; ctx.lineWidth = 3;
-                historyPV.forEach((val, i) => {
-                    const x = (i/maxHistory)*canvas.width; const y = mapY(val);
-                    (i===0)? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-                });
-                ctx.stroke();
-            }
-        }
-        function mapY(val) { return canvas.height - ((val + 20) / 160) * canvas.height; }
-
-        // --- Inputs ---
-        function setupInputs() {
-            const attach = (id, obj, key) => {
-                document.getElementById(id).addEventListener('input', (e) => {
-                    obj[key] = parseFloat(e.target.value);
-                    const disp = document.getElementById(id.replace('inp','val'));
-                    if(disp) disp.innerText = obj[key];
-                    analyzeSystem();
-                });
-            };
-
-            attach('inp-tau', sys, 'tau');
-            attach('inp-wn', sys, 'wn');
-            attach('inp-zeta', sys, 'zeta');
-            attach('inp-kp', pid, 'kp');
-            attach('inp-ki', pid, 'ki');
-            attach('inp-kd', pid, 'kd');
-
-            analyzeSystem(); 
+        function resetSim() {
+            state = { pv: 0, vel: 0, integ: 0, lastErr: 0 };
+            history = [];
+            // Hide warning
+            document.getElementById('sim-warning').style.display = 'none';
         }
 
         function triggerStep() {
             pid.sp = (pid.sp === 50) ? 80 : 50;
+        }
+
+        // --- Physics Loop ---
+        function updatePhysics() {
+            const dt = 0.02; // 50Hz fixed step
+            const err = pid.sp - state.pv;
+            
+            // PID
+            state.integ += err * dt;
+            const P = pid.kp * err;
+            const I = pid.ki * state.integ;
+            const D = pid.kd * (err - state.lastErr) / dt;
+            const u = P + I + D;
+
+            // Plant Safety Check
+            if (isNaN(u) || Math.abs(u) > 100000) { 
+                showCrash(); return; 
+            }
+
+            if (sys.order === 1) {
+                // y' = (u - y)/tau
+                const y_dot = (u - state.pv) / sys.tau;
+                state.pv += y_dot * dt;
+            } else {
+                // y'' = wn^2*u - 2*zeta*wn*y' - wn^2*y
+                const force = (sys.wn*sys.wn*u) - (2*sys.zeta*sys.wn*state.vel) - (sys.wn*sys.wn*state.pv);
+                state.vel += force * dt;
+                state.pv += state.vel * dt;
+            }
+
+            // Global Stability Check
+            if (isNaN(state.pv) || Math.abs(state.pv) > 1000) {
+                showCrash();
+                state.pv = 0; state.vel = 0; state.integ = 0; // Soft reset
+            }
+
+            state.lastErr = err;
+            history.push({ sp: pid.sp, pv: state.pv });
+            if(history.length > 400) history.shift();
+        }
+
+        function showCrash() {
+            document.getElementById('sim-warning').style.display = 'flex';
+            setTimeout(() => {
+                resetSim(); // Auto reset after crash
+            }, 1500);
         }
 
         function loop() {
@@ -481,6 +316,125 @@
             requestAnimationFrame(loop);
         }
 
+        // --- Drawing ---
+        function drawGraph() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            
+            // Grid
+            ctx.strokeStyle = "#eee"; ctx.lineWidth = 1; ctx.fillStyle = "#888"; ctx.font="10px Arial";
+            [0, 25, 50, 75, 100, 125].forEach(v => {
+                const y = mapY(v);
+                ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+                ctx.fillText(v, 5, y+3);
+            });
+
+            if(history.length < 2) return;
+
+            // Draw SP
+            ctx.beginPath(); ctx.strokeStyle = "#bbb"; ctx.setLineDash([5,5]); ctx.lineWidth = 2;
+            history.forEach((h, i) => {
+                const x = (i/400)*canvas.width;
+                const y = mapY(h.sp);
+                i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+            });
+            ctx.stroke();
+
+            // Draw PV
+            ctx.beginPath(); ctx.strokeStyle = "#007bff"; ctx.setLineDash([]); ctx.lineWidth = 3;
+            history.forEach((h, i) => {
+                const x = (i/400)*canvas.width;
+                const y = mapY(h.pv);
+                // Clamp Y for drawing only
+                const safeY = Math.max(-100, Math.min(canvas.height+100, y));
+                i===0 ? ctx.moveTo(x,safeY) : ctx.lineTo(x,safeY);
+            });
+            ctx.stroke();
+        }
+
+        function mapY(val) {
+            // Map -20..140 to Canvas Height
+            return canvas.height - ((val + 20) / 160) * canvas.height;
+        }
+
+        // --- Math & Roots ---
+        function analyze() {
+            let roots = [];
+            
+            if (sys.order === 1) {
+                // A*s^2 + B*s + C = 0
+                const A = sys.tau + pid.kd;
+                const B = 1 + pid.kp;
+                const C = pid.ki;
+                roots = solveQuad(A, B, C);
+            } else {
+                // s^3 + B*s^2 + C*s + D = 0 (Normalized)
+                const w2 = sys.wn * sys.wn;
+                const B = 2*sys.zeta*sys.wn + w2*pid.kd;
+                const C = w2 + w2*pid.kp;
+                const D = w2*pid.ki;
+                roots = solveCubic(B, C, D);
+            }
+
+            let txt = "";
+            roots.forEach(r => {
+                txt += `s = ${r.re.toFixed(2)} ± j${Math.abs(r.im).toFixed(2)}<br>`;
+            });
+            document.getElementById('math-roots').innerHTML = txt || "Calculating...";
+            drawSPlane(roots);
+        }
+
+        function solveQuad(a, b, c) {
+            if(Math.abs(a) < 1e-5) return [{re:-c/b, im:0}];
+            const d = b*b - 4*a*c;
+            if(d >= 0) return [{re:(-b+Math.sqrt(d))/(2*a), im:0}, {re:(-b-Math.sqrt(d))/(2*a), im:0}];
+            return [{re:-b/(2*a), im:Math.sqrt(-d)/(2*a)}, {re:-b/(2*a), im:-Math.sqrt(-d)/(2*a)}];
+        }
+
+        function solveCubic(a, b, c) {
+            // x^3 + a*x^2 + b*x + c = 0
+            const p = b - a*a/3;
+            const q = 2*a*a*a/27 - a*b/3 + c;
+            const d = q*q/4 + p*p*p/27;
+            
+            let roots = [];
+            if(d > 0) {
+                const u = Math.cbrt(-q/2 + Math.sqrt(d));
+                const v = Math.cbrt(-q/2 - Math.sqrt(d));
+                roots.push({re: u+v - a/3, im: 0});
+                roots.push({re: -(u+v)/2 - a/3, im: (u-v)*Math.sqrt(3)/2});
+                roots.push({re: -(u+v)/2 - a/3, im: -(u-v)*Math.sqrt(3)/2});
+            } else {
+                const k = 2 * Math.sqrt(-p/3);
+                const theta = Math.acos(3*q / (2*p*k));
+                roots.push({re: k*Math.cos(theta/3) - a/3, im:0});
+                roots.push({re: k*Math.cos((theta+2*Math.PI)/3) - a/3, im:0});
+                roots.push({re: k*Math.cos((theta+4*Math.PI)/3) - a/3, im:0});
+            }
+            return roots;
+        }
+
+        function drawSPlane(roots) {
+            sCtx.clearRect(0,0,300,350);
+            const w=300, h=350, cx=w/2, cy=h/2, sc=10;
+            
+            // Axes
+            sCtx.strokeStyle="#ccc"; sCtx.beginPath();
+            sCtx.moveTo(cx,0); sCtx.lineTo(cx,h);
+            sCtx.moveTo(0,cy); sCtx.lineTo(w,cy);
+            sCtx.stroke();
+
+            // Roots
+            roots.forEach(r => {
+                const x = cx + r.re*sc; 
+                const y = cy - r.im*sc;
+                if(x>-50 && x<w+50 && y>-50 && y<h+50) {
+                    sCtx.strokeStyle="red"; sCtx.lineWidth=2; sCtx.beginPath();
+                    sCtx.moveTo(x-4, y-4); sCtx.lineTo(x+4, y+4);
+                    sCtx.moveTo(x+4, y-4); sCtx.lineTo(x-4, y+4);
+                    sCtx.stroke();
+                }
+            });
+        }
     </script>
 </body>
 </html>
