@@ -1,50 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MAE Academy</title>
-  <title>MAE Academy</title>
+  <title>MAE Academy - </title>
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
-    :root{
-      --bg:#dbe9ff;         /* like your image */
-      --text:#0b0b0b;
-      --border:#0b0b0b;
-      --card:#ffffff;
-      --muted:#3a3a3a;
-      --shadow: 0 18px 45px rgba(0,0,0,.08);
-    }
-
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      padding:28px;
-      font-family:"DM Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background:var(--bg);
-      color:var(--text);
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      overflow-x:hidden;
-    }
-
-    /* =========================
-       Screen system + animation
-       ========================= */
-    .screen{
-      width:min(1200px, 100%);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      gap:120px;
-      flex-wrap:wrap;
-      min-height: calc(100vh - 56px);
-      position:relative;
-      opacity:0;
     /* =========================================
        GLOBAL STYLES
        ========================================= */
@@ -67,62 +32,6 @@
       opacity: 0;
       transform: translateY(10px);
     }
-    .active-screen{
-      display:flex !important;
-      animation: screenIn .45s ease forwards;
-    }
-    @keyframes screenIn{
-      to{ opacity:1; transform: translateY(0); }
-    }
-
-    /* =========================
-       HOME (match reference)
-       ========================= */
-    .home-left{
-      width:min(560px, 100%);
-      display:flex;
-      flex-direction:column;
-      align-items:flex-start;
-      gap:18px;
-      animation: leftIn .55s cubic-bezier(.2,.9,.2,1) both;
-    }
-    @keyframes leftIn{
-      from{ opacity:0; transform: translateX(-22px); }
-      to{ opacity:1; transform: translateX(0); }
-    }
-
-    .home-title{
-      font-family:"Inter", sans-serif;
-      line-height:0.95;
-      letter-spacing:-2px;
-      margin:0;
-      font-size:clamp(46px, 6vw, 84px);
-      font-weight:900;
-    }
-
-    .home-subtitle{
-      margin:18px 0 18px 0;
-      font-size: clamp(18px, 1.7vw, 28px);
-      font-weight:700;
-      color:var(--text);
-    }
-
-    /* Buttons like the reference: rounded-rect, centered text */
-    .rect-btn{
-      width:min(360px, 100%);
-      height:56px;
-      border:3px solid var(--border);
-      background:#fff;
-      color:#000;
-      border-radius:14px;
-      font-size:22px;
-      font-weight:800;
-      cursor:pointer;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
-      user-select:none;
     .active-screen { display: flex !important; }
     .screen.enter {
       animation: screenIn 420ms cubic-bezier(.2,.9,.2,1) forwards;
@@ -187,132 +96,6 @@
       box-shadow: 0 4px 0 rgba(0,0,0,0.1);
       will-change: transform;
     }
-    .rect-btn:hover{
-      transform: translateY(-2px);
-      box-shadow: 0 10px 22px rgba(0,0,0,.10);
-      background:#fbfbfb;
-    }
-    .rect-btn:active{
-      transform: translateY(1px) scale(.99);
-      box-shadow: 0 4px 10px rgba(0,0,0,.08);
-    }
-
-    /* Right ID card like reference: top white strip, big black, bottom name strip */
-    .id-card{
-      width:min(430px, 100%);
-      height:560px;
-      background:var(--card);
-      border:3px solid var(--border);
-      border-radius:28px;
-      overflow:hidden;
-      box-shadow: var(--shadow);
-      animation: rightIn .55s cubic-bezier(.2,.9,.2,1) both;
-    }
-    @keyframes rightIn{
-      from{ opacity:0; transform: translateX(22px); }
-      to{ opacity:1; transform: translateX(0); }
-    }
-
-    .id-top{
-      height:90px;
-      background:#fff;
-      border-bottom:3px solid var(--border);
-    }
-    .id-mid{
-      height:calc(560px - 180px);
-      background:#000;
-      position:relative;
-    }
-    /* optional subtle sheen animation on the black panel */
-    .id-mid::after{
-      content:"";
-      position:absolute;
-      inset:-60px;
-      background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,.12) 50%, transparent 65%);
-      transform: translateX(-60%);
-      animation: sheen 5.2s ease-in-out infinite;
-      pointer-events:none;
-      opacity:.65;
-    }
-    @keyframes sheen{
-      0%, 55% { transform: translateX(-70%); opacity:.0; }
-      65%     { opacity:.65; }
-      100%    { transform: translateX(70%); opacity:0; }
-    }
-
-    .id-bottom{
-      height:90px;
-      background:#fff;
-      border-top:3px solid var(--border);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:0 14px;
-      text-align:center;
-      font-family:"Inter", sans-serif;
-      font-weight:900;
-      letter-spacing:.5px;
-      font-size:clamp(18px, 2vw, 34px);
-    }
-
-    /* =========================
-       MENU + SIM screens (kept)
-       ========================= */
-    .top-back{
-      position:absolute;
-      top:0;
-      left:0;
-      transform: translateY(-10px);
-      opacity:0;
-      animation: backIn .4s ease .12s forwards;
-    }
-    @keyframes backIn{
-      to{ opacity:1; transform: translateY(0); }
-    }
-
-    .back-btn{
-      background:transparent;
-      border:none;
-      color:#111;
-      font-weight:900;
-      font-size:18px;
-      cursor:pointer;
-      padding:10px 6px;
-      transition: transform .12s ease, opacity .12s ease;
-      opacity:.9;
-    }
-    .back-btn:hover{ transform: translateX(-2px); opacity:1; }
-
-    /* Simulator container (your existing style, slightly refined) */
-    .sim-wrap{
-      width:min(1000px, 100%);
-      animation: popIn .45s ease both;
-    }
-    @keyframes popIn{
-      from{ opacity:0; transform: scale(.985) translateY(10px); }
-      to{ opacity:1; transform: scale(1) translateY(0); }
-    }
-
-    .sim-container{
-      background:#fff;
-      padding:25px;
-      border-radius:14px;
-      box-shadow: 0 18px 50px rgba(0,0,0,.10);
-      border:1px solid rgba(0,0,0,.08);
-    }
-
-    .visuals-row{ display:grid; grid-template-columns:2fr 1fr; gap:18px; margin-bottom:18px; }
-    @media (max-width: 900px){ .visuals-row{ grid-template-columns:1fr; } }
-
-    .panel{
-      border:1px solid #eee;
-      border-radius:12px;
-      padding:12px;
-      background:#fff;
-      position:relative;
-      transition: transform .18s ease, box-shadow .18s ease;
-    }
-    .panel:hover{
     .pill-btn:hover {
       transform: translateY(-3px);
       background-color: #f8f9fa;
@@ -453,65 +236,6 @@
     }
     .panel:hover {
       transform: translateY(-2px);
-      box-shadow: 0 14px 30px rgba(0,0,0,.08);
-    }
-
-    .panel-label{
-      font-weight:800;
-      color:#444;
-      margin-bottom:10px;
-      display:block;
-      font-size:.9rem;
-    }
-
-    canvas{
-      width:100%;
-      height:350px;
-      display:block;
-      border-radius:10px;
-    }
-    #sPlaneCanvas{ background:#fafafa; border:1px solid #eee; }
-
-    .controls-area{
-      display:grid;
-      grid-template-columns:1fr 1fr 1fr;
-      gap:18px;
-      background:#f8f9fb;
-      padding:18px;
-      border-radius:12px;
-      border:1px solid #e9ecef;
-    }
-    @media (max-width: 800px){ .controls-area{ grid-template-columns:1fr; } }
-
-    .control-column{ display:flex; flex-direction:column; gap:14px; }
-    .control-header{
-      font-weight:900;
-      font-size:.95rem;
-      color:#111;
-      border-bottom:2px solid #ddd;
-      padding-bottom:6px;
-      text-transform:uppercase;
-      letter-spacing:.6px;
-    }
-
-    .control-group label{
-      display:flex;
-      justify-content:space-between;
-      font-weight:700;
-      font-size:.9rem;
-      margin-bottom:6px;
-      color:#222;
-    }
-    input[type="range"]{ width:100%; cursor:pointer; }
-
-    select{
-      width:100%;
-      padding:10px;
-      border-radius:10px;
-      border:1px solid #cfcfcf;
-      font-family:"DM Sans", sans-serif;
-      font-weight:800;
-      cursor:pointer;
       box-shadow: 0 10px 18px rgba(0,0,0,0.06);
     }
     .panel-label {
@@ -584,102 +308,6 @@
       cursor: pointer;
       transition: transform .12s ease, box-shadow .12s ease;
     }
-    select:hover{ box-shadow: 0 8px 18px rgba(0,0,0,.06); }
-
-    .btn-step{
-      background:#000;
-      color:#fff;
-      border:none;
-      padding:12px;
-      border-radius:12px;
-      cursor:pointer;
-      font-weight:900;
-      width:100%;
-      transition: transform .12s ease, filter .12s ease;
-    }
-    .btn-step:hover{ transform: translateY(-1px); filter: brightness(1.08); }
-    .btn-step:active{ transform: translateY(1px) scale(.995); }
-
-    .math-display{
-      font-family:"Courier New", monospace;
-      font-weight:800;
-      font-size:.82rem;
-      color:#222;
-      background: rgba(255,255,255,.8);
-      padding:10px;
-      border-radius:12px;
-      border:1px solid #eee;
-      min-height:22px;
-      word-wrap:break-word;
-    }
-
-    .status-badge{
-      display:inline-block;
-      padding:8px 10px;
-      border-radius:12px;
-      font-weight:900;
-      font-size:.85rem;
-      margin-top:6px;
-      width:100%;
-      text-align:center;
-    }
-    .status-stable{ background:#d4edda; color:#155724; }
-    .status-unstable{ background:#f8d7da; color:#721c24; }
-
-    .warning-overlay{
-      position:absolute; inset:0;
-      background: rgba(255,255,255,.96);
-      display:none;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
-      color:#d32f2f;
-      font-weight:900;
-      z-index:10;
-      border-radius:12px;
-      text-align:center;
-      animation: shakeIn .35s ease both;
-    }
-    @keyframes shakeIn{
-      0%{ transform: scale(.98); }
-      35%{ transform: translateX(-6px); }
-      65%{ transform: translateX(6px); }
-      100%{ transform: translateX(0); }
-    }
-
-    .mode-toggle{
-      display:flex;
-      background:#e9ecef;
-      border-radius:12px;
-      padding:4px;
-      gap:4px;
-    }
-    .mode-btn{
-      flex:1;
-      padding:10px;
-      border:none;
-      background:transparent;
-      cursor:pointer;
-      font-weight:900;
-      font-size:.8rem;
-      color:#666;
-      border-radius:10px;
-      transition: transform .12s ease, background .12s ease, box-shadow .12s ease;
-    }
-    .mode-btn:hover{ transform: translateY(-1px); }
-    .mode-btn.active{
-      background:#fff;
-      color:#000;
-      box-shadow: 0 10px 20px rgba(0,0,0,.08);
-    }
-
-    /* Small fade for switching controller blocks */
-    .fade-swap{
-      animation: fadeSwap .18s ease both;
-    }
-    @keyframes fadeSwap{
-      from{ opacity:.35; transform: translateY(4px); }
-      to{ opacity:1; transform: translateY(0); }
     select:focus { outline: none; box-shadow: 0 0 0 4px rgba(0,123,255,0.15); }
 
     /* Buttons */
@@ -791,10 +419,6 @@
 <body>
 
   <!-- HOME -->
-  <div id="home-screen" class="screen active-screen">
-    <div class="home-left">
-      <h1 class="home-title">Welcome to<br>MAE Academy</h1>
-      <div class="home-subtitle">Learn &amp; Enjoy</div>
   <div id="home-screen" class="screen active-screen enter">
     <div class="left-content">
       <div>
@@ -803,8 +427,6 @@
         <p class="subtitle">Learn & Enjoy</p>
       </div>
 
-      <button class="rect-btn" onclick="alert('Module under construction')">Academic Courses</button>
-      <button class="rect-btn" onclick="navigateTo('sim-menu-screen')">Practical Simulations</button>
       <button class="pill-btn" onclick="alert('Module under construction')">
         Academic Courses <span>&#8594;</span>
       </button>
@@ -814,10 +436,6 @@
       </button>
     </div>
 
-    <div class="id-card" aria-label="Student card">
-      <div class="id-top"></div>
-      <div class="id-mid"></div>
-      <div class="id-bottom">MOHAMMAD ABU ELYAN</div>
     <!-- ID CARD WITH IMAGE (SVG) -->
     <div class="id-card">
       <div class="id-card-top"></div>
@@ -836,37 +454,19 @@
 
   <!-- MENU -->
   <div id="sim-menu-screen" class="screen">
-    <div class="top-back">
-      <button class="back-btn" onclick="navigateTo('home-screen')">← Back</button>
-    </div>
-
-    <div class="home-left" style="animation:none; width:min(560px,100%);">
-      <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</h1>
-      <div class="home-subtitle" style="margin-top:6px;">Select a module to begin</div>
     <button class="back-btn" style="align-self:flex-start; margin-left:max(0px, calc(50% - 600px));"
       onclick="navigateTo('home-screen')">&#8592; Back</button>
 
-      <button class="rect-btn" onclick="startSimulator()">Process Control System</button>
-      <button class="rect-btn" style="opacity:.45; cursor:not-allowed;" disabled>Fluid Mechanics (Soon)</button>
-    </div>
     <div class="left-content" style="align-items:center; margin-top:20px;">
       <h1 class="title-small" style="font-size:3rem;">Simulations</h1>
       <p class="subtitle">Select a module to begin</p>
 
-    <div class="id-card" style="height:560px; width:min(430px,100%);">
-      <div class="id-top"></div>
-      <div class="id-mid"></div>
-      <div class="id-bottom">MAE ACADEMY</div>
       <button class="pill-btn" onclick="startSimulator()">Process Control System <span>&#9654;</span></button>
       <button class="pill-btn" style="opacity:0.5; cursor:not-allowed;">Fluid Mechanics (Soon)</button>
     </div>
   </div>
 
   <!-- SIMULATOR -->
-  <div id="simulator-app" class="screen" style="gap:24px;">
-    <div class="top-back" style="position:static; width:100%; display:flex; justify-content:flex-start;">
-      <button class="back-btn" onclick="navigateTo('sim-menu-screen')">← Back to Menu</button>
-    </div>
   <div id="simulator-app" class="screen">
     <button class="back-btn" style="align-self:flex-start; margin-left:max(0px, calc(50% - 500px));"
       onclick="navigateTo('sim-menu-screen')">&#8592; Back to Menu</button>
@@ -885,17 +485,6 @@
           <div class="hint">Tip: scroll on the graph to change SP (Shift = fast, Ctrl = fine)</div>
         </div>
 
-    <div class="sim-wrap">
-      <div class="sim-container">
-        <div class="visuals-row">
-          <div class="panel">
-            <span class="panel-label">Time Response</span>
-            <canvas id="simCanvas" width="600" height="350"></canvas>
-            <div id="sim-warning" class="warning-overlay">
-              <div style="font-size:2rem; margin-bottom:10px;">⚠️</div>
-              <div>Unstable!</div>
-              <div style="font-size:0.85rem; font-weight:700; margin-top:6px; color:#444;">System reset.</div>
-            </div>
         <div class="panel">
           <span class="panel-label">Root Locus (Poles)</span>
           <canvas id="sPlaneCanvas" width="300" height="350"></canvas>
@@ -917,40 +506,21 @@
             </select>
           </div>
 
-          <div class="panel">
-            <span class="panel-label">Root Locus (Poles)</span>
-            <canvas id="sPlaneCanvas" width="300" height="350"></canvas>
           <div class="control-group param-1st" style="display:none;">
             <label>Time Constant (&tau;): <span id="val-tau">1.0</span>s</label>
             <input type="range" id="inp-tau" min="0.5" max="5.0" step="0.1" value="1.0">
           </div>
-        </div>
 
-        <div class="controls-area">
-          <div class="control-column">
-            <div class="control-header">1. System Plant</div>
           <div class="control-group param-2nd">
             <label>Natural Freq (&omega;<sub>n</sub>): <span id="val-wn">5.0</span></label>
             <input type="range" id="inp-wn" min="1" max="15" step="0.5" value="5.0">
           </div>
 
-            <div class="control-group">
-              <label>System Order</label>
-              <select id="sys-order" onchange="updateUI()">
-                <option value="1">1st Order (Thermal)</option>
-                <option value="2" selected>2nd Order (Spring-Mass)</option>
-                <option value="3">3rd Order (Motor + Inductance)</option>
-              </select>
-            </div>
           <div class="control-group param-2nd">
             <label>Damping Ratio (&zeta;): <span id="val-zeta">0.5</span></label>
             <input type="range" id="inp-zeta" min="0" max="2.0" step="0.05" value="0.5">
           </div>
 
-            <div class="control-group param-1st" style="display:none;">
-              <label>Time Constant (&tau;): <span id="val-tau">1.0</span>s</label>
-              <input type="range" id="inp-tau" min="0.5" max="5.0" step="0.1" value="1.0">
-            </div>
           <div class="control-group param-3rd" style="display:none;">
             <label>Lag Pole (p): <span id="val-p3">10.0</span></label>
             <input type="range" id="inp-p3" min="1" max="20" step="1" value="10.0">
@@ -958,26 +528,14 @@
           </div>
         </div>
 
-            <div class="control-group param-2nd">
-              <label>Natural Freq (&omega;<sub>n</sub>): <span id="val-wn">5.0</span></label>
-              <input type="range" id="inp-wn" min="1" max="15" step="0.5" value="5.0">
-            </div>
         <div class="control-column">
           <div class="control-header">2. Controller</div>
 
-            <div class="control-group param-2nd">
-              <label>Damping Ratio (&zeta;): <span id="val-zeta">0.5</span></label>
-              <input type="range" id="inp-zeta" min="0" max="2.0" step="0.05" value="0.5">
-            </div>
           <div class="mode-toggle">
             <button class="mode-btn active" id="mode-manual" onclick="setMode('manual')">Manual (PID)</button>
             <button class="mode-btn" id="mode-design" onclick="setMode('design')">Design (ζ, ω)</button>
           </div>
 
-            <div class="control-group param-3rd" style="display:none;">
-              <label>Lag Pole (p): <span id="val-p3">10.0</span></label>
-              <input type="range" id="inp-p3" min="1" max="20" step="1" value="10.0">
-              <div style="font-size:0.8rem; color:#666; margin-top:4px; font-weight:700;">Adds pole at s = -p</div>
           <div id="ctrl-manual">
             <div class="control-group">
               <label>Kp: <span id="val-kp">5.0</span></label>
@@ -993,81 +551,38 @@
             </div>
           </div>
 
-          <div class="control-column">
-            <div class="control-header">2. Controller</div>
-
-            <div class="mode-toggle">
-              <button class="mode-btn active" id="mode-manual" onclick="setMode('manual')">Manual (PID)</button>
-              <button class="mode-btn" id="mode-design" onclick="setMode('design')">Design (ζ, ω)</button>
           <div id="ctrl-design" style="display:none;">
             <div style="font-size:0.85rem; color:#007bff; margin-bottom:10px; font-weight:900;">
               Auto-calculates PID for target response
             </div>
 
-            <div id="ctrl-manual">
-              <div class="control-group">
-                <label>Kp: <span id="val-kp">5.0</span></label>
-                <input type="range" id="inp-kp" min="0" max="100" step="0.5" value="5.0">
-              </div>
-              <div class="control-group">
-                <label>Ki: <span id="val-ki">1.0</span></label>
-                <input type="range" id="inp-ki" min="0" max="50" step="0.5" value="1.0">
-              </div>
-              <div class="control-group">
-                <label>Kd: <span id="val-kd">2.0</span></label>
-                <input type="range" id="inp-kd" min="0" max="50" step="0.1" value="2.0">
-              </div>
             <div class="control-group">
               <label>Target &omega;<sub>n</sub>: <span id="val-twn">6.0</span></label>
               <input type="range" id="inp-twn" min="1" max="20" step="0.5" value="6.0">
             </div>
 
-            <div id="ctrl-design" style="display:none;">
-              <div style="font-size:0.85rem; color:#0b5ed7; margin-bottom:10px; font-weight:900;">
-                Auto-calculates PID for target response
-              </div>
-              <div class="control-group">
-                <label>Target &omega;<sub>n</sub>: <span id="val-twn">6.0</span></label>
-                <input type="range" id="inp-twn" min="1" max="20" step="0.5" value="6.0">
-              </div>
-              <div class="control-group">
-                <label>Target &zeta;: <span id="val-tzeta">0.7</span></label>
-                <input type="range" id="inp-tzeta" min="0.1" max="1.5" step="0.05" value="0.7">
-              </div>
-              <div style="margin-top:10px; padding:10px; background:#e3f2fd; border-radius:12px; font-size:0.85rem; font-weight:900;">
-                Result: Kp=<span id="res-kp">--</span> &nbsp; Kd=<span id="res-kd">--</span>
-              </div>
             <div class="control-group">
               <label>Target &zeta;: <span id="val-tzeta">0.7</span></label>
               <input type="range" id="inp-tzeta" min="0.1" max="1.5" step="0.05" value="0.7">
             </div>
 
-            <button class="btn-step" style="margin-top:8px;" onclick="triggerStep()">Trigger Step</button>
             <div style="margin-top:10px; padding:10px; background:#e3f2fd; border-radius:10px; font-size:0.85rem; font-weight:900;">
               Result: Kp=<span id="res-kp">--</span> &nbsp; Kd=<span id="res-kd">--</span>
             </div>
           </div>
 
-          <div class="control-column">
-            <div class="control-header">3. Analysis</div>
           <button class="btn-step" style="margin-top:10px;" onclick="triggerStep()">Trigger Step</button>
         </div>
 
         <div class="control-column">
           <div class="control-header">3. Analysis</div>
 
-            <div style="font-size:0.85rem; color:#666; font-weight:900;">Characteristic Equation:</div>
-            <div id="math-char-eq" class="math-display">...</div>
           <div style="font-size:0.85rem; color:#666; font-weight:700;">Characteristic Equation:</div>
           <div id="math-char-eq" class="math-display">...</div>
 
-            <div style="font-size:0.85rem; color:#666; margin-top:10px; font-weight:900;">Closed-Loop Poles:</div>
-            <div id="math-roots" class="math-display">...</div>
           <div style="font-size:0.85rem; color:#666; margin-top:10px; font-weight:700;">Closed-Loop Poles:</div>
           <div id="math-roots" class="math-display">...</div>
 
-            <div id="status-badge" class="status-badge status-stable">Stable</div>
-          </div>
           <div id="status-badge" class="status-badge status-stable">Stable</div>
         </div>
 
@@ -1076,21 +591,10 @@
   </div>
 
   <script>
-    // -------------------------
-    // Navigation with smooth re-animate
-    // -------------------------
     // =========================
     // Navigation (with animation)
     // =========================
     function navigateTo(id) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
-      const target = document.getElementById(id);
-
-      // restart animation
-      target.style.animation = 'none';
-      // force reflow
-      void target.offsetWidth;
-      target.style.animation = '';
       document.querySelectorAll('.screen').forEach(s => {
         s.classList.remove('active-screen');
         s.classList.remove('enter');
@@ -1107,9 +611,6 @@
       if(!window.simLoaded) { initSim(); window.simLoaded = true; }
     }
 
-    // -------------------------
-    // Core Globals (your logic)
-    // -------------------------
     // =========================
     // Core Globals
     // =========================
@@ -1123,7 +624,6 @@
     let history = [];
 
     const MAX_HISTORY = 600;
-    let controlMode = 'manual';
 
     // Time base (for axis)
     const DT_FRAME = 0.02;   // seconds per history sample (your updatePhysics total step)
@@ -1134,8 +634,6 @@
     let lastStable = true;
 
     function initSim() {
-      canvas = document.getElementById('simCanvas'); ctx = canvas.getContext('2d');
-      sCanvas = document.getElementById('sPlaneCanvas'); sCtx = sCanvas.getContext('2d');
       canvas = document.getElementById('simCanvas');
       ctx = canvas.getContext('2d');
 
@@ -1156,28 +654,25 @@
       bindInputs();
       updateUI();
       requestAnimationFrame(loop);
-@@ -598,18 +660,8 @@ <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</
+    }
+
+    function setMode(mode) {
       controlMode = mode;
       document.getElementById('mode-manual').className = mode === 'manual' ? 'mode-btn active' : 'mode-btn';
       document.getElementById('mode-design').className = mode === 'design' ? 'mode-btn active' : 'mode-btn';
-
-      const manual = document.getElementById('ctrl-manual');
-      const designBox = document.getElementById('ctrl-design');
-
-      manual.style.display = mode === 'manual' ? 'block' : 'none';
-      designBox.style.display = mode === 'design' ? 'block' : 'none';
-
-      // tiny swap animation
-      (mode === 'manual' ? manual : designBox).classList.remove('fade-swap');
-      void (mode === 'manual' ? manual : designBox).offsetWidth;
-      (mode === 'manual' ? manual : designBox).classList.add('fade-swap');
-
       document.getElementById('ctrl-manual').style.display = mode === 'manual' ? 'block' : 'none';
       document.getElementById('ctrl-design').style.display = mode === 'design' ? 'block' : 'none';
       if(mode === 'design') runAutoTune();
       analyze();
     }
-@@ -624,6 +676,7 @@ <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</
+
+    function bindInputs() {
+      const bind = (id, obj, key) => {
+        const el = document.getElementById(id);
+        el.addEventListener('input', e => {
+          obj[key] = parseFloat(e.target.value);
+          document.getElementById(id.replace('inp','val')).innerText = obj[key];
+          if(controlMode === 'design') runAutoTune();
           analyze();
         });
       };
@@ -1185,7 +680,16 @@
       bind('inp-tau', sys, 'tau');
       bind('inp-wn', sys, 'wn');
       bind('inp-zeta', sys, 'zeta');
-@@ -640,6 +693,7 @@ <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</
+      bind('inp-p3', sys, 'p3');
+
+      bind('inp-kp', pid, 'kp');
+      bind('inp-ki', pid, 'ki');
+      bind('inp-kd', pid, 'kd');
+
+      bind('inp-twn', design, 'wn');
+      bind('inp-tzeta', design, 'zeta');
+    }
+
     function updateUI() {
       sys.order = parseInt(document.getElementById('sys-order').value);
 
@@ -1193,7 +697,10 @@
       document.querySelectorAll('.param-1st').forEach(e => e.style.display = sys.order===1 ? 'block':'none');
       document.querySelectorAll('.param-2nd').forEach(e => e.style.display = (sys.order===2 || sys.order===3) ? 'block':'none');
       document.querySelectorAll('.param-3rd').forEach(e => e.style.display = sys.order===3 ? 'block':'none');
-@@ -650,6 +704,7 @@ <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</
+
+      resetSim();
+      if(controlMode === 'design') runAutoTune();
+      analyze();
     }
 
     function runAutoTune() {
@@ -1201,11 +708,18 @@
       if(sys.order === 2) {
         const ws2 = sys.wn * sys.wn;
         const target_w2 = design.wn * design.wn;
-@@ -665,13 +720,16 @@ <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</
+        const target_mid = 2 * design.zeta * design.wn;
+
+        const req_Kp = (target_w2 / ws2) - 1;
+        const req_Kd = (target_mid - (2*sys.zeta*sys.wn)) / ws2;
+
+        pid.kp = Math.max(0, req_Kp);
+        pid.kd = Math.max(0, req_Kd);
+        pid.ki = 0.5;
+
         document.getElementById('res-kp').innerText = pid.kp.toFixed(2);
         document.getElementById('res-kd').innerText = pid.kd.toFixed(2);
 
-        // keep UI sliders in sync (nice UX)
         // update slider visuals too
         document.getElementById('inp-kp').value = pid.kp;
         document.getElementById('val-kp').innerText = pid.kp.toFixed(2);
@@ -1219,15 +733,15 @@
       } else {
         document.getElementById('res-kp').innerText = "N/A";
         document.getElementById('res-kd').innerText = "N/A";
-@@ -683,13 +741,17 @@ <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</
+      }
+    }
+
+    function resetSim() {
+      state = { pv: 0, vel: 0, acc: 0, integ: 0, lastErr: 0 };
       history = [];
       document.getElementById('sim-warning').style.display = 'none';
     }
-    function triggerStep() { pid.sp = (pid.sp === 50) ? 80 : 50; }
 
-    // -------------------------
-    // Physics
-    // -------------------------
     function triggerStep() {
       pid.sp = (pid.sp === 50) ? 80 : 50;
     }
@@ -1236,59 +750,84 @@
     // Physics update
     // =========================
     function updatePhysics() {
-      const SUB = 20; const DT = 0.02 / SUB;
       const SUB = 20;
       const DT = 0.02 / SUB;
 
       for(let i=0; i<SUB; i++) {
         const err = pid.sp - state.pv;
-@@ -711,7 +773,7 @@ <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</
+        state.integ += err * DT;
+        const u = (pid.kp * err) + (pid.ki * state.integ) + (pid.kd * (err - state.lastErr)/DT);
+
+        if(isNaN(u) || Math.abs(u) > 1e6) { handleCrash(); return; }
+
+        if (sys.order === 1) {
+          state.pv += ((u - state.pv) / sys.tau) * DT;
+        }
+        else if (sys.order === 2) {
+          const w2 = sys.wn*sys.wn;
+          const force = (w2*u) - (2*sys.zeta*sys.wn*state.vel) - (w2*state.pv);
+          state.vel += force * DT;
+          state.pv += state.vel * DT;
+        }
+        else if (sys.order === 3) {
           const w2 = sys.wn*sys.wn;
           const force = (w2*u) - (2*sys.zeta*sys.wn*state.vel) - (w2*state.acc);
           state.vel += force * DT;
-          state.acc += state.vel * DT;
           state.acc += state.vel * DT;  // x
           const y_dot = sys.p3 * (state.acc - state.pv);
           state.pv += y_dot * DT;
         }
-@@ -725,14 +787,13 @@ <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</
+
+        state.lastErr = err;
+        if(Math.abs(state.pv) > 1e4) { handleCrash(); return; }
+      }
+
+      history.push({ sp: pid.sp, pv: state.pv });
+      if(history.length > MAX_HISTORY) history.shift();
     }
 
     function handleCrash() {
-      const w = document.getElementById('sim-warning');
-      w.style.display = 'flex';
       document.getElementById('sim-warning').style.display = 'flex';
       setTimeout(() => { resetSim(); }, 1500);
     }
 
-    // -------------------------
-    // Analysis
-    // -------------------------
     // =========================
     // Math analysis
     // =========================
     function analyze() {
       let roots = [];
       let eqHTML = "";
-@@ -754,11 +815,10 @@ <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</
+
+      if (sys.order === 1) {
+        const A = sys.tau + pid.kd;
+        const B = 1 + pid.kp;
+        const C = pid.ki;
+        eqHTML = `${A.toFixed(1)}s² + ${B.toFixed(1)}s + ${C.toFixed(1)} = 0`;
+        roots = solveQuad(A, B, C);
+      }
+      else if (sys.order === 2) {
+        const w2 = sys.wn*sys.wn;
+        const B = 2*sys.zeta*sys.wn + w2*pid.kd;
+        const C = w2 + w2*pid.kp;
+        const D = w2*pid.ki;
+        eqHTML = `s³ + ${B.toFixed(1)}s² + ${C.toFixed(1)}s + ${D.toFixed(1)} = 0`;
+        roots = solveCubic(B, C, D);
       }
       else {
         eqHTML = "Order 4 (Analysis Approx)";
-        const imag = sys.wn*Math.sqrt(Math.abs(1-sys.zeta*sys.zeta));
         roots = [
           {re: -sys.p3, im: 0},
-          {re: -sys.zeta*sys.wn, im: imag},
-          {re: -sys.zeta*sys.wn, im: -imag}
           {re: -sys.zeta*sys.wn, im: sys.wn*Math.sqrt(Math.abs(1-sys.zeta*sys.zeta))},
           {re: -sys.zeta*sys.wn, im: -sys.wn*Math.sqrt(Math.abs(1-sys.zeta*sys.zeta))}
         ];
       }
 
-@@ -768,14 +828,21 @@ <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</
+      document.getElementById('math-char-eq').innerText = eqHTML;
+
+      let txt = "";
       let stable = true;
       roots.forEach(r => {
         if(r.re > 0.001) stable = false;
-        txt += `s = ${r.re.toFixed(1)} ${r.im==0?'':'± j'+Math.abs(r.im).toFixed(1)}<br>`;
         txt += `s = ${r.re.toFixed(1)} ${Math.abs(r.im) < 0.001 ? '' : '± j'+Math.abs(r.im).toFixed(1)}<br>`;
       });
       document.getElementById('math-roots').innerHTML = txt;
@@ -1307,7 +846,9 @@
       drawSPlane(roots);
     }
 
-@@ -785,10 +852,12 @@ <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</
+    function solveQuad(a, b, c) {
+      if(Math.abs(a)<1e-5) return [{re:-c/b, im:0}];
+      const d = b*b - 4*a*c;
       if(d>=0) return [{re:(-b+Math.sqrt(d))/(2*a), im:0}, {re:(-b-Math.sqrt(d))/(2*a), im:0}];
       return [{re:-b/(2*a), im:Math.sqrt(-d)/(2*a)}, {re:-b/(2*a), im:-Math.sqrt(-d)/(2*a)}];
     }
@@ -1320,20 +861,28 @@
       let roots = [];
       if(d>0) {
         const u = Math.cbrt(-q/2 + Math.sqrt(d));
-@@ -806,9 +875,9 @@ <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</
+        const v = Math.cbrt(-q/2 - Math.sqrt(d));
+        roots.push({re: u+v - a/3, im: 0});
+        roots.push({re: -(u+v)/2 - a/3, im: (u-v)*Math.sqrt(3)/2});
+        roots.push({re: -(u+v)/2 - a/3, im: -(u-v)*Math.sqrt(3)/2});
+      } else {
+        const k = 2 * Math.sqrt(-p/3);
+        const t = Math.acos(3*q/(2*p*k));
+        roots.push({re: k*Math.cos(t/3)-a/3, im:0});
+        roots.push({re: k*Math.cos((t+2*Math.PI)/3)-a/3, im:0});
+        roots.push({re: k*Math.cos((t+4*Math.PI)/3)-a/3, im:0});
+      }
       return roots;
     }
 
-    // -------------------------
-    // Drawing
-    // -------------------------
     // =========================
     // Draw loop
     // =========================
     function loop() {
       if(document.getElementById('simulator-app').classList.contains('active-screen')) {
         updatePhysics();
-@@ -817,53 +886,113 @@ <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</
+        drawGraph();
+      }
       requestAnimationFrame(loop);
     }
 
@@ -1364,17 +913,12 @@
       ctx.strokeStyle="#eee";
       ctx.fillStyle="#888";
       ctx.font="10px Arial";
-
       [0,25,50,75,100,125].forEach(v => {
-        let y = 350 - ((v+20)/160)*350;
-        ctx.beginPath(); ctx.moveTo(30,y); ctx.lineTo(600,y); ctx.stroke();
-        ctx.fillText(v, 6, y+3);
         const y = yToPix(v);
         ctx.beginPath(); ctx.moveTo(plotX0, y); ctx.lineTo(plotX0 + plotW, y); ctx.stroke();
         ctx.fillText(v, 8, y + 3);
       });
 
-      if(history.length<2) return;
       // Axes
       ctx.strokeStyle="#cfcfcf";
       ctx.lineWidth=1.5;
@@ -1383,7 +927,6 @@
       ctx.lineTo(plotX0, plotY0 + plotH);
       ctx.stroke();
 
-      // SP
       ctx.beginPath();
       ctx.moveTo(plotX0, plotY0 + plotH);
       ctx.lineTo(plotX0 + plotW, plotY0 + plotH);
@@ -1422,26 +965,18 @@
       ctx.setLineDash([6,6]);
       ctx.lineWidth=2;
       history.forEach((h,i) => {
-        let x = (i/MAX_HISTORY)*600;
-        let y = 350 - ((h.sp+20)/160)*350;
-        i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
         const x = xToPix(i);
         const y = yToPix(h.sp);
         if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
       });
       ctx.stroke();
 
-      // PV
       // PV solid
       ctx.beginPath();
       ctx.strokeStyle="#007bff";
       ctx.setLineDash([]);
       ctx.lineWidth=3;
       history.forEach((h,i) => {
-        let x = (i/MAX_HISTORY)*600;
-        let y = 350 - ((h.pv+20)/160)*350;
-        y = Math.max(-500, Math.min(800, y));
-        i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
         const x = xToPix(i);
         let y = yToPix(h.pv);
         y = Math.max(plotY0 - 200, Math.min(plotY0 + plotH + 200, y));
@@ -1457,26 +992,24 @@
       sCtx.clearRect(0,0,300,350);
       const w=300, h=350, cx=w/2, cy=h/2, sc=10;
 
-      sCtx.strokeStyle="#cfcfcf";
-      sCtx.lineWidth=1.5;
       sCtx.strokeStyle="#ccc";
       sCtx.beginPath();
       sCtx.moveTo(cx,0); sCtx.lineTo(cx,h);
       sCtx.moveTo(0,cy); sCtx.lineTo(w,cy);
-@@ -872,9 +1001,10 @@ <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</
+      sCtx.stroke();
+
       roots.forEach(r => {
         let x = cx + r.re*sc;
         let y = cy - r.im*sc;
 
         if(x>-50 && x<w+50 && y>-50 && y<h+50) {
-          sCtx.strokeStyle="#d32f2f";
-          sCtx.lineWidth=2.4;
           sCtx.strokeStyle="red";
           sCtx.lineWidth=2;
           sCtx.beginPath();
           sCtx.moveTo(x-5,y-5); sCtx.lineTo(x+5,y+5);
           sCtx.moveTo(x+5,y-5); sCtx.lineTo(x-5,y+5);
-@@ -883,5 +1013,13 @@ <h1 class="home-title" style="font-size:clamp(38px, 4.2vw, 60px);">Simulations</
+          sCtx.stroke();
+        }
       });
     }
   </script>
