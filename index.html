@@ -4,12 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MAE Academy</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,900&display=swap" rel="stylesheet">
+    
     <style>
         /* --- GLOBAL STYLES --- */
         body { 
-            font-family: 'Inter', 'Segoe UI', sans-serif; 
-            background-color: #e2efff; /* Light Blue from your image */
+            /* UPDATED FONT FAMILY */
+            font-family: 'DM Sans', 'Segoe UI', sans-serif; 
+            background-color: #e2efff; 
             margin: 0; 
             padding: 0;
             display: flex;
@@ -19,12 +23,12 @@
             color: #000;
         }
 
-        /* --- SCREEN 1: HOME UI (MATCHING YOUR IMAGE) --- */
+        /* --- SCREEN 1: HOME UI --- */
         #home-screen {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 100px; /* Space between text and card */
+            gap: 100px;
             width: 100%;
             max-width: 1200px;
             padding: 20px;
@@ -39,7 +43,7 @@
 
         .title-small {
             font-size: 5rem;
-            font-weight: 500; /* Regular weight */
+            font-weight: 500;
             margin: 0;
             line-height: 1;
             letter-spacing: -2px;
@@ -47,7 +51,7 @@
 
         .title-bold {
             font-size: 5rem;
-            font-weight: 900; /* Extra bold */
+            font-weight: 900; /* Extra bold looks great in DM Sans */
             margin: 0;
             line-height: 1;
             letter-spacing: -2px;
@@ -64,18 +68,19 @@
         .pill-btn {
             background: white;
             border: 2px solid black;
-            border-radius: 50px; /* Fully rounded ends */
+            border-radius: 50px;
             padding: 15px 40px;
             font-size: 1.1rem;
             font-weight: 700;
             cursor: pointer;
-            width: 320px; /* Fixed width to match look */
+            width: 320px;
             text-align: left;
             transition: transform 0.2s, background 0.2s;
             display: flex;
             align-items: center;
             margin-bottom: 15px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            font-family: 'DM Sans', sans-serif; /* Ensure buttons inherit font */
         }
 
         .pill-btn:hover {
@@ -99,45 +104,14 @@
             align-items: center;
             justify-content: center;
             text-align: center;
-            box-shadow: 10px 10px 0px rgba(0,0,0,0.05); /* Slight shadow */
+            box-shadow: 10px 10px 0px rgba(0,0,0,0.05);
             padding: 20px;
         }
 
-        /* CSS Logo construction to mimic the Crown/M shape */
         .logo-box {
             margin-bottom: 40px;
         }
         
-        /* A simple CSS representation of the M/Crown logo */
-        .crown-icon {
-            width: 100px;
-            height: 80px;
-            position: relative;
-            border-bottom: 5px solid black;
-        }
-        .crown-icon::before, .crown-icon::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            width: 0; 
-            height: 0; 
-            border-left: 15px solid transparent;
-            border-right: 15px solid transparent;
-            border-bottom: 50px solid black;
-        }
-        .crown-icon::before { left: 0; }
-        .crown-icon::after { right: 0; }
-        .crown-mid {
-            position: absolute;
-            bottom: 0;
-            left: 35px;
-            width: 0; 
-            height: 0; 
-            border-left: 15px solid transparent;
-            border-right: 15px solid transparent;
-            border-bottom: 70px solid black;
-        }
-
         .card-title {
             font-size: 3.5rem;
             font-weight: 900;
@@ -151,10 +125,9 @@
             text-transform: uppercase;
         }
 
-
-        /* --- SCREEN 2: SIMULATOR (Existing Code) --- */
+        /* --- SCREEN 2: SIMULATOR --- */
         #simulator-app {
-            display: none; /* Hidden by default */
+            display: none;
             width: 100%;
             flex-direction: column;
             align-items: center;
@@ -180,7 +153,7 @@
         .control-group label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 5px; color: #333; }
         .control-group input[type="range"] { width: 100%; cursor: pointer; }
         
-        button.btn-step { background: #000; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background 0.2s; width: 100%; }
+        button.btn-step { background: #000; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background 0.2s; width: 100%; font-family: 'DM Sans', sans-serif; }
         button.btn-step:hover { background: #333; }
 
         .math-panel { padding: 15px; background: #e3f2fd; border-radius: 8px; border: 1px solid #bbdefb; color: #0d47a1; }
@@ -244,7 +217,7 @@
 
     <div id="simulator-app">
         <div style="width: 900px; max-width: 95%; text-align: left; margin-bottom: 20px;">
-            <button onclick="goHome()" style="background:none; border:none; color:#000; cursor:pointer; font-weight:bold; font-size:18px; display:flex; align-items:center;">
+            <button onclick="goHome()" style="background:none; border:none; color:#000; cursor:pointer; font-weight:bold; font-size:18px; display:flex; align-items:center; font-family: 'DM Sans', sans-serif;">
                 <span style="font-size: 24px; margin-right: 5px;">&#8592;</span> Back to Home
             </button>
         </div>
