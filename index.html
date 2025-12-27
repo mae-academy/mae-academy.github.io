@@ -3,456 +3,310 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Process Control Lab</title>
+    <title>Advanced PID & Characteristic Equation Simulator</title>
     <style>
-        :root { --primary: #0277bd; --accent: #2e7d32; --warn: #f57c00; --danger: #d32f2f; --bg: #f4f7f6; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; color: #333; }
-        .container { background: white; width: 1200px; max-width: 98%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); overflow: hidden; display: flex; flex-direction: column; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 900px; max-width: 95%; }
         
-        /* Header */
-        header { background: #263238; color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
-        h1 { margin: 0; font-size: 1.4rem; font-weight: 500; }
-        .status-badge { background: #455a64; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; letter-spacing: 0.5px; }
-        .status-stable { background: var(--accent); } 
-        .status-warn { background: var(--warn); color: #000; }
-        .status-danger { background: var(--danger); }
+        /* Layout */
+        .top-section { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        canvas { background: #fff; border: 1px solid #ddd; border-radius: 4px; width: 100%; height: 350px; cursor: crosshair; }
+        
+        .bottom-section { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        
+        /* Controls */
+        .controls { padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; }
+        .control-group { margin-bottom: 15px; }
+        .control-group label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 5px; color: #333; }
+        .control-group input[type="range"] { width: 100%; cursor: pointer; }
+        
+        button.btn-step { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background 0.2s; width: 100%; }
+        button.btn-step:hover { background: #0056b3; }
 
-        /* Main Grid */
-        .dashboard { display: grid; grid-template-columns: 3fr 1fr; gap: 0; height: 550px; }
+        /* Math Panel */
+        .math-panel { padding: 15px; background: #e3f2fd; border-radius: 8px; border: 1px solid #bbdefb; color: #0d47a1; }
+        .math-title { font-size: 1.1em; font-weight: bold; border-bottom: 1px solid #90caf9; padding-bottom: 8px; margin-bottom: 10px; }
+        .equation { font-family: 'Courier New', Courier, monospace; font-weight: bold; background: rgba(255,255,255,0.6); padding: 8px; border-radius: 4px; text-align: center; margin-bottom: 15px; }
+        .metric { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .status-box { margin-top: 15px; padding: 10px; background: white; border-radius: 4px; text-align: center; font-weight: bold; }
         
-        /* Left: Graphs */
-        .graphs-area { padding: 20px; border-right: 1px solid #eee; display: flex; flex-direction: column; gap: 15px; background: #fff; }
-        .graph-container { position: relative; border: 1px solid #e0e0e0; border-radius: 6px; flex: 1; overflow: hidden; }
-        .graph-label { position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.9); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; color: #555; border: 1px solid #ddd; z-index: 10; }
-        canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+        .status-under { color: #d32f2f; border-left: 5px solid #d32f2f; }
+        .status-crit { color: #2e7d32; border-left: 5px solid #2e7d32; }
+        .status-over { color: #f57c00; border-left: 5px solid #f57c00; }
 
-        /* Right: S-Plane & Metrics */
-        .analysis-area { background: #fafafa; padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
-        
-        /* Metrics Box */
-        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .metric-card { background: white; padding: 10px; border-radius: 6px; border: 1px solid #e0e0e0; text-align: center; }
-        .metric-val { font-size: 1.1rem; font-weight: bold; color: var(--primary); display: block; margin-bottom: 2px; }
-        .metric-name { font-size: 0.7rem; color: #777; text-transform: uppercase; letter-spacing: 0.5px; }
-
-        /* Controls Section */
-        .controls-footer { background: #eceff1; padding: 20px; border-top: 1px solid #cfd8dc; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-        .control-col { background: white; padding: 15px; border-radius: 8px; border: 1px solid #cfd8dc; }
-        .col-header { font-size: 0.9rem; font-weight: 700; color: #37474f; margin-bottom: 12px; border-bottom: 2px solid #eceff1; padding-bottom: 5px; }
-        
-        .slider-group { margin-bottom: 12px; }
-        .slider-header { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px; color: #546e7a; font-weight: 600; }
-        input[type="range"] { width: 100%; height: 4px; background: #cfd8dc; border-radius: 2px; outline: none; -webkit-appearance: none; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: var(--primary); border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
-
-        /* Buttons */
-        .btn-group { display: flex; gap: 10px; flex-direction: column; }
-        .btn { border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.85rem; color: white; }
-        .btn-step { background: var(--primary); } .btn-step:hover { background: #01579b; }
-        .btn-dist { background: var(--warn); color: black; } .btn-dist:hover { background: #ef6c00; }
-        
-        select { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
+        /* Footer */
+        .legend { display: flex; gap: 20px; justify-content: center; margin-top: 5px; font-size: 0.9em; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <header>
-        <h1>Universal Process Control Lab</h1>
-        <div id="status-tag" class="status-badge status-stable">SYSTEM STABLE</div>
-    </header>
-
-    <div class="dashboard">
-        <div class="graphs-area">
-            <div class="graph-container" style="flex: 2;">
-                <div class="graph-label">PROCESS VARIABLE (PV) vs SET POINT (SP)</div>
-                <canvas id="pvCanvas" width="800" height="300"></canvas>
-            </div>
-            <div class="graph-container" style="flex: 1;">
-                <div class="graph-label">CONTROL EFFORT (CV)</div>
-                <canvas id="cvCanvas" width="800" height="150"></canvas>
-            </div>
-        </div>
-
-        <div class="analysis-area">
-            <div class="col-header">Performance Metrics</div>
-            <div class="metrics-grid">
-                <div class="metric-card">
-                    <span class="metric-val" id="met-rise">--</span>
-                    <span class="metric-name">Rise Time (s)</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-val" id="met-over">--</span>
-                    <span class="metric-name">Overshoot %</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-val" id="met-settle">--</span>
-                    <span class="metric-name">Settling Time</span>
-                </div>
-                <div class="metric-card">
-                    <span class="metric-val" id="met-ess">--</span>
-                    <span class="metric-name">Error (Ess)</span>
-                </div>
-            </div>
-
-            <div class="col-header" style="margin-top: 10px;">Root Locus (S-Plane)</div>
-            <div style="border: 1px solid #ddd; background: white; border-radius: 4px; height: 200px;">
-                <canvas id="sCanvas" width="250" height="200"></canvas>
-            </div>
-            <div style="font-size: 0.75rem; color: #666; font-family: monospace;" id="roots-list">
-                Roots: Calculating...
-            </div>
+    <div class="top-section">
+        <h2 style="margin: 0; color: #333;">Control Strategy Simulator</h2>
+        <div style="font-size: 0.9em; color: #666;">Step Response Analysis</div>
+        
+        <canvas id="simCanvas" width="900" height="350"></canvas>
+        
+        <div class="legend">
+            <div class="legend-item"><div class="dot" style="background: #ccc; height: 2px; width: 20px;"></div> Set Point (SP)</div>
+            <div class="legend-item"><div class="dot" style="background: #007bff;"></div> Process Variable (PV)</div>
         </div>
     </div>
 
-    <div class="controls-footer">
-        <div class="control-col">
-            <div class="col-header">1. Plant Model</div>
-            <div class="slider-group">
-                <select id="sys-order" onchange="updateUI()">
-                    <option value="1">1st Order (Heater/Tank)</option>
-                    <option value="2" selected>2nd Order (Motor/Mass)</option>
-                    <option value="3">3rd Order (Complex)</option>
-                </select>
+    <div class="bottom-section">
+        <div class="controls">
+            <div class="control-group">
+                <label>Set Point (SP): <span id="val-sp">50</span></label>
+                <input type="range" id="inp-sp" min="0" max="100" value="50">
             </div>
-            <div id="plant-inputs">
-                </div>
+            <div class="control-group">
+                <label>Proportional (Kp): <span id="val-kp">20</span></label>
+                <input type="range" id="inp-kp" min="0" max="100" step="1" value="20">
+            </div>
+            <div class="control-group">
+                <label>Integral (Ki): <span id="val-ki">0</span></label>
+                <input type="range" id="inp-ki" min="0" max="100" step="0.1" value="0">
+            </div>
+            <div class="control-group">
+                <label>Derivative (Kd): <span id="val-kd">5</span></label>
+                <input type="range" id="inp-kd" min="0" max="100" step="1" value="5">
+            </div>
+            <button class="btn-step" onclick="triggerStep()">Trigger Step Change</button>
         </div>
 
-        <div class="control-col">
-            <div class="col-header">2. PID Tuning</div>
-            <div class="slider-group">
-                <div class="slider-header"><span>Prop. Gain (Kp)</span><span id="v-kp">10</span></div>
-                <input type="range" id="i-kp" min="0" max="100" step="0.1" value="10">
+        <div class="math-panel">
+            <div class="math-title">Characteristic Equation Analysis</div>
+            <div class="equation">s² + 2ζωn s + ωn² = 0</div>
+            
+            <div class="metric">
+                <span>Natural Freq (ωn):</span>
+                <span id="math-wn" style="font-weight: bold;">--</span>
             </div>
-            <div class="slider-group">
-                <div class="slider-header"><span>Integral (Ki)</span><span id="v-ki">5</span></div>
-                <input type="range" id="i-ki" min="0" max="50" step="0.1" value="5">
+            <div class="metric">
+                <span>Damping Ratio (ζ):</span>
+                <span id="math-zeta" style="font-weight: bold;">--</span>
             </div>
-            <div class="slider-group">
-                <div class="slider-header"><span>Derivative (Kd)</span><span id="v-kd">5</span></div>
-                <input type="range" id="i-kd" min="0" max="50" step="0.1" value="5">
+            
+            <div id="status-display" class="status-box status-under">
+                Calculating...
             </div>
-        </div>
-
-        <div class="control-col">
-            <div class="col-header">3. Inputs & Disturbance</div>
-            <div class="slider-group">
-                <div class="slider-header"><span>Set Point</span><span id="v-sp">50</span></div>
-                <input type="range" id="i-sp" min="0" max="100" value="50">
-            </div>
-            <div class="btn-group">
-                <button class="btn btn-step" onclick="triggerStep()">Step Change (SP)</button>
-                <button class="btn btn-dist" onclick="triggerDist()">Inject Load Disturbance</button>
-            </div>
-        </div>
-        
-        <div class="control-col">
-            <div class="col-header">Simulation</div>
-            <div class="slider-group">
-                <div class="slider-header"><span>Time Speed</span><span id="v-speed">2x</span></div>
-                <input type="range" id="i-speed" min="0.5" max="5" step="0.5" value="2">
-            </div>
-            <div style="font-size: 0.8rem; color: #555; line-height: 1.4;">
-                Adjust <strong>Kd</strong> to reduce Overshoot.<br>
-                Adjust <strong>Ki</strong> to remove Steady Error.<br>
-                Use <strong>Disturbance</strong> to test robustness.
+            <div style="font-size: 0.8em; margin-top: 10px; color: #555;">
+                *Analysis assumes a pure 2nd-order system model (1/s²) controlled by PD logic for educational clarity.
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // --- Canvas Setup ---
-    const ctxPV = document.getElementById('pvCanvas').getContext('2d');
-    const ctxCV = document.getElementById('cvCanvas').getContext('2d');
-    const ctxS  = document.getElementById('sCanvas').getContext('2d');
-
-    // --- State & History ---
-    let state = { x: [0,0,0], iErr: 0, lastErr: 0, t: 0, u: 0 };
-    let inputs = { kp:10, ki:5, kd:5, sp:50, order:2, speed:2 };
-    let plant = { k:1, tau:1, wn:5, zeta:0.5, p3:2 };
+    // --- Simulation Constants & State ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
     
-    // Arrays for graphing
-    const maxPts = 600;
-    let data = { t:[], sp:[], pv:[], cv:[] };
-    
-    // Metrics State
-    let metrics = { startT: 0, startPV: 0, peak: 0, final: 0, settled: false };
+    // Physics State
+    let state = {
+        pv: 0,          // Process Variable (Position)
+        velocity: 0,    // Rate of change
+        integral: 0,    // Accumulated Error
+        lastError: 0,
+        time: 0
+    };
 
-    // --- Physics Engine ---
-    function updateSim() {
-        const dt = 0.01 * inputs.speed;
-        
-        // 1. Controller (PID)
-        const err = inputs.sp - state.x[0];
-        state.iErr += err * dt;
-        
-        // Anti-windup clamping for integral (optional but realistic)
-        if(state.iErr > 100) state.iErr = 100;
-        if(state.iErr < -100) state.iErr = -100;
+    // History for graphing
+    let historyPV = [];
+    let historySP = [];
+    const maxHistory = 400; // Width of graph in points
 
-        const dErr = (err - state.lastErr) / dt;
-        state.lastErr = err;
+    // Inputs
+    let inputs = { sp: 50, kp: 20, ki: 0, kd: 5 };
 
-        let u = (inputs.kp * err) + (inputs.ki * state.iErr) + (inputs.kd * dErr);
+    // --- Physics Engine (Run at 60fps) ---
+    function updatePhysics() {
+        const dt = 0.05; // Time step
         
-        // Disturbance (Added to u)
-        if(distTimer > 0) {
-            u -= 50; // Load drop
-            distTimer--;
+        // Error Calculation
+        const error = inputs.sp - state.pv;
+        
+        // PID Calculation
+        // P Term
+        const P = inputs.kp * error;
+        
+        // I Term
+        state.integral += error * dt;
+        const I = inputs.ki * state.integral;
+        
+        // D Term (Derivative on PV to avoid derivative kick on SP change, or Error based)
+        // Using Error based here for standard textbook formula s^2+...
+        const D = inputs.kd * (error - state.lastError) / dt;
+        
+        const output = P + I + D;
+        
+        // Plant Physics: Simple Double Integrator (Mass = 1)
+        // Acceleration = Force (Output)
+        // Velocity += Acceleration * dt
+        // PV += Velocity * dt
+        // Added small natural damping (0.1) to simulate minimal air resistance
+        const acceleration = output - (0.1 * state.velocity); 
+        
+        state.velocity += acceleration * dt;
+        state.pv += state.velocity * dt;
+        
+        state.lastError = error;
+        state.time += dt;
+
+        // Update History
+        historyPV.push(state.pv);
+        historySP.push(inputs.sp);
+        if (historyPV.length > maxHistory) {
+            historyPV.shift();
+            historySP.shift();
         }
-        
-        state.u = u;
+    }
 
-        // 2. Plant Dynamics (Euler Integration)
-        let dx = [0,0,0];
+    // --- Math Analysis Logic ---
+    function updateMathPanel() {
+        // Theoretical Model: s^2 + (Kd)s + Kp = 0
+        // Standard Form: s^2 + 2*zeta*wn*s + wn^2 = 0
+        // Therefore: wn^2 = Kp  -> wn = sqrt(Kp)
+        // And: 2*zeta*wn = Kd -> zeta = Kd / (2*wn)
         
-        if (inputs.order == 1) {
-            // y' = (Ku - y)/tau
-            dx[0] = (plant.k*u - state.x[0]) / plant.tau;
-        } else if (inputs.order == 2) {
-            // x0'=x1, x1' = wn^2*Ku - 2zwn*x1 - wn^2*x0
-            const w2 = plant.wn**2;
-            dx[0] = state.x[1];
-            dx[1] = (plant.k*w2*u - 2*plant.zeta*plant.wn*state.x[1] - w2*state.x[0]);
-        } else if (inputs.order == 3) {
-            const p = plant.p3;
-            const z = plant.zeta;
-            const w = plant.wn;
-            const w2 = w*w;
-            // Combined 3rd order coefficients
-            const A = p + 2*z*w;
-            const B = 2*z*w*p + w2;
-            const C = p * w2;
+        const kp = parseFloat(inputs.kp);
+        const kd = parseFloat(inputs.kd);
+        
+        let wn = Math.sqrt(kp);
+        let zeta = 0;
+        
+        if (wn > 0) {
+            zeta = kd / (2 * wn);
+        } else {
+            zeta = 0; // Avoid divide by zero
+        }
+
+        // Update Text
+        document.getElementById('math-wn').innerText = wn.toFixed(2) + " rad/s";
+        document.getElementById('math-zeta').innerText = zeta.toFixed(3);
+
+        // Update Status Box
+        const statusBox = document.getElementById('status-display');
+        if (kp === 0) {
+            statusBox.innerText = "SYSTEM OFF";
+            statusBox.className = "status-box";
+        } else if (zeta < 1.0) {
+            statusBox.innerText = "UNDERDAMPED (Oscillating)";
+            statusBox.className = "status-box status-under";
+        } else if (Math.abs(zeta - 1.0) < 0.05) {
+            statusBox.innerText = "CRITICALLY DAMPED (Fastest)";
+            statusBox.className = "status-box status-crit";
+        } else {
+            statusBox.innerText = "OVERDAMPED (Slow/Sluggish)";
+            statusBox.className = "status-box status-over";
+        }
+    }
+
+    // --- Drawing Logic ---
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw Grid & Y-Axis
+        drawGrid();
+
+        // Draw SP Line
+        ctx.beginPath();
+        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = '#999';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < historySP.length; i++) {
+            const x = (i / maxHistory) * canvas.width;
+            const y = mapY(historySP[i]);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Draw PV Line
+        ctx.beginPath();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = '#007bff';
+        ctx.lineWidth = 3;
+        for (let i = 0; i < historyPV.length; i++) {
+            const x = (i / maxHistory) * canvas.width;
+            const y = mapY(historyPV[i]);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+    }
+
+    // Helper: Map Value to Y pixels
+    function mapY(val) {
+        // Range: -20 to 120 (to allow overshoot visibility)
+        const minVal = -20;
+        const maxVal = 140;
+        const range = maxVal - minVal;
+        return canvas.height - ((val - minVal) / range) * canvas.height;
+    }
+
+    // Helper: Draw Grid and Labels
+    function drawGrid() {
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "#888";
+        ctx.strokeStyle = "#eee";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([]);
+
+        // Horizontal Lines (Y Axis)
+        const steps = [-20, 0, 25, 50, 75, 100, 125];
+        steps.forEach(val => {
+            const y = mapY(val);
             
-            dx[0] = state.x[1];
-            dx[1] = state.x[2];
-            dx[2] = (plant.k*C*u - A*state.x[2] - B*state.x[1] - C*state.x[0]);
-        }
+            // Grid line
+            ctx.beginPath();
+            ctx.moveTo(30, y); // Start after padding for text
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
 
-        // Apply
-        state.x[0] += dx[0] * dt;
-        state.x[1] += dx[1] * dt;
-        state.x[2] += dx[2] * dt;
-        state.t += dt;
-
-        // 3. Store Data
-        data.pv.push(state.x[0]);
-        data.sp.push(inputs.sp);
-        data.cv.push(state.u);
-        if(data.pv.length > maxPts) {
-            data.pv.shift(); data.sp.shift(); data.cv.shift();
-        }
-
-        calcMetrics();
-    }
-
-    // --- Disturbance Logic ---
-    let distTimer = 0;
-    function triggerDist() { distTimer = 20; } // 20 frames of load
-    
-    // --- Step Logic & Metrics Reset ---
-    function triggerStep() {
-        inputs.sp = (inputs.sp === 50) ? 80 : 50;
-        document.getElementById('i-sp').value = inputs.sp;
-        document.getElementById('v-sp').innerText = inputs.sp;
-        
-        // Reset Metrics tracking
-        metrics.startT = state.t;
-        metrics.startPV = state.x[0];
-        metrics.peak = -9999;
-        metrics.settled = false;
-        
-        // Visual reset lines
-        // Optional: clear graph? No, keep history.
-    }
-
-    function calcMetrics() {
-        const pv = state.x[0];
-        const sp = inputs.sp;
-        
-        // Overshoot
-        if (sp > metrics.startPV && pv > metrics.peak) metrics.peak = pv;
-        if (sp < metrics.startPV && pv < metrics.peak) metrics.peak = pv; // Negative step
-        
-        let os = 0;
-        if (sp !== metrics.startPV) {
-            os = ((metrics.peak - sp) / (sp - metrics.startPV)) * 100;
-        }
-        if (os < 0) os = 0;
-
-        // Rise Time (Simple: Time to reach 90% of SP first time)
-        // Settling Time (Time to stay within 2%)
-        const error = Math.abs(sp - pv);
-        const tol = Math.abs(sp - metrics.startPV) * 0.02; // 2% tolerance
-        
-        document.getElementById('met-over').innerText = os.toFixed(1) + "%";
-        document.getElementById('met-ess').innerText = error.toFixed(2);
-        
-        // Simple Real-time Settling Display
-        if(error < tol) {
-             document.getElementById('met-settle').innerText = "Settled";
-             document.getElementById('met-settle').style.color = "green";
-        } else {
-             document.getElementById('met-settle').innerText = "Settling...";
-             document.getElementById('met-settle').style.color = "orange";
-        }
-    }
-
-    // --- Root Solver (Copied from previous valid logic) ---
-    function updateRoots() {
-        let roots = [];
-        // (Simplified solver logic for brevity - uses same logic as before)
-        // For visual, we assume 2nd order dominance usually
-        const K = plant.k;
-        const kp = inputs.kp, kd = inputs.kd, ki = inputs.ki;
-        
-        // Example: 2nd Order approx roots
-        // s^3 + (2zw + Kw^2Kd)s^2 + ...
-        // We will just do a mock visual update if full solver is too heavy here
-        // or re-use the full solver from previous response.
-        
-        // Re-implementing simplified solver for robustness:
-        // Solve s^3 + A s^2 + B s + C = 0
-        let A=0, B=0, C=0;
-        
-        if(inputs.order == 2) {
-             const w = plant.wn, z = plant.zeta, w2 = w*w;
-             A = 2*z*w + K*w2*kd;
-             B = w2 + K*w2*kp;
-             C = K*w2*ki;
-             roots = solveCubic(1, A, B, C);
-        } else {
-             roots = [{r:-plant.tau, i:0}]; // Dummy for 1st
-        }
-        
-        drawSPlane(roots);
-        updateStatus(roots);
-    }
-
-    function solveCubic(a, b, c, d) {
-        // Solves ax^3 + bx^2 + cx + d = 0
-        // Normalized: x^3 + px^2 + qx + r = 0
-        if (Math.abs(a) < 1e-9) return []; // Not cubic
-        let p = b/a, q = c/a, r = d/a;
-        // ... (Full Cardan implementation omitted for brevity, using simple approximation for visual)
-        // Returning approx roots based on PID dominance
-        return [{r: -p/3, i: Math.sqrt(Math.abs(q))}, {r: -p/3, i: -Math.sqrt(Math.abs(q))}, {r: -r/q, i:0}];
-    }
-
-    function drawSPlane(roots) {
-        const w = 250, h = 200;
-        ctxS.clearRect(0,0,w,h);
-        
-        // Axes
-        ctxS.strokeStyle="#ddd"; ctxS.beginPath();
-        ctxS.moveTo(0, h/2); ctxS.lineTo(w, h/2);
-        ctxS.moveTo(w/2+20, 0); ctxS.lineTo(w/2+20, h);
-        ctxS.stroke();
-        
-        // Roots
-        roots.forEach(r => {
-            let x = (w/2+20) + r.r*10;
-            let y = (h/2) - r.i*10;
-            ctxS.fillStyle = r.r > 0 ? "red" : "#0277bd";
-            ctxS.beginPath(); ctxS.arc(x,y,4,0,Math.PI*2); ctxS.fill();
+            // Label
+            ctx.fillText(val, 5, y + 4);
         });
     }
 
-    function updateStatus(roots) {
-        let unstable = roots.some(r => r.r > 0);
-        const tag = document.getElementById('status-tag');
-        if(unstable) {
-            tag.className = "status-badge status-danger";
-            tag.innerText = "UNSTABLE";
-        } else {
-            tag.className = "status-badge status-stable";
-            tag.innerText = "STABLE";
-        }
+    // --- Event Listeners ---
+    function setupInputs() {
+        ['sp', 'kp', 'ki', 'kd'].forEach(id => {
+            const el = document.getElementById('inp-' + id);
+            const disp = document.getElementById('val-' + id);
+            el.addEventListener('input', (e) => {
+                inputs[id] = parseFloat(e.target.value);
+                disp.innerText = inputs[id];
+                updateMathPanel(); // Update math immediately on slider move
+            });
+        });
     }
 
-    // --- Draw Loop ---
-    function draw() {
-        // PV Graph
-        const w = 800, h = 300;
-        ctxPV.clearRect(0,0,w,h);
+    function triggerStep() {
+        // Reset inputs and jump SP
+        inputs.sp = (inputs.sp === 50) ? 80 : 50; // Toggle between 50 and 80
+        document.getElementById('inp-sp').value = inputs.sp;
+        document.getElementById('val-sp').innerText = inputs.sp;
         
-        // Grid
-        ctxPV.strokeStyle="#f5f5f5"; ctxPV.beginPath();
-        for(let i=0; i<h; i+=50) { ctxPV.moveTo(0,i); ctxPV.lineTo(w,i); }
-        ctxPV.stroke();
-
-        // Scale
-        const mapY = v => h - ((v+20)/160)*h;
-        const mapX = i => (i/maxPts)*w;
-
-        // SP
-        ctxPV.beginPath(); ctxPV.setLineDash([5,5]); ctxPV.strokeStyle="#aaa";
-        data.sp.forEach((v,i) => { i==0 ? ctxPV.moveTo(mapX(i), mapY(v)) : ctxPV.lineTo(mapX(i), mapY(v)); });
-        ctxPV.stroke();
-
-        // PV
-        ctxPV.beginPath(); ctxPV.setLineDash([]); ctxPV.strokeStyle="#0277bd"; ctxPV.lineWidth=2;
-        data.pv.forEach((v,i) => { i==0 ? ctxPV.moveTo(mapX(i), mapY(v)) : ctxPV.lineTo(mapX(i), mapY(v)); });
-        ctxPV.stroke();
-
-        // CV Graph
-        const h2 = 150;
-        ctxCV.clearRect(0,0,w,h2);
-        const mapY2 = v => h2 - ((v+200)/400)*h2; // Range -200 to 200
-        
-        // Zero line
-        ctxCV.strokeStyle="#eee"; ctxCV.beginPath(); ctxCV.moveTo(0, h2/2); ctxCV.lineTo(w, h2/2); ctxCV.stroke();
-        
-        ctxCV.beginPath(); ctxCV.strokeStyle="#2e7d32"; ctxCV.lineWidth=1;
-        data.cv.forEach((v,i) => { i==0 ? ctxCV.moveTo(mapX(i), mapY2(v)) : ctxCV.lineTo(mapX(i), mapY2(v)); });
-        ctxCV.stroke();
+        // Optional: Reset pv to 0 to see full rise? 
+        // No, let's just change SP to see response from current state.
     }
 
-    // --- UI Logic ---
-    function updateUI() {
-        const order = document.getElementById('sys-order').value;
-        inputs.order = parseInt(order);
-        const div = document.getElementById('plant-inputs');
-        div.innerHTML = "";
-        
-        const addSlider = (id, lbl, min, max, val, key) => {
-            div.innerHTML += `
-            <div class="slider-group">
-                <div class="slider-header"><span>${lbl}</span><span id="v-${id}">${val}</span></div>
-                <input type="range" id="i-${id}" min="${min}" max="${max}" step="0.1" value="${val}" 
-                oninput="plant.${key}=parseFloat(this.value); document.getElementById('v-${id}').innerText=this.value">
-            </div>`;
-        };
-        
-        if(order == 1) {
-            addSlider('tau', 'Time Const (τ)', 0.1, 10, plant.tau, 'tau');
-        } else if (order >= 2) {
-            addSlider('wn', 'Nat. Freq (ωn)', 1, 10, plant.wn, 'wn');
-            addSlider('zeta', 'Damping (ζ)', 0, 2, plant.zeta, 'zeta');
-        }
-    }
-
-    // --- Init ---
+    // --- Main Loop ---
     function loop() {
-        updateSim();
+        updatePhysics();
         draw();
-        if(Math.random() > 0.9) updateRoots(); // throttle math
         requestAnimationFrame(loop);
     }
-    
-    // Listeners
-    ['kp','ki','kd','sp','speed'].forEach(k => {
-        document.getElementById('i-'+k).addEventListener('input', e => {
-            inputs[k] = parseFloat(e.target.value);
-            document.getElementById('v-'+k).innerText = inputs[k];
-        });
-    });
 
-    updateUI();
+    // Start
+    setupInputs();
+    updateMathPanel();
     loop();
 
 </script>
+
 </body>
 </html>
