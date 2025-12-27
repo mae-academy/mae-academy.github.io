@@ -3,60 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Educational Portal</title>
+    <title>MAE Academy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         /* --- GLOBAL STYLES --- */
         body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: #f0f2f5; 
+            font-family: 'Inter', 'Segoe UI', sans-serif; 
+            background-color: #e2efff; /* Light Blue from your image */
             margin: 0; 
             padding: 0;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
             min-height: 100vh;
+            color: #000;
         }
 
-        /* --- MENU UI STYLES --- */
-        .menu-container {
-            margin-top: 100px;
-            text-align: center;
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            width: 400px;
-        }
-
-        .menu-title {
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 24px;
-        }
-
-        .menu-btn {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            font-size: 18px;
-            cursor: pointer;
-            border: none;
-            border-radius: 8px;
-            background-color: #007bff;
-            color: white;
-            transition: transform 0.2s, background-color 0.2s;
-        }
-
-        .menu-btn:hover {
-            background-color: #0056b3;
-            transform: translateY(-2px);
-        }
-
-        /* --- SIMULATOR STYLES --- */
-        #simulator-app {
-            width: 100%;
+        /* --- SCREEN 1: HOME UI (MATCHING YOUR IMAGE) --- */
+        #home-screen {
             display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 100px; /* Space between text and card */
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+        }
+
+        /* Left Side: Text & Buttons */
+        .left-content {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .title-small {
+            font-size: 5rem;
+            font-weight: 500; /* Regular weight */
+            margin: 0;
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+
+        .title-bold {
+            font-size: 5rem;
+            font-weight: 900; /* Extra bold */
+            margin: 0;
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        /* The Pill-Shaped Buttons */
+        .pill-btn {
+            background: white;
+            border: 2px solid black;
+            border-radius: 50px; /* Fully rounded ends */
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            width: 320px; /* Fixed width to match look */
+            text-align: left;
+            transition: transform 0.2s, background 0.2s;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .pill-btn:hover {
+            transform: translateY(-3px);
+            background-color: #f8f9fa;
+        }
+
+        .pill-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Right Side: The ID Card */
+        .id-card {
+            background: white;
+            border: 2px solid black;
+            border-radius: 20px;
+            width: 350px;
+            height: 550px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 10px 10px 0px rgba(0,0,0,0.05); /* Slight shadow */
+            padding: 20px;
+        }
+
+        /* CSS Logo construction to mimic the Crown/M shape */
+        .logo-box {
+            margin-bottom: 40px;
+        }
+        
+        /* A simple CSS representation of the M/Crown logo */
+        .crown-icon {
+            width: 100px;
+            height: 80px;
+            position: relative;
+            border-bottom: 5px solid black;
+        }
+        .crown-icon::before, .crown-icon::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            width: 0; 
+            height: 0; 
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 50px solid black;
+        }
+        .crown-icon::before { left: 0; }
+        .crown-icon::after { right: 0; }
+        .crown-mid {
+            position: absolute;
+            bottom: 0;
+            left: 35px;
+            width: 0; 
+            height: 0; 
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 70px solid black;
+        }
+
+        .card-title {
+            font-size: 3.5rem;
+            font-weight: 900;
+            letter-spacing: 5px;
+            margin: 10px 0;
+        }
+
+        .card-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+
+        /* --- SCREEN 2: SIMULATOR (Existing Code) --- */
+        #simulator-app {
+            display: none; /* Hidden by default */
+            width: 100%;
             flex-direction: column;
             align-items: center;
             padding-top: 20px;
@@ -81,8 +180,8 @@
         .control-group label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 5px; color: #333; }
         .control-group input[type="range"] { width: 100%; cursor: pointer; }
         
-        button.btn-step { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background 0.2s; width: 100%; }
-        button.btn-step:hover { background: #0056b3; }
+        button.btn-step { background: #000; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background 0.2s; width: 100%; }
+        button.btn-step:hover { background: #333; }
 
         .math-panel { padding: 15px; background: #e3f2fd; border-radius: 8px; border: 1px solid #bbdefb; color: #0d47a1; }
         .math-title { font-size: 1.1em; font-weight: bold; border-bottom: 1px solid #90caf9; padding-bottom: 8px; margin-bottom: 10px; }
@@ -97,36 +196,62 @@
         .legend { display: flex; gap: 20px; justify-content: center; margin-top: 5px; font-size: 0.9em; }
         .legend-item { display: flex; align-items: center; gap: 5px; }
         .dot { width: 10px; height: 10px; border-radius: 50%; }
-        
-        /* Utility for showing/hiding screens */
-        .screen { display: none; }
-        .active-screen { display: block; }
-        .active-flex { display: flex !important; }
+
+        /* Responsive Design for Mobile */
+        @media (max-width: 1000px) {
+            #home-screen { flex-direction: column-reverse; gap: 40px; text-align: center; }
+            .left-content { align-items: center; }
+            .pill-btn { width: 100%; max-width: 320px; justify-content: center; }
+            .title-small, .title-bold { font-size: 3rem; }
+        }
 
     </style>
 </head>
 <body>
 
-    <div id="main-menu" class="menu-container screen active-screen">
-        <h2 class="menu-title">Main Menu</h2>
-        <button class="menu-btn" onclick="alert('Academics module coming soon!')">Academics</button>
-        <button class="menu-btn" onclick="navigateTo('sim-menu')">Simulations</button>
+    <div id="home-screen">
+        
+        <div class="left-content">
+            <div>
+                <h1 class="title-small">Welcome to</h1>
+                <h1 class="title-bold">MAE Academy</h1>
+                <p class="subtitle">Learn & Enjoy</p>
+            </div>
+
+            <button class="pill-btn" onclick="alert('Course module under construction!')">
+                Academic Courses
+            </button>
+            
+            <button class="pill-btn" onclick="startSimulator()">
+                Practical Simulations
+            </button>
+        </div>
+
+        <div class="id-card">
+            <div class="logo-box">
+                <svg width="120" height="100" viewBox="0 0 100 80">
+                    <path d="M10,10 L30,60 L50,10 L70,60 L90,10 L80,70 L20,70 Z" 
+                          fill="none" stroke="black" stroke-width="6" stroke-linejoin="round" />
+                    <line x1="20" y1="78" x2="80" y2="78" stroke="black" stroke-width="6" />
+                </svg>
+            </div>
+            
+            <div class="card-title">MAE</div>
+            <div class="card-name">MOHAMMAD ABU ELYAN</div>
+        </div>
+
     </div>
 
-    <div id="sim-menu" class="menu-container screen">
-        <div style="text-align:left; margin-bottom:10px; cursor:pointer; color:#666;" onclick="navigateTo('main-menu')">← Back</div>
-        <h2 class="menu-title">Select Simulation</h2>
-        <button class="menu-btn" onclick="startSimulator()">Control Systems</button>
-    </div>
-
-    <div id="simulator-app" class="screen">
-        <div style="width: 900px; max-width: 95%; text-align: left; margin-bottom: 10px;">
-            <button onclick="navigateTo('sim-menu')" style="background:none; border:none; color:#555; cursor:pointer; font-weight:bold; font-size:16px;">← Back to Menu</button>
+    <div id="simulator-app">
+        <div style="width: 900px; max-width: 95%; text-align: left; margin-bottom: 20px;">
+            <button onclick="goHome()" style="background:none; border:none; color:#000; cursor:pointer; font-weight:bold; font-size:18px; display:flex; align-items:center;">
+                <span style="font-size: 24px; margin-right: 5px;">&#8592;</span> Back to Home
+            </button>
         </div>
 
         <div class="sim-container">
             <div class="top-section">
-                <h2 style="margin: 0; color: #333;">Control Strategy Simulator</h2>
+                <h2 style="margin: 0; color: #333;">Control Systems Lab</h2>
                 <div style="font-size: 0.9em; color: #666;">Step Response Analysis</div>
                 
                 <canvas id="simCanvas" width="900" height="350"></canvas>
@@ -159,7 +284,7 @@
                 </div>
 
                 <div class="math-panel">
-                    <div class="math-title">Characteristic Equation Analysis</div>
+                    <div class="math-title">Math Model</div>
                     <div class="equation">s² + 2ζωn s + ωn² = 0</div>
                     
                     <div class="metric">
@@ -174,54 +299,34 @@
                     <div id="status-display" class="status-box status-under">
                         Calculating...
                     </div>
-                    <div style="font-size: 0.8em; margin-top: 10px; color: #555;">
-                        *Analysis assumes a pure 2nd-order system model (1/s²) controlled by PD logic.
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- Navigation Logic ---
-        function navigateTo(screenId) {
-            // 1. Hide all screens
-            const screens = document.querySelectorAll('.screen');
-            screens.forEach(s => {
-                s.style.display = 'none';
-            });
-
-            // 2. Show target screen
-            const target = document.getElementById(screenId);
-            if (screenId === 'simulator-app') {
-                target.style.display = 'flex'; // Simulator needs flex layout
-            } else {
-                target.style.display = 'block'; // Menus use block
-            }
-        }
-
+        // --- Navigation ---
         function startSimulator() {
-            navigateTo('simulator-app');
+            document.getElementById('home-screen').style.display = 'none';
+            document.getElementById('simulator-app').style.display = 'flex';
             
-            // Initialize simulator only once
             if(!simRunning) {
                 initSimulator();
                 simRunning = true;
             }
         }
 
-        // --- Simulator Logic ---
+        function goHome() {
+            document.getElementById('simulator-app').style.display = 'none';
+            document.getElementById('home-screen').style.display = 'flex';
+        }
+
+        // --- Simulator Engine ---
         let simRunning = false; 
         let canvas, ctx;
-        
-        let state = {
-            pv: 0, velocity: 0, integral: 0, lastError: 0, time: 0
-        };
-
-        let historyPV = [];
-        let historySP = [];
+        let state = { pv: 0, velocity: 0, integral: 0, lastError: 0, time: 0 };
+        let historyPV = [], historySP = [];
         const maxHistory = 400; 
-
         let inputs = { sp: 50, kp: 20, ki: 0, kd: 5 };
 
         function initSimulator() {
@@ -235,27 +340,19 @@
         function updatePhysics() {
             const dt = 0.05; 
             const error = inputs.sp - state.pv;
-            
-            // PID
             const P = inputs.kp * error;
             state.integral += error * dt;
             const I = inputs.ki * state.integral;
             const D = inputs.kd * (error - state.lastError) / dt;
             const output = P + I + D;
-            
-            // Plant
             const acceleration = output - (0.1 * state.velocity); 
             state.velocity += acceleration * dt;
             state.pv += state.velocity * dt;
             state.lastError = error;
 
-            // History
             historyPV.push(state.pv);
             historySP.push(inputs.sp);
-            if (historyPV.length > maxHistory) {
-                historyPV.shift();
-                historySP.shift();
-            }
+            if (historyPV.length > maxHistory) { historyPV.shift(); historySP.shift(); }
         }
 
         function updateMathPanel() {
@@ -268,42 +365,25 @@
             document.getElementById('math-zeta').innerText = zeta.toFixed(3);
 
             const statusBox = document.getElementById('status-display');
-            if (kp === 0) {
-                statusBox.innerText = "SYSTEM OFF";
-                statusBox.className = "status-box";
-            } else if (zeta < 1.0) {
-                statusBox.innerText = "UNDERDAMPED (Oscillating)";
-                statusBox.className = "status-box status-under";
-            } else if (Math.abs(zeta - 1.0) < 0.05) {
-                statusBox.innerText = "CRITICALLY DAMPED (Fastest)";
-                statusBox.className = "status-box status-crit";
-            } else {
-                statusBox.innerText = "OVERDAMPED (Slow/Sluggish)";
-                statusBox.className = "status-box status-over";
-            }
+            if (kp === 0) { statusBox.innerText = "OFF"; statusBox.className = "status-box"; }
+            else if (zeta < 1.0) { statusBox.innerText = "UNDERDAMPED"; statusBox.className = "status-box status-under"; }
+            else if (Math.abs(zeta - 1.0) < 0.05) { statusBox.innerText = "CRITICALLY DAMPED"; statusBox.className = "status-box status-crit"; }
+            else { statusBox.innerText = "OVERDAMPED"; statusBox.className = "status-box status-over"; }
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawGrid();
-
-            // Draw SP
-            ctx.beginPath();
-            ctx.setLineDash([5, 5]);
-            ctx.strokeStyle = '#999';
-            ctx.lineWidth = 2;
+            // SP Line
+            ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
             for (let i = 0; i < historySP.length; i++) {
                 const x = (i / maxHistory) * canvas.width;
                 const y = mapY(historySP[i]);
                 (i === 0) ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
             }
             ctx.stroke();
-
-            // Draw PV
-            ctx.beginPath();
-            ctx.setLineDash([]);
-            ctx.strokeStyle = '#007bff';
-            ctx.lineWidth = 3;
+            // PV Line
+            ctx.beginPath(); ctx.setLineDash([]); ctx.strokeStyle = '#007bff'; ctx.lineWidth = 3;
             for (let i = 0; i < historyPV.length; i++) {
                 const x = (i / maxHistory) * canvas.width;
                 const y = mapY(historyPV[i]);
@@ -312,18 +392,10 @@
             ctx.stroke();
         }
 
-        function mapY(val) {
-            const minVal = -20;
-            const maxVal = 140;
-            return canvas.height - ((val - minVal) / (maxVal - minVal)) * canvas.height;
-        }
-
+        function mapY(val) { return canvas.height - ((val - -20) / (140 - -20)) * canvas.height; }
+        
         function drawGrid() {
-            ctx.font = "12px Arial";
-            ctx.fillStyle = "#888";
-            ctx.strokeStyle = "#eee";
-            ctx.lineWidth = 1;
-            ctx.setLineDash([]);
+            ctx.font = "12px Arial"; ctx.fillStyle = "#888"; ctx.strokeStyle = "#eee"; ctx.lineWidth = 1; ctx.setLineDash([]);
             [-20, 0, 25, 50, 75, 100, 125].forEach(val => {
                 const y = mapY(val);
                 ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(canvas.width, y); ctx.stroke();
@@ -333,8 +405,7 @@
 
         function setupInputs() {
             ['sp', 'kp', 'ki', 'kd'].forEach(id => {
-                const el = document.getElementById('inp-' + id);
-                el.addEventListener('input', (e) => {
+                document.getElementById('inp-' + id).addEventListener('input', (e) => {
                     inputs[id] = parseFloat(e.target.value);
                     document.getElementById('val-' + id).innerText = inputs[id];
                     updateMathPanel();
@@ -348,11 +419,7 @@
             document.getElementById('val-sp').innerText = inputs.sp;
         }
 
-        function loop() {
-            updatePhysics();
-            draw();
-            requestAnimationFrame(loop);
-        }
+        function loop() { updatePhysics(); draw(); requestAnimationFrame(loop); }
     </script>
 </body>
 </html>
