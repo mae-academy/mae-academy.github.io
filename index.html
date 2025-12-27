@@ -1,10 +1,580 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>My First Website</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Control System Simulator</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; color: #333; }
+        .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 1100px; max-width: 98%; }
+        
+        /* Layout */
+        .grid-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .panel { border: 1px solid #e0e0e0; border-radius: 6px; background: #fff; overflow: hidden; display: flex; flex-direction: column; }
+        .panel-header { background: #f8f9fa; padding: 10px 15px; border-bottom: 1px solid #e0e0e0; font-weight: 600; font-size: 0.95em; color: #444; display: flex; justify-content: space-between; align-items: center; }
+        
+        canvas { background: #fff; cursor: crosshair; display: block; }
+        
+        /* Controls Section */
+        .controls-area { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; padding-top: 10px; border-top: 1px solid #eee; }
+        .control-column { background: #fcfcfc; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
+        .col-title { font-weight: bold; margin-bottom: 15px; color: #0277bd; border-bottom: 2px solid #e1f5fe; padding-bottom: 5px; }
+        
+        /* Sliders */
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: flex; justify-content: space-between; font-size: 0.85em; font-weight: 600; margin-bottom: 4px; }
+        .input-group input[type="range"] { width: 100%; cursor: pointer; accent-color: #0277bd; }
+        select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; background: white; cursor: pointer; }
+
+        /* Status Tags */
+        .tag { font-size: 0.75em; padding: 3px 8px; border-radius: 10px; color: white; font-weight: bold; }
+        .tag-stable { background: #4caf50; }
+        .tag-unstable { background: #f44336; }
+        .tag-osc { background: #ff9800; }
+
+        button.btn-action { width: 100%; padding: 10px; background: #0277bd; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        button.btn-action:hover { background: #01579b; }
+        
+        /* Math Display */
+        .math-display { font-family: 'Courier New', monospace; font-size: 0.8em; background: #f1f1f1; padding: 8px; border-radius: 4px; margin-top: 5px; color: #555; }
+    </style>
 </head>
 <body>
-  <h1>Hello World 🌍</h1>
-  <p>This is my website hosted on GitHub Pages.</p>
+
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2 style="margin: 0;">Universal Control Simulator</h2>
+        <div class="tag tag-stable" id="system-status">Stable</div>
+    </div>
+
+    <div class="grid-layout">
+        <div class="panel">
+            <div class="panel-header">
+                <span>Step Response (Time Domain)</span>
+                <span style="font-size: 0.8em; font-weight: normal; color: #666;">y(t) vs t</span>
+            </div>
+            <canvas id="timeCanvas" width="700" height="350"></canvas>
+        </div>
+        
+        <div class="panel">
+            <div class="panel-header">
+                <span>Root Locus (S-Plane)</span>
+                <span style="font-size: 0.8em; font-weight: normal; color: #666;">Poles (x) & Zeros (o)</span>
+            </div>
+            <canvas id="sCanvas" width="350" height="350"></canvas>
+            <div style="padding: 10px; font-size: 0.8em; color: #666; background: #fafafa; border-top: 1px solid #eee;">
+                <strong>Closed-Loop Poles:</strong><br>
+                <span id="poles-text" style="font-family: monospace;">--</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls-area">
+        
+        <div class="control-column">
+            <div class="col-title">1. System Definition (Plant)</div>
+            <div class="input-group">
+                <label>System Order (Degree)</label>
+                <select id="sys-order" onchange="updateUIForOrder()">
+                    <option value="1">1st Order (Non-Oscillatory)</option>
+                    <option value="2" selected>2nd Order (Mass-Spring)</option>
+                    <option value="3">3rd Order (Complex Lag)</option>
+                </select>
+            </div>
+            
+            <div id="plant-params">
+                </div>
+            
+            <div class="math-display" id="plant-tf-display">
+                G(s) = ...
+            </div>
+        </div>
+
+        <div class="control-column">
+            <div class="col-title">2. PID Controller</div>
+            <div class="input-group">
+                <label>Proportional (Kp): <span id="val-kp">10</span></label>
+                <input type="range" id="inp-kp" min="0" max="100" step="0.1" value="10">
+            </div>
+            <div class="input-group">
+                <label>Integral (Ki): <span id="val-ki">5</span></label>
+                <input type="range" id="inp-ki" min="0" max="50" step="0.1" value="5">
+            </div>
+            <div class="input-group">
+                <label>Derivative (Kd): <span id="val-kd">5</span></label>
+                <input type="range" id="inp-kd" min="0" max="50" step="0.1" value="5">
+            </div>
+            <div class="math-display">
+                u(t) = Kp·e + Ki∫e + Kd·ė
+            </div>
+        </div>
+
+        <div class="control-column">
+            <div class="col-title">3. Simulation Control</div>
+            <div class="input-group">
+                <label>Set Point (Target): <span id="val-sp">50</span></label>
+                <input type="range" id="inp-sp" min="0" max="100" value="50">
+            </div>
+            <div class="input-group">
+                <label>Simulation Speed</label>
+                <input type="range" id="inp-speed" min="1" max="5" value="2">
+            </div>
+            <button class="btn-action" onclick="triggerStep()">Trigger Step Input</button>
+            
+            <div style="margin-top: 15px; font-size: 0.85em; color: #555;">
+                <strong>Closed Loop ζ & ωn:</strong><br>
+                Zeta (ζ): <span id="cl-zeta" style="font-weight: bold;">--</span><br>
+                Omega (ωn): <span id="cl-wn" style="font-weight: bold;">--</span>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    /* --- Simulator Engine --- */
+    const cvsTime = document.getElementById('timeCanvas');
+    const ctxTime = cvsTime.getContext('2d');
+    const cvsS = document.getElementById('sCanvas');
+    const ctxS = cvsS.getContext('2d');
+
+    // System State
+    let state = {
+        // State variables for up to 3rd order (x1=pos, x2=vel, x3=accel/jerk)
+        x: [0, 0, 0], 
+        integralErr: 0,
+        lastError: 0,
+        t: 0
+    };
+
+    // History
+    let historyPV = [];
+    let historySP = [];
+    const maxHist = 500;
+
+    // Inputs
+    let inputs = { sp: 50, kp: 10, ki: 5, kd: 5, order: 2, simSpeed: 2 };
+    
+    // Plant Parameters (Defaults)
+    let plant = {
+        k: 1.0,     // Static Gain
+        tau: 1.0,   // Time Constant (1st order)
+        wn: 5.0,    // Natural Freq (2nd order)
+        zeta: 0.5,  // Damping (2nd order)
+        pole3: 2.0  // 3rd Pole location (3rd order)
+    };
+
+    /* --- Physics Loop (Runge-Kutta 4 or Euler) --- 
+       Using Euler for simplicity in real-time JS, with small dt.
+    */
+    function updatePhysics() {
+        const dt = 0.01 * inputs.simSpeed;
+        
+        // 1. Error Calc
+        const error = inputs.sp - state.x[0];
+        
+        // 2. PID Output
+        state.integralErr += error * dt;
+        // Derivative on PV to prevent kick? Let's use Derivative on Error for Textbook compliance
+        const deriv = (error - state.lastError) / dt;
+        state.lastError = error;
+        
+        let u = (inputs.kp * error) + (inputs.ki * state.integralErr) + (inputs.kd * deriv);
+        
+        // Clamp output (optional, simulates saturation)
+        // if (u > 200) u = 200; if (u < -200) u = -200;
+
+        // 3. Plant Dynamics (Differential Equations)
+        let dx = [0, 0, 0]; // Derivatives
+
+        if (inputs.order == 1) {
+            // TF: K / (tau*s + 1)  =>  tau*y' + y = K*u
+            // y' = (K*u - y) / tau
+            dx[0] = (plant.k * u - state.x[0]) / plant.tau;
+        } 
+        else if (inputs.order == 2) {
+            // TF: wn^2 / (s^2 + 2*z*wn*s + wn^2)
+            // x0 = pos, x1 = vel
+            // x0' = x1
+            // x1' = wn^2*u - 2*z*wn*x1 - wn^2*x0 (Assuming unity gain K=1 for simplicity in sliders, else * K)
+            // Let's apply Plant Gain K to input u
+            
+            const w2 = plant.wn * plant.wn;
+            dx[0] = state.x[1];
+            dx[1] = (plant.k * w2 * u) - (2 * plant.zeta * plant.wn * state.x[1]) - (w2 * state.x[0]);
+        } 
+        else if (inputs.order == 3) {
+            // 3rd order: 2nd order * 1st order (Real pole at 'p')
+            // TF: (p * wn^2) / ((s+p)(s^2 + 2zwn s + wn^2))
+            // x0=pos, x1=vel, x2=accel
+            // x0' = x1
+            // x1' = x2
+            // x2' = ... from expanded char eq
+            
+            // Equation: s^3 + (p + 2zwn)s^2 + (2zwnp + wn^2)s + p*wn^2
+            // y''' + A y'' + B y' + C y = K_total * u
+            
+            const p = plant.pole3;
+            const z = plant.zeta;
+            const w = plant.wn;
+            const w2 = w*w;
+
+            const A = p + 2*z*w;
+            const B = 2*z*w*p + w2;
+            const C = p * w2;
+            
+            dx[0] = state.x[1];
+            dx[1] = state.x[2];
+            dx[2] = (plant.k * C * u) - (A * state.x[2]) - (B * state.x[1]) - (C * state.x[0]);
+        }
+
+        // Apply Euler integration
+        state.x[0] += dx[0] * dt;
+        state.x[1] += dx[1] * dt;
+        state.x[2] += dx[2] * dt;
+        
+        state.t += dt;
+
+        // History
+        historyPV.push(state.x[0]);
+        historySP.push(inputs.sp);
+        if(historyPV.length > maxHist) { historyPV.shift(); historySP.shift(); }
+    }
+
+    /* --- Math & Solver --- */
+    function solveClosedLoopRoots() {
+        // We need to find roots of 1 + Gc(s)Gp(s) = 0
+        // Gc = (Kd s^2 + Kp s + Ki) / s
+        // Gp depends on order.
+        
+        let coeffs = []; // coefficients of s^n, s^(n-1)... s^0
+
+        if (inputs.order == 1) {
+            // Gp = K / (tau s + 1)
+            // Char Eq: s(tau s + 1) + K(Kd s^2 + Kp s + Ki) = 0
+            // tau s^2 + s + K Kd s^2 + K Kp s + K Ki = 0
+            // s^2 (tau + K Kd) + s (1 + K Kp) + (K Ki) = 0
+            
+            let K = plant.k;
+            coeffs = [
+                plant.tau + K*inputs.kd,  // s^2
+                1 + K*inputs.kp,          // s^1
+                K*inputs.ki               // s^0
+            ];
+        }
+        else if (inputs.order == 2) {
+            // Gp = K w^2 / (s^2 + 2zw s + w^2)
+            // Char Eq: s(s^2 + 2zw s + w^2) + K w^2 (Kd s^2 + Kp s + Ki) = 0
+            // s^3 + 2zw s^2 + w^2 s + K w^2 Kd s^2 + K w^2 Kp s + K w^2 Ki = 0
+            // s^3 + s^2(2zw + K w^2 Kd) + s(w^2 + K w^2 Kp) + (K w^2 Ki) = 0
+            
+            let w = plant.wn;
+            let w2 = w*w;
+            let K = plant.k;
+            
+            coeffs = [
+                1,                                  // s^3
+                (2*plant.zeta*w) + (K*w2*inputs.kd),// s^2
+                w2 + (K*w2*inputs.kp),              // s^1
+                K*w2*inputs.ki                      // s^0
+            ];
+        }
+        else if (inputs.order == 3) {
+            // s(s+p)(s^2+2zws+w^2) + num_ctrl * num_plant = 0
+            // This gets to a 4th order equation. 
+            // Simplified coeff generation:
+            let p = plant.pole3;
+            let z = plant.zeta;
+            let w = plant.wn;
+            let w2 = w*w;
+            let K = plant.k;
+            let C = p * w2; // DC gain part in num
+
+            // Open loop denominator: s^3 + As^2 + Bs + C (from physics)
+            // Multiply by s (integrator): s^4 + As^3 + Bs^2 + Cs
+            // Add PID terms * K_plant_DC: C*K * (Kd s^2 + Kp s + Ki)
+            
+            // A, B, C from physics
+            const A = p + 2*z*w;
+            const B = 2*z*w*p + w2;
+            const denC = p * w2; 
+            
+            coeffs = [
+                1,                          // s^4
+                A,                          // s^3
+                B + (K*denC*inputs.kd),     // s^2
+                denC + (K*denC*inputs.kp),  // s^1
+                K*denC*inputs.ki            // s^0
+            ];
+        }
+
+        // Roots Solver (Durand-Kerner method for polynomial roots)
+        const roots = findRoots(coeffs);
+        return roots;
+    }
+
+    // Simple root finding for visualization (Numerical approximation)
+    function findRoots(coeffs) {
+        // Normalize
+        const lead = coeffs[0];
+        const n = coeffs.length - 1;
+        let p = coeffs.map(c => c/lead); // p[0] is 1
+        
+        // Initial guess (complex circle)
+        let roots = [];
+        for(let i=0; i<n; i++) {
+            let ang = (Math.PI * 2 * i) / n;
+            roots.push({ r: Math.cos(ang), i: Math.sin(ang) });
+        }
+        
+        // Iterations
+        for(let iter=0; iter<20; iter++) {
+            for(let i=0; i<n; i++) {
+                let z = roots[i];
+                // Evaluate P(z)
+                let num = {r:0, i:0}; // Value
+                let den = {r:1, i:0}; // Product term
+                
+                // Horner's method for polynomial value? Or direct sum
+                // Sum a_k z^k
+                let val = {r:0, i:0};
+                for(let k=0; k<=n; k++) {
+                    // z^((n-k)) * coeff[k]  ... careful with index
+                    // coeffs are s^n ... s^0. index 0 is s^n
+                    let power = n-k;
+                    let cVal = p[k];
+                    
+                    let zPow = powerComplex(z, power);
+                    val.r += cVal * zPow.r;
+                    val.i += cVal * zPow.i;
+                }
+                
+                // Denominator: product (z - root_j)
+                let prod = {r:1, i:0};
+                for(let j=0; j<n; j++) {
+                    if(i === j) continue;
+                    let diff = {r: z.r - roots[j].r, i: z.i - roots[j].i};
+                    let temp = {r: prod.r*diff.r - prod.i*diff.i, i: prod.r*diff.i + prod.i*diff.r};
+                    prod = temp;
+                }
+                
+                // Correction = val / prod
+                // Division complex
+                let divDen = prod.r*prod.r + prod.i*prod.i;
+                let corr = {
+                    r: (val.r*prod.r + val.i*prod.i)/divDen,
+                    i: (val.i*prod.r - val.r*prod.i)/divDen
+                };
+                
+                roots[i].r -= corr.r;
+                roots[i].i -= corr.i;
+            }
+        }
+        return roots;
+    }
+    
+    function powerComplex(c, n) {
+        if(n===0) return {r:1, i:0};
+        let res = {r:c.r, i:c.i};
+        for(let k=1; k<n; k++) {
+            let nr = res.r*c.r - res.i*c.i;
+            let ni = res.r*c.i + res.i*c.r;
+            res = {r:nr, i:ni};
+        }
+        return res;
+    }
+
+    /* --- Drawing --- */
+    function drawTime() {
+        ctxTime.clearRect(0,0,700,350);
+        
+        // Grid
+        drawGrid(ctxTime, 700, 350);
+        
+        // Data mapping
+        const mapY = (val) => 350 - ((val + 20) / 160) * 350;
+        const mapX = (i) => (i/maxHist)*700;
+
+        // SP
+        ctxTime.beginPath(); ctxTime.setLineDash([5,5]); ctxTime.strokeStyle="#aaa";
+        historySP.forEach((v,i) => { i==0 ? ctxTime.moveTo(mapX(i), mapY(v)) : ctxTime.lineTo(mapX(i), mapY(v)); });
+        ctxTime.stroke();
+
+        // PV
+        ctxTime.beginPath(); ctxTime.setLineDash([]); ctxTime.strokeStyle="#0277bd"; ctxTime.lineWidth=2;
+        historyPV.forEach((v,i) => { i==0 ? ctxTime.moveTo(mapX(i), mapY(v)) : ctxTime.lineTo(mapX(i), mapY(v)); });
+        ctxTime.stroke();
+    }
+    
+    function drawGrid(ctx, w, h) {
+        ctx.strokeStyle = "#f0f0f0"; ctx.lineWidth=1;
+        ctx.beginPath();
+        for(let y=0; y<h; y+=35) { ctx.moveTo(0,y); ctx.lineTo(w,y); } // ~10 lines
+        ctx.stroke();
+        
+        // Labels
+        ctx.fillStyle="#999"; ctx.font="10px Arial";
+        ctx.fillText("100", 5, mapY_Linear(100, h));
+        ctx.fillText("0", 5, mapY_Linear(0, h));
+    }
+    function mapY_Linear(val, h) { return h - ((val+20)/160)*h; }
+
+    function drawSPlane(roots) {
+        ctxS.clearRect(0,0,350,350);
+        const w=350, h=350;
+        const cx = w/2 + 40; // origin shift right
+        const cy = h/2;
+        const scale = 20; // px per unit
+
+        // Axes
+        ctxS.strokeStyle="#ddd"; ctxS.beginPath();
+        ctxS.moveTo(0, cy); ctxS.lineTo(w, cy);
+        ctxS.moveTo(cx, 0); ctxS.lineTo(cx, h);
+        ctxS.stroke();
+        
+        // Plot Roots
+        let isUnstable = false;
+        let isOsc = false;
+        let txt = "";
+
+        // Calculate dominant pair for Zeta/Wn display
+        let dominantPole = {r:-999, i:0};
+        
+        roots.forEach(r => {
+            const x = cx + r.r * scale;
+            const y = cy - r.i * scale;
+            
+            // Check stability
+            if(r.r > 0.01) isUnstable = true;
+            if(Math.abs(r.i) > 0.01) isOsc = true;
+            
+            // Find dominant (closest to 0 real axis but not zero)
+            if(r.r > dominantPole.r && r.r < 0.1) dominantPole = r; // Simple check
+
+            // Draw X
+            ctxS.strokeStyle = r.r > 0 ? "#f44336" : "#0277bd";
+            ctxS.lineWidth = 2;
+            ctxS.beginPath();
+            ctxS.moveTo(x-5, y-5); ctxS.lineTo(x+5, y+5);
+            ctxS.moveTo(x+5, y-5); ctxS.lineTo(x-5, y+5);
+            ctxS.stroke();
+            
+            txt += `s = ${r.r.toFixed(2)} ${r.i >= 0 ? '+' : ''}${r.i.toFixed(2)}j  `;
+        });
+        
+        document.getElementById('poles-text').innerHTML = txt;
+        
+        const statusEl = document.getElementById('system-status');
+        if(isUnstable) {
+            statusEl.innerText = "UNSTABLE"; statusEl.className = "tag tag-unstable";
+        } else if (isOsc) {
+            statusEl.innerText = "STABLE (Oscillating)"; statusEl.className = "tag tag-osc";
+        } else {
+            statusEl.innerText = "STABLE"; statusEl.className = "tag tag-stable";
+        }
+
+        // Approx closed loop parameters from dominant complex pair (if exists)
+        // Find conjugate pair with largest real part (closest to instability)
+        let dom = roots.sort((a,b) => b.r - a.r)[0]; 
+        if(dom && Math.abs(dom.i) > 0.1) {
+            // Complex pair: s = -sigma +/- j wd
+            // wn = sqrt(sigma^2 + wd^2)
+            // zeta = sigma / wn
+            let sigma = Math.abs(dom.r);
+            let wd = Math.abs(dom.i);
+            let wn_cl = Math.sqrt(sigma*sigma + wd*wd);
+            let zeta_cl = sigma / wn_cl;
+            
+            document.getElementById('cl-wn').innerText = wn_cl.toFixed(2);
+            document.getElementById('cl-zeta').innerText = zeta_cl.toFixed(2);
+        } else {
+            document.getElementById('cl-wn').innerText = "N/A (Real Poles)";
+            document.getElementById('cl-zeta').innerText = "> 1.0";
+        }
+    }
+
+    /* --- UI Handlers --- */
+    function updateUIForOrder() {
+        const order = document.getElementById('sys-order').value;
+        inputs.order = parseInt(order);
+        const container = document.getElementById('plant-params');
+        const eqDisp = document.getElementById('plant-tf-display');
+        
+        container.innerHTML = "";
+        
+        // Common Input Generator
+        const makeSlider = (id, label, min, max, val, step, key) => {
+            const div = document.createElement('div');
+            div.className = "input-group";
+            div.innerHTML = `<label>${label} <span id="lbl-${id}">${val}</span></label>
+                             <input type="range" id="sl-${id}" min="${min}" max="${max}" step="${step}" value="${val}">`;
+            container.appendChild(div);
+            
+            // Bind
+            setTimeout(() => {
+                document.getElementById(`sl-${id}`).addEventListener('input', (e) => {
+                    plant[key] = parseFloat(e.target.value);
+                    document.getElementById(`lbl-${id}`).innerText = plant[key];
+                    resetSim();
+                });
+            }, 0);
+        };
+
+        if (order == 1) {
+            makeSlider('pk', 'Gain (K)', 0.1, 10, plant.k, 0.1, 'k');
+            makeSlider('ptau', 'Time Constant (τ)', 0.1, 5, plant.tau, 0.1, 'tau');
+            eqDisp.innerText = "G(s) = K / (τs + 1)";
+        } else if (order == 2) {
+            makeSlider('pk', 'Gain (K)', 0.1, 10, plant.k, 0.1, 'k');
+            makeSlider('pwn', 'Nat. Freq (ωn)', 1, 10, plant.wn, 0.5, 'wn');
+            makeSlider('pzeta', 'Damping (ζ)', 0, 2, plant.zeta, 0.1, 'zeta');
+            eqDisp.innerText = "G(s) = K·ωn² / (s² + 2ζωn s + ωn²)";
+        } else if (order == 3) {
+            makeSlider('pk', 'Gain (K)', 0.1, 10, plant.k, 0.1, 'k');
+            makeSlider('pwn', 'Nat. Freq (ωn)', 1, 10, plant.wn, 0.5, 'wn');
+            makeSlider('pzeta', 'Damping (ζ)', 0, 2, plant.zeta, 0.1, 'zeta');
+            makeSlider('pp3', '3rd Pole (p)', 0.1, 5, plant.pole3, 0.1, 'pole3');
+            eqDisp.innerText = "G(s) = 2ndOrder · p/(s+p)";
+        }
+        resetSim();
+    }
+    
+    function resetSim() {
+        // Don't fully reset state.pv, just let it evolve, but we might want to re-calc roots immediately
+    }
+
+    function triggerStep() {
+        inputs.sp = inputs.sp === 50 ? 80 : 50;
+        document.getElementById('inp-sp').value = inputs.sp;
+        document.getElementById('val-sp').innerText = inputs.sp;
+    }
+
+    // Main Loop
+    function loop() {
+        updatePhysics();
+        drawTime();
+        
+        // Update Roots Analysis every 10 frames to save CPU
+        if (Math.floor(state.t * 100) % 10 === 0) {
+            const roots = solveClosedLoopRoots();
+            drawSPlane(roots);
+        }
+        
+        requestAnimationFrame(loop);
+    }
+
+    // Init Listeners
+    ['kp','ki','kd','sp','speed'].forEach(k => {
+        document.getElementById('inp-'+k).addEventListener('input', (e) => {
+            inputs[k] = parseFloat(e.target.value);
+            if(document.getElementById('val-'+k)) document.getElementById('val-'+k).innerText = inputs[k];
+        });
+    });
+
+    updateUIForOrder();
+    loop();
+
+</script>
+
 </body>
 </html>
