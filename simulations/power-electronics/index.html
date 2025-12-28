@@ -3,39 +3,488 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Power Electronics</title>
+  <title>Power Electronics Simulator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
+    :root{
+      --primary:#2563eb;
+      --bg:#f8fafc;
+      --panel:#ffffff;
+      --text:#1e293b;
+      --border:#e2e8f0;
+    }
+    *{box-sizing:border-box}
     body{
-      margin:0; padding:20px;
-      background:#e2efff;
-      font-family:"AppleGothic","DM Sans","Inter",system-ui,sans-serif;
+      font-family:'Segoe UI',system-ui,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      margin:0;
+      padding:20px;
+      display:grid;
+      grid-template-columns:300px 1fr;
+      gap:20px;
       min-height:100vh;
     }
-    .box{
-      width:min(900px, 92vw);
-      margin:40px auto;
-      background:#fff;
-      border:3px solid #000;
-      border-radius:22px;
-      padding:22px;
-      box-shadow:10px 10px 0 rgba(0,0,0,0.06);
+    .sidebar{
+      background:var(--panel);
+      padding:20px;
+      border-radius:12px;
+      box-shadow:0 4px 6px -1px rgba(0,0,0,.1);
+      border:1px solid var(--border);
+      max-height:calc(100vh - 40px);
+      overflow-y:auto;
     }
-    .back{
-      background:none; border:none;
-      font-size:18px; font-weight:900;
+    h2,h3{margin-top:0;color:var(--primary)}
+    .control-group{margin-bottom:15px}
+    label{display:block;font-size:.9em;font-weight:600;margin-bottom:6px}
+    select,input{width:100%;padding:8px;border:1px solid var(--border);border-radius:6px}
+    button{
+      width:100%;
+      background:var(--primary);
+      color:#fff;
+      border:none;
+      padding:12px;
+      border-radius:6px;
       cursor:pointer;
-      margin-bottom:15px;
+      font-weight:700;
+      margin-top:10px;
     }
-    h1{ margin:0 0 10px; font-size:44px; }
-    p{ font-size:18px; font-weight:600; opacity:0.75; }
+    button:hover{opacity:.9}
+    .small-note{font-size:.82em;color:#64748b;margin-top:6px}
+
+    .main{
+      display:flex;
+      flex-direction:column;
+      gap:20px;
+      min-width:0;
+    }
+    .diagram-box{
+      background:#e2e8f0;
+      border:2px dashed #94a3b8;
+      border-radius:12px;
+      height:200px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      color:#64748b;
+    }
+    .metrics{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+      gap:15px;
+    }
+    .metric-card{
+      background:var(--panel);
+      padding:15px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      text-align:center;
+    }
+    .metric-val{font-size:1.2em;font-weight:800;color:var(--primary)}
+    .metric-label{font-size:.8em;color:#64748b}
+    .charts-container{
+      background:var(--panel);
+      padding:20px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      min-height:420px;
+    }
+    canvas{width:100%!important;height:380px!important}
   </style>
 </head>
+
 <body>
-  <div class="box">
-    <button class="back" onclick="location.href='../'">← Back to Simulations</button>
-    <h1>Power Electronics</h1>
-    <p>This module is coming soon.</p>
+
+  <div class="sidebar">
+    <h2>Configuration</h2>
+
+    <div class="control-group">
+      <label>Phase Configuration</label>
+      <select id="phase" onchange="updateAlphaLabel(); runSimulation();">
+        <option value="1">Single Phase</option>
+        <option value="3">Three Phase</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>Rectifier Type</label>
+      <select id="rectType" onchange="updateAlphaLabel(); runSimulation();">
+        <option value="half">Half Wave</option>
+        <option value="full">Full Wave (Bridge)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>Load Type</label>
+      <select id="loadType" onchange="toggleInputs(); runSimulation();">
+        <option value="R">Resistive (R)</option>
+        <option value="RL">Inductive (RL)</option>
+        <option value="RC">Capacitive (RC)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>Freewheeling Diode (FWD)</label>
+      <select id="fwd" onchange="runSimulation()">
+        <option value="no">Without FWD</option>
+        <option value="yes">With FWD</option>
+      </select>
+    </div>
+
+    <hr>
+
+    <div class="control-group">
+      <label>Input Voltage Type</label>
+      <select id="vType" onchange="runSimulation()">
+        <option value="rms">RMS</option>
+        <option value="max">Peak (Max)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>Voltage Magnitude (Volts)</label>
+      <input type="number" id="vin_val" value="220" oninput="runSimulation()">
+    </div>
+
+    <div class="control-group">
+      <label>Frequency (Hz)</label>
+      <input type="number" id="freq" value="50" oninput="runSimulation()">
+    </div>
+
+    <hr>
+
+    <!-- ✅ FIRING ANGLE up to 179° -->
+    <div class="control-group">
+      <label>Firing Angle α (degrees)</label>
+      <input
+        type="range"
+        id="alphaDeg"
+        min="0"
+        max="179"
+        step="1"
+        value="0"
+        oninput="updateAlphaLabel(); runSimulation();"
+      >
+      <div class="small-note">α = <span id="alphaLabel">0</span>°</div>
+      <div class="small-note" id="alphaHint"></div>
+    </div>
+
+    <hr>
+
+    <div class="control-group" id="input-R">
+      <label>Resistance R (Ω)</label>
+      <input type="number" id="r_val" value="10" oninput="runSimulation()">
+    </div>
+
+    <div class="control-group" id="input-L" style="display:none;">
+      <label>Inductance L (H)</label>
+      <input type="number" id="l_val" value="0.1" step="0.001" oninput="runSimulation()">
+    </div>
+
+    <div class="control-group" id="input-C" style="display:none;">
+      <label>Capacitance C (µF)</label>
+      <input type="number" id="c_val" value="1000" oninput="runSimulation()">
+    </div>
+
+    <button onclick="runSimulation()">SIMULATE</button>
   </div>
+
+  <div class="main">
+
+    <div class="diagram-box" id="diagramContainer">
+      <h3 style="color:#64748b;">CIRCUIT DIAGRAM</h3>
+      <p>Right click here "Inspect" to edit HTML and insert your image source.</p>
+      <small id="circuitLabel">Configuration: 1-Phase Half Wave R-Load</small>
+    </div>
+
+    <div class="metrics">
+      <div class="metric-card"><div class="metric-val" id="out_Vrms">-</div><div class="metric-label">V (RMS)</div></div>
+      <div class="metric-card"><div class="metric-val" id="out_Vdc">-</div><div class="metric-label">V (DC/Avg)</div></div>
+      <div class="metric-card"><div class="metric-val" id="out_Irms">-</div><div class="metric-label">I (RMS)</div></div>
+      <div class="metric-card"><div class="metric-val" id="out_Idc">-</div><div class="metric-label">I (DC/Avg)</div></div>
+      <div class="metric-card"><div class="metric-val" id="out_Pdc">-</div><div class="metric-label">Power (DC)</div></div>
+      <div class="metric-card"><div class="metric-val" id="out_Pac">-</div><div class="metric-label">Power (AC Active)</div></div>
+      <div class="metric-card"><div class="metric-val" id="out_fo">-</div><div class="metric-label">Freq Out</div></div>
+      <div class="metric-card"><div class="metric-val" id="out_Vac">-</div><div class="metric-label">V (Ripple AC)</div></div>
+      <div class="metric-card"><div class="metric-val" id="out_FF">-</div><div class="metric-label">Form Factor</div></div>
+      <div class="metric-card"><div class="metric-val" id="out_RF">-</div><div class="metric-label">Ripple Factor</div></div>
+      <div class="metric-card"><div class="metric-val" id="out_EF">-</div><div class="metric-label">Efficiency %</div></div>
+    </div>
+
+    <div class="charts-container">
+      <canvas id="mainChart"></canvas>
+    </div>
+
+  </div>
+
+<script>
+  let myChart = null;
+
+  function updateAlphaLabel(){
+    const a = document.getElementById('alphaDeg').value;
+    document.getElementById('alphaLabel').innerText = a;
+
+    const phase = parseInt(document.getElementById('phase').value);
+    const hint  = document.getElementById('alphaHint');
+
+    if (phase === 3){
+      hint.textContent = "Note: α for 3-phase controlled rectifier not modeled yet (currently behaves like diode rectifier).";
+    } else {
+      hint.textContent = "α works for 1-phase controlled model (blocks conduction before firing).";
+    }
+  }
+
+  function toggleInputs(){
+    const type = document.getElementById('loadType').value;
+    document.getElementById('input-L').style.display = (type === 'RL') ? 'block' : 'none';
+    document.getElementById('input-C').style.display = (type === 'RC') ? 'block' : 'none';
+  }
+
+  function wrap2pi(x){
+    let y = x % (2*Math.PI);
+    return (y < 0) ? y + 2*Math.PI : y;
+  }
+
+  // ✅ firing logic (1-phase only)
+  function firingAllowed(phase, rectType, theta, Va, alphaRad){
+    const th = wrap2pi(theta);
+    const eps = 1e-9;
+
+    if (phase === 1 && rectType === 'half'){
+      if (Va <= 0) return false;                  // only positive half cycle
+      if (alphaRad >= Math.PI - eps) return false; // (would be OFF at 180)
+      return (th >= alphaRad) && (th <= Math.PI);
+    }
+
+    if (phase === 1 && rectType === 'full'){
+      const thHalf = (th < Math.PI) ? th : (th - Math.PI); // 0..π
+      if (alphaRad >= Math.PI - eps) return false;
+      return (thHalf >= alphaRad) && (thHalf <= Math.PI);
+    }
+
+    return true; // 3-phase not modeled
+  }
+
+  function runSimulation(){
+    const phase    = parseInt(document.getElementById('phase').value);
+    const rectType = document.getElementById('rectType').value;
+    const loadType = document.getElementById('loadType').value;
+    const useFWD   = document.getElementById('fwd').value === 'yes';
+
+    const alphaDeg = parseFloat(document.getElementById('alphaDeg').value);
+    const alpha    = alphaDeg * Math.PI / 180;
+
+    let vInVal = parseFloat(document.getElementById('vin_val').value);
+    const vType = document.getElementById('vType').value;
+    const freq  = parseFloat(document.getElementById('freq').value);
+
+    const R = parseFloat(document.getElementById('r_val').value);
+    const L = (loadType === 'RL') ? parseFloat(document.getElementById('l_val').value) : 0;
+    const C = (loadType === 'RC') ? parseFloat(document.getElementById('c_val').value) * 1e-6 : 0;
+
+    // convert to Vpeak
+    const Vm = (vType === 'rms') ? vInVal * Math.sqrt(2) : vInVal;
+
+    const cycles = 3;
+    const period = 1 / freq;
+    const samplesPerCycle = 360;
+    const totalSamples = samplesPerCycle * cycles;
+    const dt = period / samplesPerCycle;
+    const omega = 2 * Math.PI * freq;
+
+    let timeArr = [];
+    let vInArr  = [];
+    let vOutArr = [];
+    let iOutArr = [];
+
+    let i_curr = 0;
+    let v_cap  = 0;
+
+    document.getElementById('circuitLabel').innerText =
+      `${phase}-Phase ${rectType}-Wave ${loadType}-Load ${useFWD ? '(With FWD)' : ''} | α=${alphaDeg}°`;
+
+    for (let n=0; n<totalSamples; n++){
+      const t = n * dt;
+      const theta = omega * t;
+
+      const Va = Vm * Math.sin(theta);
+      const Vb = Vm * Math.sin(theta - (2*Math.PI/3));
+      const Vc = Vm * Math.sin(theta + (2*Math.PI/3));
+
+      let v_supply_instant = 0;
+
+      // --- Rectifier (with firing for 1-phase) ---
+      if (phase === 1){
+        const gateOK = firingAllowed(phase, rectType, theta, Va, alpha);
+        if (rectType === 'half'){
+          v_supply_instant = gateOK ? Va : 0;
+        } else {
+          v_supply_instant = gateOK ? Math.abs(Va) : 0;
+        }
+      } else {
+        // 3-phase diode behavior (same as your original)
+        if (rectType === 'half'){
+          v_supply_instant = Math.max(Va, Vb, Vc);
+          if (v_supply_instant < 0) v_supply_instant = 0;
+        } else {
+          const maxV = Math.max(Va, Vb, Vc);
+          const minV = Math.min(Va, Vb, Vc);
+          v_supply_instant = maxV - minV;
+        }
+      }
+
+      // --- Load ---
+      let v_load = 0, i_load = 0;
+
+      if (loadType === 'R'){
+        v_load = v_supply_instant;
+        i_load = v_load / R;
+      }
+      else if (loadType === 'RL'){
+        const v_forcing = v_supply_instant; // already gated by alpha (1-phase)
+
+        // Euler integration
+        const di = (v_forcing - R * i_curr) * (dt / L);
+        let i_next = i_curr + di;
+
+        // SCR/diode block reverse current
+        if (i_next < 0) i_next = 0;
+
+        // If no current, load sees 0 (open)
+        v_load = (i_next > 0) ? v_forcing : 0;
+
+        // Optional FWD in 1-phase half-wave: lets current circulate at 0V when source off
+        // In this simplified model, gating already makes v_forcing 0 when off, so current naturally decays by R.
+        // (More detailed freewheeling would keep current longer; can be added if you want.)
+
+        i_curr = i_next;
+        i_load = i_curr;
+      }
+      else if (loadType === 'RC'){
+        if (v_supply_instant > v_cap){
+          v_cap = v_supply_instant; // charge
+        } else {
+          v_cap = v_cap * Math.exp(-dt / (R * C)); // discharge
+        }
+        v_load = v_cap;
+        i_load = v_load / R;
+      }
+
+      // Skip first cycle for steadier numbers
+      if (n > samplesPerCycle){
+        timeArr.push(t.toFixed(4));
+        vInArr.push(Va);
+        vOutArr.push(v_load);
+        iOutArr.push(i_load);
+      }
+    }
+
+    // --- Metrics ---
+    let sumV=0, sumV2=0, sumI=0, sumI2=0, sumP=0;
+    const N = vOutArr.length;
+
+    for (let k=0; k<N; k++){
+      const v = vOutArr[k];
+      const i = iOutArr[k];
+      sumV  += v;
+      sumV2 += v*v;
+      sumI  += i;
+      sumI2 += i*i;
+      sumP  += v*i;
+    }
+
+    const Vdc  = sumV / N;
+    const Vrms = Math.sqrt(sumV2 / N);
+    const Idc  = sumI / N;
+    const Irms = Math.sqrt(sumI2 / N);
+
+    const Pdc = Vdc * Idc;
+    const Pac_active = sumP / N;
+
+    const Vac_ripple = Math.sqrt(Math.max(0, Vrms*Vrms - Vdc*Vdc));
+    const FF = (Vdc !== 0) ? (Vrms / Vdc) : 0;
+    const RF = (Vdc !== 0) ? (Vac_ripple / Vdc) : 0;
+    const EF = (Pac_active !== 0) ? (Pdc / Pac_active) * 100 : 0;
+
+    let pulseCount = 0;
+    if (phase === 1 && rectType === 'half') pulseCount = 1;
+    else if (phase === 1 && rectType === 'full') pulseCount = 2;
+    else if (phase === 3 && rectType === 'half') pulseCount = 3;
+    else if (phase === 3 && rectType === 'full') pulseCount = 6;
+    const fOut = freq * pulseCount;
+
+    document.getElementById('out_Vrms').innerText = Vrms.toFixed(2);
+    document.getElementById('out_Vdc').innerText  = Vdc.toFixed(2);
+    document.getElementById('out_Irms').innerText = Irms.toFixed(2);
+    document.getElementById('out_Idc').innerText  = Idc.toFixed(2);
+    document.getElementById('out_Pdc').innerText  = Pdc.toFixed(2) + " W";
+    document.getElementById('out_Pac').innerText  = Pac_active.toFixed(2) + " W";
+    document.getElementById('out_fo').innerText   = fOut + " Hz";
+    document.getElementById('out_Vac').innerText  = Vac_ripple.toFixed(2);
+    document.getElementById('out_FF').innerText   = FF.toFixed(3);
+    document.getElementById('out_RF').innerText   = RF.toFixed(3);
+    document.getElementById('out_EF').innerText   = EF.toFixed(1) + "%";
+
+    renderChart(timeArr, vInArr, vOutArr, iOutArr);
+    updateAlphaLabel();
+  }
+
+  function renderChart(labels, vIn, vOut, iOut){
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    if (myChart) myChart.destroy();
+
+    myChart = new Chart(ctx,{
+      type:'line',
+      data:{
+        labels,
+        datasets:[
+          {
+            label:'Input Voltage (Phase A)',
+            data:vIn,
+            borderColor:'#94a3b8',
+            borderWidth:1,
+            pointRadius:0,
+            borderDash:[5,5],
+            yAxisID:'y'
+          },
+          {
+            label:'Output Voltage',
+            data:vOut,
+            borderColor:'#2563eb',
+            borderWidth:2,
+            pointRadius:0,
+            yAxisID:'y'
+          },
+          {
+            label:'Output Current',
+            data:iOut,
+            borderColor:'#dc2626',
+            borderWidth:2,
+            pointRadius:0,
+            yAxisID:'y1'
+          }
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        scales:{
+          x:{title:{display:true,text:'Time (s)'},ticks:{maxTicksLimit:10}},
+          y:{type:'linear',display:true,position:'left',title:{display:true,text:'Voltage (V)'}},
+          y1:{type:'linear',display:true,position:'right',title:{display:true,text:'Current (A)'},grid:{drawOnChartArea:false}}
+        }
+      }
+    });
+  }
+
+  // init
+  toggleInputs();
+  updateAlphaLabel();
+  runSimulation();
+</script>
+
 </body>
 </html>
-
