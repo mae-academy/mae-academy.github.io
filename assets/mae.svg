@@ -1,15 +1,37 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg
-   width="1920"
+   width="1080"
    zoomAndPan="magnify"
-   viewBox="0 0 1440 809.99999"
+   viewBox="0 0 810 809.99999"
    height="1080"
    preserveAspectRatio="xMidYMid"
    version="1.0"
    id="svg6"
+   sodipodi:docname="MAE.svg"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.18125"
+     inkscape:cx="957.24138"
+     inkscape:cy="540.68966"
+     inkscape:window-width="1680"
+     inkscape:window-height="909"
+     inkscape:window-x="0"
+     inkscape:window-y="25"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg6" />
   <defs
      id="defs3">
     <filter
@@ -65,7 +87,7 @@
   <g
      clip-path="url(#532da7f0f6)"
      id="g6"
-     transform="matrix(2,0,0,2,-718.46875,-404)">
+     transform="matrix(2.1508244,0,0,2.1508244,-1141.9468,-465.00847)">
     <g
        mask="url(#a95239a865)"
        id="g5">
