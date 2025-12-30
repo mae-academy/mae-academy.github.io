@@ -1,493 +1,558 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MAE Academy - Process Control</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MAE Academy — Process Control</title>
+  
+  <link rel="icon" href="assets/mae.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
 
-  <!-- Use AppleGothic first, then fallbacks -->
   <style>
     :root{
-      --bg:#e2efff;
-      --ink:#0b0b0b;
-      --muted:#666;
-      --panel:#ffffff;
-      --soft:#f8f9fa;
-      --border:#e9ecef;
-      --shadow: rgba(0,0,0,0.10);
-      --blue:#007bff;
+      --bg:#eaf2ff;
+      --bg2:#f8fbff;
+      --card:#ffffff;
+      --text:#09102a;
+      --muted:#4c5d88;
+      --brand:#08b58d;
+      --brand2:#3f6fff;
+      --danger:#d32f2f;
+      --border: rgba(9,16,42,.14);
+      --shadow: 0 22px 60px rgba(16,24,40,.12);
+      --radius: 22px;
     }
 
-    *{ box-sizing:border-box; }
-
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0;
-      padding:18px;
-      background:var(--bg);
-      font-family:"AppleGothic","DM Sans","Inter",system-ui,sans-serif;
-      color:#1a1a1a;
-      min-height:100vh;
-      display:flex;
-      justify-content:center;
-      align-items:flex-start;
+      font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 520px at 15% -10%, rgba(63,111,255,.20), transparent 55%),
+        radial-gradient(900px 520px at 86% 0%, rgba(8,181,141,.18), transparent 55%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
       overflow-x:hidden;
     }
+    a{color:inherit;text-decoration:none}
+    .container{width:min(1200px,92%);margin-inline:auto}
 
-    .page{
-      width:min(1200px, 96vw);
-      display:flex;
-      flex-direction:column;
-      gap:14px;
-      padding-bottom:30px;
+    /* Header (same family style) */
+    header{
+      position:sticky; top:0; z-index:50;
+      background: rgba(234,242,255,.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
     }
-
-    /* Top bar */
-    .topbar{
-      width:100%;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:14px;
-      padding:10px 2px;
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 14px 0;
+      gap: 14px;
     }
-
-    .left-top{
-      display:flex;
-      align-items:center;
-      gap:12px;
-    }
-
-    .back-btn{
-      background:none;
-      border:none;
-      font-size:18px;
-      font-weight:900;
-      cursor:pointer;
-      color:#222;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      padding:8px 10px;
-      border-radius:10px;
-      transition:transform .12s ease, background .12s ease;
-    }
-    .back-btn:hover{
-      background:rgba(255,255,255,0.6);
-      transform:translateX(-2px);
-    }
-
     .brand{
-      display:flex;
-      align-items:center;
-      gap:10px;
+      display:flex; align-items:center; gap:12px;
+      min-width: 240px;
+    }
+    .logoMark{
+      width:44px;height:44px;border-radius:14px;
+      background: conic-gradient(from 220deg, var(--brand), var(--brand2), var(--brand));
+      position:relative;
+      box-shadow: 0 14px 30px rgba(63,111,255,.18);
+      overflow:hidden;
+    }
+    .logoMark::after{
+      content:""; position:absolute; inset:-60%;
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.75), transparent 55%);
+      animation: shimmer 5.6s ease-in-out infinite;
+    }
+    @keyframes shimmer{
+      0%,100%{transform:translate(12%,12%) rotate(0deg)}
+      50%{transform:translate(-12%,-12%) rotate(25deg)}
+    }
+    .brand h1{margin:0;font-size:15px;line-height:1.2}
+    .brand p{margin:0;font-size:12px;color:var(--muted)}
+
+    .actions{display:flex; gap:10px; align-items:center}
+    .btn{
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.75);
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 16px;
+      cursor:pointer;
+      font-weight: 900;
+      transition: transform .2s ease, box-shadow .2s ease;
+      display:inline-flex; align-items:center; gap:8px;
       user-select:none;
+      white-space:nowrap;
     }
-    .brand img{
-      width:34px;
-      height:34px;
-      object-fit:contain;
-      filter: drop-shadow(0 6px 10px rgba(0,0,0,0.08));
+    .btn:hover{transform: translateY(-1px); box-shadow: var(--shadow)}
+    .btn.primary{
+      border: none;
+      background: linear-gradient(135deg, rgba(8,181,141,.95), rgba(63,111,255,.90));
+      color:#06101a;
     }
-    .brand .txt{
+
+    /* Page */
+    main{padding: 46px 0 70px}
+
+    .headRow{
       display:flex;
-      flex-direction:column;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:16px;
+      flex-wrap:wrap;
+      margin-bottom: 16px;
+    }
+    .titleWrap{display:flex; align-items:center; gap:12px}
+    .simIcon{
+      width:46px;height:46px;border-radius:16px;
+      border:1px solid rgba(9,16,42,.12);
+      background: rgba(255,255,255,.72);
+      display:grid; place-items:center;
+      box-shadow: 0 10px 20px rgba(16,24,40,.08);
+      overflow:hidden;
+    }
+    .simIcon img{width:32px;height:32px;object-fit:contain}
+    h2{
+      margin:0;
+      font-size: 44px;
+      letter-spacing:-1px;
       line-height:1.05;
     }
-    .brand .txt .t1{ font-weight:1000; font-size:16px; }
-    .brand .txt .t2{ font-weight:800; font-size:12px; opacity:0.7; }
-
-    .page-title{
-      font-size:22px;
-      font-weight:1000;
-      letter-spacing:-0.5px;
-      margin-left:2px;
+    .sub{
+      margin:8px 0 0;
+      color:var(--muted);
+      font-weight: 650;
+      line-height:1.8;
+      max-width: 72ch;
     }
 
-    /* Simulator container */
-    .sim-container{
-      background:var(--panel);
-      border-radius:16px;
-      box-shadow:0 10px 26px var(--shadow);
-      padding:18px;
-      animation:screenIn 420ms cubic-bezier(.2,.9,.2,1) both;
+    /* Main simulator card */
+    .simContainer{
+      background: rgba(255,255,255,.80);
+      border: 1px solid rgba(9,16,42,.12);
+      border-radius: calc(var(--radius) + 2px);
+      box-shadow: 0 12px 30px rgba(16,24,40,.08);
+      padding: 16px;
+      position:relative;
+      overflow:hidden;
     }
-    @keyframes screenIn{
-      from{ opacity:0; transform:translateY(10px); }
-      to{ opacity:1; transform:translateY(0); }
+    .simContainer::before{
+      content:"";
+      position:absolute; inset:-2px;
+      background:
+        radial-gradient(520px 220px at 70% 10%, rgba(8,181,141,.14), transparent 60%),
+        radial-gradient(520px 240px at 20% 70%, rgba(63,111,255,.14), transparent 60%);
+      opacity:.8;
+      z-index:0;
     }
+    .simContainer > *{position:relative; z-index:1}
 
-    .visuals-row{
+    .visualsRow{
       display:grid;
       grid-template-columns: 2fr 1fr;
-      gap:16px;
-      margin-bottom:16px;
+      gap: 16px;
+      margin-bottom: 16px;
     }
-    @media(max-width: 950px){
-      .visuals-row{ grid-template-columns:1fr; }
+    @media (max-width: 980px){
+      .visualsRow{grid-template-columns:1fr}
     }
 
     .panel{
-      border:1px solid #eee;
-      border-radius:14px;
-      padding:12px;
-      background:#fff;
+      border: 1px solid rgba(9,16,42,.12);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.85);
+      padding: 12px;
+      box-shadow: 0 10px 20px rgba(16,24,40,.06);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
       position:relative;
-      transition:transform .15s ease, box-shadow .15s ease;
+      overflow:hidden;
     }
     .panel:hover{
-      transform:translateY(-2px);
-      box-shadow:0 10px 18px rgba(0,0,0,0.06);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+      border-color: rgba(63,111,255,.22);
     }
-
-    .panel-label{
+    .panelLabel{
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:10px;
-      font-weight:900;
-      color:#333;
-      margin-bottom:10px;
-      font-size:14px;
+      font-weight: 900;
+      margin-bottom: 10px;
+      font-size: 14px;
     }
-    .panel-label .small{
-      font-weight:800;
-      font-size:12px;
-      color:#666;
-      opacity:0.9;
+    .panelLabel .small{
+      font-weight: 800;
+      font-size: 12px;
+      color: var(--muted);
     }
 
     canvas{
       width:100%;
       height:360px;
       display:block;
-      border-radius:12px;
-      background:#fff;
+      border-radius: 16px;
+      background: #fff;
+      border: 1px solid rgba(9,16,42,.10);
     }
-    #sPlaneCanvas{
-      background:#fafafa;
-    }
+    #sPlaneCanvas{background: rgba(9,16,42,.02)}
 
     .hint{
-      margin-top:8px;
-      font-size:12px;
-      color:#666;
-      font-weight:700;
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
     }
 
     /* Warning overlay */
-    .warning-overlay{
+    .warningOverlay{
       position:absolute;
-      inset:0;
+      inset: 12px;
       display:none;
       align-items:center;
       justify-content:center;
       flex-direction:column;
-      background:rgba(255,255,255,0.95);
-      border-radius:14px;
-      color:#d32f2f;
-      font-weight:1000;
+      background: rgba(255,255,255,.92);
+      border: 1px solid rgba(9,16,42,.12);
+      border-radius: var(--radius);
+      color: var(--danger);
+      font-weight: 900;
       z-index:10;
-      animation:shake 450ms ease both;
+      animation: shake 450ms ease both;
       text-align:center;
+      backdrop-filter: blur(8px);
     }
     @keyframes shake{
-      0%,100%{ transform:translateX(0); }
-      20%{ transform:translateX(-6px); }
-      40%{ transform:translateX(6px); }
-      60%{ transform:translateX(-4px); }
-      80%{ transform:translateX(4px); }
+      0%,100%{transform:translateX(0)}
+      20%{transform:translateX(-6px)}
+      40%{transform:translateX(6px)}
+      60%{transform:translateX(-4px)}
+      80%{transform:translateX(4px)}
     }
 
-    /* Controls area */
-    .controls-area{
+    /* Controls */
+    .controlsArea{
       display:grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap:16px;
-      background:var(--soft);
-      padding:16px;
-      border-radius:14px;
-      border:1px solid var(--border);
-      animation:fadeUp 520ms cubic-bezier(.2,.9,.2,1) both;
+      gap: 16px;
+      background: rgba(255,255,255,.68);
+      border: 1px solid rgba(9,16,42,.12);
+      padding: 16px;
+      border-radius: var(--radius);
+      box-shadow: 0 10px 20px rgba(16,24,40,.06);
     }
-    @keyframes fadeUp{
-      from{ opacity:0; transform:translateY(10px); }
-      to{ opacity:1; transform:translateY(0); }
-    }
-    @media(max-width: 950px){
-      .controls-area{ grid-template-columns:1fr; }
+    @media (max-width: 980px){
+      .controlsArea{grid-template-columns:1fr}
     }
 
-    .control-column{
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
-    .control-header{
-      font-weight:1000;
-      font-size:14px;
-      letter-spacing:0.6px;
+    .col{display:flex; flex-direction:column; gap:12px}
+    .colHead{
+      font-weight: 1000;
+      font-size: 13px;
+      letter-spacing: .8px;
       text-transform:uppercase;
-      border-bottom:2px solid #ddd;
-      padding-bottom:6px;
-      color:#222;
+      color: rgba(9,16,42,.88);
+      border-bottom: 2px solid rgba(9,16,42,.14);
+      padding-bottom: 8px;
     }
 
-    .control-group label{
+    .group label{
       display:flex;
       justify-content:space-between;
       gap:10px;
-      font-weight:800;
-      font-size:13px;
-      margin-bottom:6px;
-      color:#222;
+      font-weight: 800;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: rgba(9,16,42,.92);
     }
-
-    input[type="range"]{
-      width:100%;
-      cursor:pointer;
-    }
+    input[type="range"]{width:100%; cursor:pointer}
 
     select{
       width:100%;
-      padding:10px;
-      border-radius:10px;
-      border:1px solid #ccc;
-      font-weight:900;
+      padding: 10px 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(9,16,42,.16);
+      font-weight: 900;
       cursor:pointer;
-      background:#fff;
-      transition:box-shadow .12s ease;
-      font-family:"AppleGothic","DM Sans","Inter",system-ui,sans-serif;
+      background: rgba(255,255,255,.9);
+      transition: box-shadow .12s ease;
+      font-family:"Inter",system-ui,sans-serif;
     }
-    select:focus{ outline:none; box-shadow:0 0 0 4px rgba(0,123,255,0.15); }
+    select:focus{outline:none; box-shadow: 0 0 0 6px rgba(63,111,255,.12)}
 
-    .mode-toggle{
+    .modeToggle{
       display:flex;
-      background:#e9ecef;
-      border-radius:12px;
-      padding:4px;
-      gap:4px;
-      margin-bottom:6px;
+      background: rgba(9,16,42,.06);
+      border-radius: 16px;
+      padding: 4px;
+      gap: 4px;
+      border: 1px solid rgba(9,16,42,.10);
     }
-    .mode-btn{
+    .modeBtn{
       flex:1;
       border:none;
-      border-radius:10px;
-      padding:10px;
-      font-weight:1000;
+      border-radius: 14px;
+      padding: 10px;
+      font-weight: 1000;
       cursor:pointer;
-      background:transparent;
-      color:#666;
-      transition:background .15s ease, transform .12s ease, box-shadow .15s ease;
-      font-family:"AppleGothic","DM Sans","Inter",system-ui,sans-serif;
+      background: transparent;
+      color: rgba(9,16,42,.55);
+      transition: background .15s ease, transform .12s ease, box-shadow .15s ease;
+      font-family:"Inter",system-ui,sans-serif;
     }
-    .mode-btn.active{
-      background:#fff;
-      color:#000;
-      box-shadow:0 8px 18px rgba(0,0,0,0.10);
+    .modeBtn.active{
+      background: rgba(255,255,255,.9);
+      color: rgba(9,16,42,.95);
+      box-shadow: 0 10px 18px rgba(16,24,40,.10);
+      border: 1px solid rgba(9,16,42,.12);
     }
-    .mode-btn:active{ transform:scale(0.98); }
+    .modeBtn:active{transform:scale(0.98)}
 
-    .btn-step{
+    .primaryBtn{
       width:100%;
       border:none;
-      border-radius:12px;
-      padding:12px;
-      background:#000;
-      color:#fff;
-      font-weight:1000;
+      border-radius: 16px;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, rgba(8,181,141,.95), rgba(63,111,255,.90));
+      color:#06101a;
+      font-weight: 1000;
       cursor:pointer;
-      transition:transform .12s ease, background .2s ease;
-      font-family:"AppleGothic","DM Sans","Inter",system-ui,sans-serif;
+      transition: transform .12s ease, box-shadow .2s ease;
+      font-family:"Inter",system-ui,sans-serif;
     }
-    .btn-step:hover{ background:#333; transform:translateY(-2px); }
-    .btn-step:active{ transform:translateY(1px); }
+    .primaryBtn:hover{transform: translateY(-2px); box-shadow: var(--shadow)}
+    .primaryBtn:active{transform: translateY(0px)}
 
-    .math-display{
+    .math{
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-weight:900;
-      font-size:12px;
-      color:#333;
-      background:rgba(255,255,255,0.7);
-      padding:10px;
-      border-radius:12px;
-      border:1px solid #eee;
-      min-height:24px;
+      font-weight: 900;
+      font-size: 12px;
+      color: rgba(9,16,42,.88);
+      background: rgba(255,255,255,.8);
+      padding: 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(9,16,42,.10);
+      min-height: 24px;
       word-wrap:break-word;
     }
 
-    .status-badge{
-      margin-top:8px;
+    .badgeStatus{
+      margin-top: 8px;
       width:100%;
       text-align:center;
-      padding:10px;
-      border-radius:12px;
-      font-weight:1000;
-      font-size:14px;
-      transition:transform .18s ease;
+      padding: 10px 12px;
+      border-radius: 16px;
+      font-weight: 1000;
+      font-size: 14px;
+      transition: transform .18s ease;
+      border: 1px solid rgba(9,16,42,.10);
+      background: rgba(255,255,255,.85);
     }
-    .status-stable{ background:#d4edda; color:#155724; }
-    .status-unstable{ background:#f8d7da; color:#721c24; }
-    .status-badge.bump{ transform:scale(1.03); }
+    .stable{color:#155724; background: rgba(212,237,218,.85)}
+    .unstable{color:#721c24; background: rgba(248,215,218,.85)}
+    .bump{transform: scale(1.03)}
 
-    .miniNote{
+    .note{
       font-size:12px;
-      font-weight:900;
-      color:#0b5ed7;
-      background:#e3f2fd;
-      padding:10px;
-      border-radius:12px;
-      line-height:1.25;
+      font-weight: 900;
+      color: rgba(9,16,42,.82);
+      background: rgba(63,111,255,.10);
+      padding: 10px;
+      border-radius: 16px;
+      line-height: 1.35;
+      border: 1px solid rgba(63,111,255,.18);
+    }
+
+    /* Reveal */
+    .reveal{
+      opacity:0;
+      transform: translateY(14px) scale(.99);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+    .reveal.isVisible{
+      opacity:1;
+      transform: translateY(0) scale(1);
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      *{animation:none !important; transition:none !important}
+      .reveal{opacity:1; transform:none}
     }
   </style>
 </head>
 
 <body>
-  <div class="page">
-
-    <div class="topbar">
-      <div class="left-top">
-        <button class="back-btn" onclick="location.href='../'">← Back to Simulations</button>
-        <div class="brand" title="MAE Academy">
-          <img src="../../assets/mae.svg" alt="MAE Logo">
-          <div class="txt">
-            <div class="t1">MAE Academy</div>
-            <div class="t2">Process Control Simulator</div>
-          </div>
+  <header>
+    <div class="container nav">
+      <a class="brand" href="../../" aria-label="Home">
+        <div class="logoMark" aria-hidden="true"></div>
+        <div>
+          <h1>MAE Academy</h1>
+          <p>Process Control Simulator</p>
         </div>
+      </a>
+
+      <div class="actions">
+        <button class="btn" type="button" onclick="location.href='../'">← Back to Simulations</button>
+        <a class="btn primary" href="../../#contact">Start ↗</a>
       </div>
-      <div class="page-title">Process Control</div>
     </div>
+  </header>
 
-    <div class="sim-container">
-
-      <div class="visuals-row">
-        <div class="panel">
-          <div class="panel-label">
-            <span>Time Response</span>
-            <span class="small">Scroll on graph = adjust SP</span>
+  <main>
+    <div class="container">
+      <div class="headRow reveal">
+        <div>
+          <div class="titleWrap">
+            <div class="simIcon" title="Simulation icon">
+              <img src="../../assets/simulation.svg" alt="Simulation Icon">
+            </div>
+            <div>
+              <h2>Process Control</h2>
+              <div class="sub">Time response • Root locus • PID tuning (scroll on graph = adjust SP)</div>
+            </div>
           </div>
-
-          <canvas id="simCanvas" width="600" height="360"></canvas>
-
-          <div id="sim-warning" class="warning-overlay">
-            <div style="font-size:36px; margin-bottom:8px;">⚠️</div>
-            <div style="font-size:20px;">Unstable!</div>
-            <div style="font-size:13px; font-weight:900; margin-top:6px; color:#a11f1f;">System reset.</div>
-          </div>
-
-          <div class="hint">Tip: scroll to change SP (Shift = fast, Ctrl = fine)</div>
         </div>
-
-        <div class="panel">
-          <div class="panel-label">
-            <span>Root Locus (Poles)</span>
-            <span class="small">Closed-loop poles</span>
-          </div>
-          <canvas id="sPlaneCanvas" width="300" height="360"></canvas>
+        <div style="display:flex; gap:10px; flex-wrap:wrap">
+          <button class="btn" type="button" onclick="triggerStep()">Trigger Step</button>
+          <button class="btn primary" type="button" onclick="resetSim()">Reset</button>
         </div>
       </div>
 
-      <div class="controls-area">
+      <div class="simContainer reveal">
+        <div class="visualsRow">
+          <div class="panel">
+            <div class="panelLabel">
+              <span>Time Response</span>
+              <span class="small">Scroll = adjust SP (Shift fast, Ctrl fine)</span>
+            </div>
 
-        <!-- 1) Plant -->
-        <div class="control-column">
-          <div class="control-header">1. System Plant</div>
+            <div style="position:relative">
+              <canvas id="simCanvas" width="600" height="360"></canvas>
+              <div id="sim-warning" class="warningOverlay">
+                <div style="font-size:40px; margin-bottom:8px;">⚠️</div>
+                <div style="font-size:20px;">Unstable!</div>
+                <div style="font-size:13px; font-weight:900; margin-top:6px; color:#a11f1f;">System reset.</div>
+              </div>
+            </div>
 
-          <div class="control-group">
-            <label>System Order</label>
-            <select id="sys-order" onchange="updateUI()">
-              <option value="1">1st Order (Thermal)</option>
-              <option value="2" selected>2nd Order (Spring-Mass)</option>
-              <option value="3">3rd Order (Motor + Inductance)</option>
-            </select>
+            <div class="hint">Tip: scroll to change SP. (Shift = faster, Ctrl = fine)</div>
           </div>
 
-          <div class="control-group param-1st" style="display:none;">
-            <label>Time Constant (τ): <span id="val-tau">1.0</span>s</label>
-            <input type="range" id="inp-tau" min="0.5" max="5.0" step="0.1" value="1.0">
-          </div>
-
-          <div class="control-group param-2nd">
-            <label>Natural Freq (ωn): <span id="val-wn">5.0</span></label>
-            <input type="range" id="inp-wn" min="1" max="15" step="0.5" value="5.0">
-          </div>
-
-          <div class="control-group param-2nd">
-            <label>Damping Ratio (ζ): <span id="val-zeta">0.5</span></label>
-            <input type="range" id="inp-zeta" min="0" max="2.0" step="0.05" value="0.5">
-          </div>
-
-          <div class="control-group param-3rd" style="display:none;">
-            <label>Lag Pole (p): <span id="val-p3">10.0</span></label>
-            <input type="range" id="inp-p3" min="1" max="20" step="1" value="10.0">
-            <div class="hint">Adds pole at s = −p</div>
+          <div class="panel">
+            <div class="panelLabel">
+              <span>Root Locus (Poles)</span>
+              <span class="small">Closed-loop poles</span>
+            </div>
+            <canvas id="sPlaneCanvas" width="300" height="360"></canvas>
+            <div class="hint">Poles are marked as red ✕ on the s-plane.</div>
           </div>
         </div>
 
-        <!-- 2) Controller -->
-        <div class="control-column">
-          <div class="control-header">2. Controller</div>
+        <div class="controlsArea">
+          <!-- 1) Plant -->
+          <div class="col">
+            <div class="colHead">1. System Plant</div>
 
-          <div class="mode-toggle">
-            <button class="mode-btn active" id="mode-manual" onclick="setMode('manual')">Manual (PID)</button>
-            <button class="mode-btn" id="mode-design" onclick="setMode('design')">Design (ζ, ω)</button>
-          </div>
-
-          <div id="ctrl-manual">
-            <div class="control-group">
-              <label>Kp: <span id="val-kp">5.0</span></label>
-              <input type="range" id="inp-kp" min="0" max="100" step="0.5" value="5.0">
+            <div class="group">
+              <label>System Order</label>
+              <select id="sys-order" onchange="updateUI()">
+                <option value="1">1st Order (Thermal)</option>
+                <option value="2" selected>2nd Order (Spring-Mass)</option>
+                <option value="3">3rd Order (Motor + Inductance)</option>
+              </select>
             </div>
 
-            <div class="control-group">
-              <label>Ki: <span id="val-ki">1.0</span></label>
-              <input type="range" id="inp-ki" min="0" max="50" step="0.5" value="1.0">
+            <div class="group param-1st" style="display:none;">
+              <label>Time Constant (τ): <span id="val-tau">1.0</span>s</label>
+              <input type="range" id="inp-tau" min="0.5" max="5.0" step="0.1" value="1.0">
             </div>
 
-            <div class="control-group">
-              <label>Kd: <span id="val-kd">2.0</span></label>
-              <input type="range" id="inp-kd" min="0" max="50" step="0.1" value="2.0">
-            </div>
-          </div>
-
-          <div id="ctrl-design" style="display:none;">
-            <div class="miniNote">Auto-calculates PID for target response (2nd order only)</div>
-
-            <div class="control-group" style="margin-top:10px;">
-              <label>Target ωn: <span id="val-twn">6.0</span></label>
-              <input type="range" id="inp-twn" min="1" max="20" step="0.5" value="6.0">
+            <div class="group param-2nd">
+              <label>Natural Freq (ωn): <span id="val-wn">5.0</span></label>
+              <input type="range" id="inp-wn" min="1" max="15" step="0.5" value="5.0">
             </div>
 
-            <div class="control-group">
-              <label>Target ζ: <span id="val-tzeta">0.7</span></label>
-              <input type="range" id="inp-tzeta" min="0.1" max="1.5" step="0.05" value="0.7">
+            <div class="group param-2nd">
+              <label>Damping Ratio (ζ): <span id="val-zeta">0.5</span></label>
+              <input type="range" id="inp-zeta" min="0" max="2.0" step="0.05" value="0.5">
             </div>
 
-            <div class="miniNote" style="color:#111; background:#e3f2fd;">
-              Result: Kp=<span id="res-kp">--</span> &nbsp; Kd=<span id="res-kd">--</span>
+            <div class="group param-3rd" style="display:none;">
+              <label>Lag Pole (p): <span id="val-p3">10.0</span></label>
+              <input type="range" id="inp-p3" min="1" max="20" step="1" value="10.0">
+              <div class="hint">Adds pole at s = −p</div>
             </div>
           </div>
 
-          <button class="btn-step" style="margin-top:8px;" onclick="triggerStep()">Trigger Step</button>
+          <!-- 2) Controller -->
+          <div class="col">
+            <div class="colHead">2. Controller</div>
+
+            <div class="modeToggle">
+              <button class="modeBtn active" id="mode-manual" type="button" onclick="setMode('manual')">Manual (PID)</button>
+              <button class="modeBtn" id="mode-design" type="button" onclick="setMode('design')">Design (ζ, ω)</button>
+            </div>
+
+            <div id="ctrl-manual">
+              <div class="group">
+                <label>Kp: <span id="val-kp">5.0</span></label>
+                <input type="range" id="inp-kp" min="0" max="100" step="0.5" value="5.0">
+              </div>
+
+              <div class="group">
+                <label>Ki: <span id="val-ki">1.0</span></label>
+                <input type="range" id="inp-ki" min="0" max="50" step="0.5" value="1.0">
+              </div>
+
+              <div class="group">
+                <label>Kd: <span id="val-kd">2.0</span></label>
+                <input type="range" id="inp-kd" min="0" max="50" step="0.1" value="2.0">
+              </div>
+            </div>
+
+            <div id="ctrl-design" style="display:none;">
+              <div class="note">Auto-calculates PID for target response (2nd order only)</div>
+
+              <div class="group" style="margin-top:10px;">
+                <label>Target ωn: <span id="val-twn">6.0</span></label>
+                <input type="range" id="inp-twn" min="1" max="20" step="0.5" value="6.0">
+              </div>
+
+              <div class="group">
+                <label>Target ζ: <span id="val-tzeta">0.7</span></label>
+                <input type="range" id="inp-tzeta" min="0.1" max="1.5" step="0.05" value="0.7">
+              </div>
+
+              <div class="note" style="background: rgba(8,181,141,.12); border-color: rgba(8,181,141,.18);">
+                Result: Kp=<span id="res-kp">--</span> &nbsp; Kd=<span id="res-kd">--</span>
+              </div>
+            </div>
+
+            <button class="primaryBtn" type="button" onclick="triggerStep()">Trigger Step</button>
+          </div>
+
+          <!-- 3) Analysis -->
+          <div class="col">
+            <div class="colHead">3. Analysis</div>
+
+            <div style="font-size:12px; font-weight:900; color: rgba(9,16,42,.60);">Characteristic Equation:</div>
+            <div id="math-char-eq" class="math">...</div>
+
+            <div style="font-size:12px; font-weight:900; color: rgba(9,16,42,.60); margin-top:10px;">Closed-Loop Poles:</div>
+            <div id="math-roots" class="math">...</div>
+
+            <div id="status-badge" class="badgeStatus stable">Stable</div>
+          </div>
         </div>
-
-        <!-- 3) Analysis -->
-        <div class="control-column">
-          <div class="control-header">3. Analysis</div>
-
-          <div style="font-size:12px; font-weight:900; color:#666;">Characteristic Equation:</div>
-          <div id="math-char-eq" class="math-display">...</div>
-
-          <div style="font-size:12px; font-weight:900; color:#666; margin-top:10px;">Closed-Loop Poles:</div>
-          <div id="math-roots" class="math-display">...</div>
-
-          <div id="status-badge" class="status-badge status-stable">Stable</div>
-        </div>
-
       </div>
-
     </div>
-  </div>
+  </main>
 
   <script>
     // =========================
@@ -503,18 +568,13 @@
     let history = [];
 
     const MAX_HISTORY = 600;
-
-    // Time base for x-axis (history step)
-    const DT_FRAME = 0.02; // seconds per history sample (same as updatePhysics outer 0.02)
+    const DT_FRAME = 0.02;
     const Y_MIN = -20;
     const Y_MAX = 140;
 
     let controlMode = 'manual';
     let lastStable = true;
 
-    // =========================
-    // Init
-    // =========================
     init();
 
     function init() {
@@ -524,19 +584,28 @@
       sCanvas = document.getElementById('sPlaneCanvas');
       sCtx = sCanvas.getContext('2d');
 
-      // Scroll-to-adjust SP (only on graph)
       canvas.addEventListener('wheel', (e) => {
         e.preventDefault();
-
-        // sensitivity: normal = 1, Shift = 5, Ctrl = 0.2
         const step = e.ctrlKey ? 0.2 : (e.shiftKey ? 5 : 1);
-
         pid.sp += (e.deltaY < 0 ? step : -step);
         pid.sp = Math.max(0, Math.min(125, pid.sp));
       }, { passive: false });
 
       bindInputs();
       updateUI();
+
+      // Reveal
+      const revealEls = document.querySelectorAll(".reveal");
+      const io = new IntersectionObserver((entries) => {
+        for(const e of entries){
+          if(e.isIntersecting){
+            e.target.classList.add("isVisible");
+            io.unobserve(e.target);
+          }
+        }
+      }, {threshold: 0.12});
+      revealEls.forEach(el => io.observe(el));
+
       requestAnimationFrame(loop);
     }
 
@@ -546,8 +615,8 @@
     function setMode(mode) {
       controlMode = mode;
 
-      document.getElementById('mode-manual').className = mode === 'manual' ? 'mode-btn active' : 'mode-btn';
-      document.getElementById('mode-design').className = mode === 'design' ? 'mode-btn active' : 'mode-btn';
+      document.getElementById('mode-manual').className = mode === 'manual' ? 'modeBtn active' : 'modeBtn';
+      document.getElementById('mode-design').className = mode === 'design' ? 'modeBtn active' : 'modeBtn';
 
       document.getElementById('ctrl-manual').style.display = mode === 'manual' ? 'block' : 'none';
       document.getElementById('ctrl-design').style.display = mode === 'design' ? 'block' : 'none';
@@ -561,7 +630,8 @@
         const el = document.getElementById(id);
         el.addEventListener('input', e => {
           obj[key] = parseFloat(e.target.value);
-          document.getElementById(id.replace('inp', 'val')).innerText = obj[key];
+          const valEl = document.getElementById(id.replace('inp', 'val'));
+          if(valEl) valEl.innerText = obj[key];
           if (controlMode === 'design') runAutoTune();
           analyze();
         });
@@ -578,10 +648,6 @@
 
       bind('inp-twn', design, 'wn');
       bind('inp-tzeta', design, 'zeta');
-
-      // Mode buttons
-      document.getElementById('mode-manual').addEventListener('click', () => setMode('manual'));
-      document.getElementById('mode-design').addEventListener('click', () => setMode('design'));
     }
 
     function updateUI() {
@@ -598,7 +664,6 @@
     }
 
     function runAutoTune() {
-      // Simple pole placement (2nd order only)
       if (sys.order === 2) {
         const ws2 = sys.wn * sys.wn;
         const target_w2 = design.wn * design.wn;
@@ -614,7 +679,6 @@
         document.getElementById('res-kp').innerText = pid.kp.toFixed(2);
         document.getElementById('res-kd').innerText = pid.kd.toFixed(2);
 
-        // sync sliders
         document.getElementById('inp-kp').value = pid.kp;
         document.getElementById('val-kp').innerText = pid.kp.toFixed(2);
 
@@ -661,21 +725,17 @@
         }
 
         if (sys.order === 1) {
-          // 1st order: y' = (u - y)/tau
           state.pv += ((u - state.pv) / sys.tau) * DT;
         } else if (sys.order === 2) {
-          // 2nd order: y'' = w^2*u - 2*z*w*y' - w^2*y
           const w2 = sys.wn * sys.wn;
           const force = (w2 * u) - (2 * sys.zeta * sys.wn * state.vel) - (w2 * state.pv);
           state.vel += force * DT;
           state.pv += state.vel * DT;
         } else if (sys.order === 3) {
-          // 3rd: (2nd order x) then 1st order lag to y
           const w2 = sys.wn * sys.wn;
           const force = (w2 * u) - (2 * sys.zeta * sys.wn * state.vel) - (w2 * state.acc);
           state.vel += force * DT;
           state.acc += state.vel * DT; // x
-
           const y_dot = sys.p3 * (state.acc - state.pv);
           state.pv += y_dot * DT;
         }
@@ -705,14 +765,12 @@
       let eqHTML = "";
 
       if (sys.order === 1) {
-        // (tau + Kd)s^2 + (1+Kp)s + Ki = 0
         const A = sys.tau + pid.kd;
         const B = 1 + pid.kp;
         const C = pid.ki;
         eqHTML = `${A.toFixed(1)}s² + ${B.toFixed(1)}s + ${C.toFixed(1)} = 0`;
         roots = solveQuad(A, B, C);
       } else if (sys.order === 2) {
-        // s^3 + (2zw + w^2Kd)s^2 + (w^2 + w^2Kp)s + w^2Ki = 0
         const w2 = sys.wn * sys.wn;
         const B = 2 * sys.zeta * sys.wn + w2 * pid.kd;
         const C = w2 + w2 * pid.kp;
@@ -720,7 +778,6 @@
         eqHTML = `s³ + ${B.toFixed(1)}s² + ${C.toFixed(1)}s + ${D.toFixed(1)} = 0`;
         roots = solveCubic(B, C, D);
       } else {
-        // Approx (show dominant open-loop-ish poles)
         eqHTML = "Order 4 (Analysis Approx)";
         roots = [
           { re: -sys.p3, im: 0 },
@@ -746,7 +803,7 @@
 
       const badge = document.getElementById('status-badge');
       badge.innerText = stable ? "Stable" : "Unstable";
-      badge.className = "status-badge " + (stable ? "status-stable" : "status-unstable");
+      badge.className = "badgeStatus " + (stable ? "stable" : "unstable");
 
       if (stable !== lastStable) {
         badge.classList.add('bump');
@@ -774,7 +831,6 @@
     }
 
     function solveCubic(a, b, c) {
-      // x^3 + a x^2 + b x + c = 0
       const p = b - a * a / 3;
       const q = 2 * a * a * a / 27 - a * b / 3 + c;
       const d = q * q / 4 + p * p * p / 27;
@@ -806,7 +862,7 @@
     }
 
     // =========================
-    // Time graph with time axis
+    // Time graph
     // =========================
     function drawGraph() {
       ctx.clearRect(0, 0, 600, 360);
@@ -829,9 +885,9 @@
 
       const xToPix = (i) => plotX0 + (i / (MAX_HISTORY - 1)) * plotW;
 
-      // Grid Y + y labels
-      ctx.strokeStyle = "#eee";
-      ctx.fillStyle = "#777";
+      // Grid Y + labels
+      ctx.strokeStyle = "rgba(9,16,42,.10)";
+      ctx.fillStyle = "rgba(9,16,42,.55)";
       ctx.font = "10px system-ui";
 
       [0, 25, 50, 75, 100, 125].forEach(v => {
@@ -840,12 +896,11 @@
         ctx.moveTo(plotX0, y);
         ctx.lineTo(plotX0 + plotW, y);
         ctx.stroke();
-
         ctx.fillText(String(v), 10, y + 3);
       });
 
       // Axes
-      ctx.strokeStyle = "#cfcfcf";
+      ctx.strokeStyle = "rgba(9,16,42,.20)";
       ctx.lineWidth = 1.5;
 
       ctx.beginPath();
@@ -860,10 +915,10 @@
 
       // Time axis ticks (seconds)
       const totalTime = (MAX_HISTORY - 1) * DT_FRAME;
-      const tickEvery = 2; // seconds
+      const tickEvery = 2;
 
-      ctx.fillStyle = "#666";
-      ctx.strokeStyle = "#ddd";
+      ctx.fillStyle = "rgba(9,16,42,.55)";
+      ctx.strokeStyle = "rgba(9,16,42,.12)";
       ctx.lineWidth = 1;
 
       for (let t = 0; t <= totalTime + 1e-9; t += tickEvery) {
@@ -879,7 +934,7 @@
       }
 
       // SP label
-      ctx.fillStyle = "#111";
+      ctx.fillStyle = "rgba(9,16,42,.92)";
       ctx.font = "12px system-ui";
       ctx.fillText(`SP: ${pid.sp.toFixed(1)} (scroll to adjust)`, plotX0, 12);
 
@@ -887,7 +942,7 @@
 
       // SP dashed
       ctx.beginPath();
-      ctx.strokeStyle = "#bbb";
+      ctx.strokeStyle = "rgba(9,16,42,.35)";
       ctx.setLineDash([6, 6]);
       ctx.lineWidth = 2;
 
@@ -899,9 +954,9 @@
       });
       ctx.stroke();
 
-      // PV solid
+      // PV solid (blue)
       ctx.beginPath();
-      ctx.strokeStyle = "#007bff";
+      ctx.strokeStyle = "#3f6fff";
       ctx.setLineDash([]);
       ctx.lineWidth = 3;
 
@@ -926,7 +981,7 @@
       const sc = 10;
 
       // axes
-      sCtx.strokeStyle = "#ccc";
+      sCtx.strokeStyle = "rgba(9,16,42,.22)";
       sCtx.lineWidth = 1.5;
       sCtx.beginPath();
       sCtx.moveTo(cx, 0);
@@ -941,7 +996,7 @@
         const y = cy - r.im * sc;
 
         if (x > -50 && x < w + 50 && y > -50 && y < h + 50) {
-          sCtx.strokeStyle = "red";
+          sCtx.strokeStyle = "#d32f2f";
           sCtx.lineWidth = 2.2;
 
           sCtx.beginPath();
@@ -956,4 +1011,3 @@
   </script>
 </body>
 </html>
-
