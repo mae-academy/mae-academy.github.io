@@ -1,110 +1,379 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MAE Academy - Simulations</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MAE Academy — Simulations</title>
+  <meta name="description" content="MAE Academy simulations hub: Process Control and Power Electronics." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
 
   <style>
+    :root{
+      --bg:#eaf2ff;
+      --bg2:#f8fbff;
+      --card:#ffffff;
+      --text:#09102a;
+      --muted:#4c5d88;
+      --brand:#08b58d;
+      --brand2:#3f6fff;
+      --border: rgba(9,16,42,.14);
+      --shadow: 0 22px 60px rgba(16,24,40,.12);
+      --radius: 22px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
-      margin:0; padding:20px;
-      background:#e2efff;
-      font-family:"AppleGothic","DM Sans","Inter",system-ui,sans-serif;
-      min-height:100vh;
-      display:flex;
-      justify-content:center;
-      align-items:flex-start;
-    }
-    .wrap{
-      width:min(1200px, 92vw);
-      margin-top:40px;
-    }
-    .back{
-      background:none;
-      border:none;
-      font-size:20px;
-      font-weight:900;
-      cursor:pointer;
-      margin-bottom:25px;
-    }
-    h1{
       margin:0;
-      font-size:64px;
-      font-weight:900;
-      letter-spacing:-2px;
+      font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 520px at 15% -10%, rgba(63,111,255,.20), transparent 55%),
+        radial-gradient(900px 520px at 86% 0%, rgba(8,181,141,.18), transparent 55%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      overflow-x:hidden;
+    }
+    a{color:inherit;text-decoration:none}
+    .container{width:min(1200px,92%);margin-inline:auto}
+
+    /* Header (same style as main) */
+    header{
+      position:sticky; top:0; z-index:50;
+      background: rgba(234,242,255,.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 14px 0;
+      gap: 14px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+      min-width: 220px;
+    }
+    .logoMark{
+      width:44px;height:44px;border-radius:14px;
+      background: conic-gradient(from 220deg, var(--brand), var(--brand2), var(--brand));
+      position:relative;
+      box-shadow: 0 14px 30px rgba(63,111,255,.18);
+      overflow:hidden;
+    }
+    .logoMark::after{
+      content:""; position:absolute; inset:-60%;
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.75), transparent 55%);
+      animation: shimmer 5.6s ease-in-out infinite;
+    }
+    @keyframes shimmer{
+      0%,100%{transform:translate(12%,12%) rotate(0deg)}
+      50%{transform:translate(-12%,-12%) rotate(25deg)}
+    }
+    .brand h1{margin:0;font-size:15px;line-height:1.2}
+    .brand p{margin:0;font-size:12px;color:var(--muted)}
+
+    .actions{display:flex; gap:10px; align-items:center}
+    .btn{
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.75);
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 16px;
+      cursor:pointer;
+      font-weight: 900;
+      transition: transform .2s ease, box-shadow .2s ease;
+      display:inline-flex; align-items:center; gap:8px;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{transform: translateY(-1px); box-shadow: var(--shadow)}
+    .btn.primary{
+      border: none;
+      background: linear-gradient(135deg, rgba(8,181,141,.95), rgba(63,111,255,.90));
+      color:#06101a;
+    }
+
+    /* Page */
+    main{padding: 56px 0 70px}
+    .pill{
+      display:inline-flex; align-items:center; gap:10px;
+      border: 1px solid rgba(9,16,42,.12);
+      background: rgba(255,255,255,.65);
+      padding: 8px 12px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 13px;
+      width: fit-content;
+    }
+    .spark{
+      width:10px;height:10px;border-radius:50%;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      box-shadow: 0 0 0 6px rgba(63,111,255,.12);
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse{
+      0%,100%{transform:scale(1)}
+      50%{transform:scale(1.35)}
+    }
+
+    .head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:16px;
+      margin-top:18px;
+      margin-bottom:18px;
+      flex-wrap:wrap;
+    }
+    .title{
+      margin:0;
+      font-size: 52px;
+      letter-spacing:-1px;
+      line-height:1.05;
     }
     .sub{
-      margin:10px 0 30px;
-      font-size:22px;
-      font-weight:600;
+      margin:10px 0 0;
+      color:var(--muted);
+      font-weight: 650;
+      line-height:1.8;
+      max-width: 70ch;
     }
 
     .grid{
+      margin-top: 18px;
       display:grid;
-      grid-template-columns:repeat(2, minmax(260px, 1fr));
-      gap:20px;
+      grid-template-columns: repeat(2, minmax(260px, 1fr));
+      gap: 16px;
     }
 
     .card{
-      background:#fff;
-      border:3px solid #000;
-      border-radius:22px;
-      padding:22px;
-      box-shadow: 10px 10px 0 rgba(0,0,0,0.06);
+      background: rgba(255,255,255,.80);
+      border: 1px solid rgba(9,16,42,.12);
+      border-radius: 22px;
+      padding: 16px;
+      box-shadow: 0 12px 30px rgba(16,24,40,.08);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      position:relative;
+      overflow:hidden;
+    }
+    .card:hover{
+      transform: translateY(-3px);
+      box-shadow: var(--shadow);
+      border-color: rgba(63,111,255,.25);
+    }
+    .card::before{
+      content:"";
+      position:absolute; inset:-2px;
+      background:
+        radial-gradient(520px 220px at 70% 10%, rgba(8,181,141,.14), transparent 60%),
+        radial-gradient(520px 240px at 20% 70%, rgba(63,111,255,.14), transparent 60%);
+      opacity:.8;
+      z-index:0;
+    }
+    .card > *{position:relative; z-index:1}
+
+    .cardTop{
+      display:flex; justify-content:space-between; align-items:center;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    .icon{
+      width:44px;height:44px;border-radius:16px;
+      display:grid;place-items:center;
+      background: linear-gradient(135deg, rgba(8,181,141,.14), rgba(63,111,255,.14));
+      border: 1px solid rgba(9,16,42,.12);
+      font-weight: 900;
+    }
+    .badge{
+      font-size:12px;
+      font-weight: 900;
+      color: rgba(9,16,42,.75);
+      border: 1px solid rgba(9,16,42,.12);
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.70);
+      white-space:nowrap;
     }
 
-    .title{
-      font-size:26px;
-      font-weight:900;
-      margin-bottom:10px;
+    .card h3{
+      margin:0 0 8px;
+      font-size: 18px;
+      letter-spacing:-.2px;
     }
     .desc{
-      font-size:16px;
-      font-weight:600;
-      opacity:0.75;
-      margin-bottom:18px;
-    }
-    .btn{
-      width:100%;
-      background:#000;
-      color:#fff;
-      border:none;
-      border-radius:14px;
-      padding:14px;
-      font-size:18px;
-      font-weight:900;
-      cursor:pointer;
+      margin:0;
+      color: var(--muted);
+      font-weight: 650;
+      line-height: 1.8;
+      font-size: 14px;
     }
 
-    @media (max-width: 800px){
-      .grid{ grid-template-columns:1fr; }
-      h1{ font-size:48px; }
+    .meta{
+      display:flex; gap:8px; flex-wrap:wrap;
+      margin-top: 12px;
+    }
+    .tag{
+      font-size:12px;
+      font-weight:800;
+      color: rgba(9,16,42,.75);
+      border: 1px solid rgba(9,16,42,.12);
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.70);
+    }
+
+    .openBtn{
+      width:100%;
+      margin-top: 14px;
+      padding: 14px 14px;
+      border-radius: 16px;
+      border: none;
+      cursor:pointer;
+      font-weight: 900;
+      font-size: 16px;
+      background: linear-gradient(135deg, rgba(8,181,141,.95), rgba(63,111,255,.90));
+      color:#06101a;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .openBtn:hover{transform: translateY(-1px); box-shadow: var(--shadow)}
+
+    /* Reveal */
+    .reveal{
+      opacity:0;
+      transform: translateY(14px) scale(.99);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+    .reveal.isVisible{
+      opacity:1;
+      transform: translateY(0) scale(1);
+    }
+
+    footer{
+      border-top:1px solid rgba(9,16,42,.12);
+      background: rgba(255,255,255,.35);
+      padding: 28px 0 40px;
+      color: var(--muted);
+    }
+    .foot{
+      display:flex; justify-content:space-between; align-items:center;
+      gap:12px; flex-wrap:wrap;
+    }
+
+    @media (max-width: 900px){
+      .grid{grid-template-columns:1fr}
+      .title{font-size:42px}
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      *{animation:none !important; transition:none !important}
+      .reveal{opacity:1; transform:none}
     }
   </style>
 </head>
+
 <body>
+  <header>
+    <div class="container nav">
+      <a class="brand" href="../" aria-label="Back to Home">
+        <div class="logoMark" aria-hidden="true"></div>
+        <div>
+          <h1>MAE Academy</h1>
+          <p>Simulations Hub</p>
+        </div>
+      </a>
 
-  <div class="wrap">
-    <button class="back" onclick="location.href='../'">← Back to Home</button>
-
-    <h1>Simulations</h1>
-    <div class="sub">Choose a program</div>
-
-    <div class="grid">
-      <div class="card">
-        <div class="title">Process Control</div>
-        <div class="desc">Time response + Root locus + PID tuning</div>
-        <button class="btn" onclick="location.href='process-control/'">Open</button>
-      </div>
-
-      <div class="card">
-        <div class="title">Power Electronics</div>
-        <div class="desc">Rectifiers, converters, waveforms</div>
-        <button class="btn" onclick="location.href='power-electronics/'">Open</button>
+      <div class="actions">
+        <button class="btn" type="button" onclick="location.href='../'">← Back to Home</button>
+        <a class="btn primary" href="../#contact">Start ↗</a>
       </div>
     </div>
-  </div>
+  </header>
 
+  <main>
+    <div class="container">
+      <div class="reveal">
+        <div class="pill">
+          <span class="spark" aria-hidden="true"></span>
+          <span>Choose a program and launch the simulator</span>
+        </div>
+
+        <div class="head">
+          <div>
+            <h2 class="title">Simulations</h2>
+            <p class="sub">Pick a simulator below. You can add more cards later (just duplicate one card and change the link).</p>
+          </div>
+          <a class="btn" href="../">Home</a>
+        </div>
+      </div>
+
+      <div class="grid">
+        <article class="card reveal">
+          <div class="cardTop">
+            <div class="icon">🌡️</div>
+            <div class="badge">Process Control</div>
+          </div>
+
+          <h3>Process Control</h3>
+          <p class="desc">Time response • Root locus • PID tuning</p>
+
+          <div class="meta">
+            <span class="tag">PID</span>
+            <span class="tag">Response</span>
+            <span class="tag">Tuning</span>
+          </div>
+
+          <button class="openBtn" type="button" onclick="location.href='process-control/'">Open ↗</button>
+        </article>
+
+        <article class="card reveal">
+          <div class="cardTop">
+            <div class="icon">⚡</div>
+            <div class="badge">Power Electronics</div>
+          </div>
+
+          <h3>Power Electronics</h3>
+          <p class="desc">Rectifiers • Converters • Waveforms</p>
+
+          <div class="meta">
+            <span class="tag">Angle</span>
+            <span class="tag">Waveforms</span>
+            <span class="tag">Loads</span>
+          </div>
+
+          <button class="openBtn" type="button" onclick="location.href='power-electronics/'">Open ↗</button>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container foot">
+      <div>© <span id="year"></span> MAE Academy — All rights reserved</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <a class="btn" href="../">Home</a>
+        <a class="btn" href="../#simhub">Sim Hub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Reveal on scroll
+    const revealEls = document.querySelectorAll(".reveal");
+    const io = new IntersectionObserver((entries) => {
+      for(const e of entries){
+        if(e.isIntersecting){
+          e.target.classList.add("isVisible");
+          io.unobserve(e.target);
+        }
+      }
+    }, {threshold: 0.12});
+    revealEls.forEach(el => io.observe(el));
+
+    // Year
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>
-
