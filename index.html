@@ -1,139 +1,1010 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MAE Academy</title>
+  <meta name="description" content="MAE Academy: Learn, Build, Simulate — academic tracks and practical simulations with a modern unique landing page." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
 
   <style>
+    :root{
+      --bg:#eaf2ff;
+      --bg2:#f8fbff;
+      --card:#ffffff;
+      --text:#09102a;
+      --muted:#4c5d88;
+      --brand:#08b58d;
+      --brand2:#3f6fff;
+      --warn:#ffb020;
+      --border: rgba(9,16,42,.14);
+      --shadow: 0 22px 60px rgba(16,24,40,.12);
+      --radius: 22px;
+      --ring: 0 0 0 10px rgba(63,111,255,.10);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
-      margin:0; padding:0;
-      background:#e2efff;
-      font-family: "AppleGothic","DM Sans","Inter",system-ui,sans-serif;
-      min-height:100vh;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-    }
-
-    .wrap{
-      width:min(1200px, 92vw);
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:80px;
-    }
-
-    .left{
-      flex:1;
-    }
-
-    h1{
       margin:0;
-      font-weight:900;
-      line-height:0.95;
-      letter-spacing:-2px;
+      font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 520px at 15% -10%, rgba(63,111,255,.20), transparent 55%),
+        radial-gradient(900px 520px at 86% 0%, rgba(8,181,141,.18), transparent 55%),
+        radial-gradient(900px 520px at 55% 110%, rgba(255,176,32,.12), transparent 55%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      overflow-x:hidden;
     }
-    .line1{ font-size:84px; font-weight:500; }
-    .line2{ font-size:96px; }
+    a{color:inherit;text-decoration:none}
+    .container{width:min(1200px, 92%);margin-inline:auto}
+    section{padding: 78px 0}
 
-    .sub{
-      margin:30px 0 30px;
-      font-size:24px;
-      font-weight:600;
+    /* Header */
+    header{
+      position:sticky; top:0; z-index:50;
+      background: rgba(234,242,255,.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
     }
-
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 14px 0;
+      gap: 14px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+      min-width: 220px;
+    }
+    .logoMark{
+      width:44px;height:44px;border-radius:14px;
+      background: conic-gradient(from 220deg, var(--brand), var(--brand2), var(--brand));
+      position:relative;
+      box-shadow: 0 14px 30px rgba(63,111,255,.18);
+      overflow:hidden;
+    }
+    .logoMark::after{
+      content:""; position:absolute; inset:-60%;
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.75), transparent 55%);
+      animation: shimmer 5.6s ease-in-out infinite;
+    }
+    @keyframes shimmer{
+      0%,100%{transform:translate(12%,12%) rotate(0deg)}
+      50%{transform:translate(-12%,-12%) rotate(25deg)}
+    }
+    .brand h1{margin:0;font-size:15px;line-height:1.2}
+    .brand p{margin:0;font-size:12px;color:var(--muted)}
+    .links{
+      display:flex; gap: 10px; align-items:center;
+      padding: 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(9,16,42,.10);
+      background: rgba(255,255,255,.55);
+    }
+    .links a{
+      padding: 10px 12px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 13px;
+      transition: all .2s ease;
+    }
+    .links a:hover{background: rgba(9,16,42,.05); color: var(--text)}
+    .links a.active{
+      color: var(--text);
+      background: linear-gradient(135deg, rgba(8,181,141,.15), rgba(63,111,255,.15));
+      border: 1px solid rgba(9,16,42,.10);
+    }
+    .actions{display:flex; gap:10px; align-items:center}
     .btn{
-      width:420px;
-      max-width:90vw;
-      background:#fff;
-      border:3px solid #000;
-      border-radius:18px;
-      padding:16px 18px;
-      margin:14px 0;
-      font-size:22px;
-      font-weight:800;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.7);
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 16px;
       cursor:pointer;
-      display:flex;
-      justify-content:center;
+      font-weight: 900;
+      transition: transform .2s ease, box-shadow .2s ease;
+      display:inline-flex; align-items:center; gap:8px;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{transform: translateY(-1px); box-shadow: var(--shadow)}
+    .btn.primary{
+      border: none;
+      background: linear-gradient(135deg, rgba(8,181,141,.95), rgba(63,111,255,.90));
+      color: #06101a;
+    }
+    .btn.ghost{background: transparent}
+    .menuhint{display:none}
+    @media (max-width: 980px){
+      .links{display:none}
+      .menuhint{display:inline-flex}
+    }
+
+    /* Hero */
+    .hero{padding: 92px 0 36px}
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 26px;
       align-items:center;
     }
 
-    .card{
-      width:420px;
-      height:560px;
+    .pill{
+      display:inline-flex; align-items:center; gap:10px;
+      border: 1px solid rgba(9,16,42,.12);
+      background: rgba(255,255,255,.65);
+      padding: 8px 12px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 13px;
+      width: fit-content;
+    }
+    .spark{
+      width:10px;height:10px;border-radius:50%;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      box-shadow: 0 0 0 6px rgba(63,111,255,.12);
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse{
+      0%,100%{transform:scale(1)}
+      50%{transform:scale(1.35)}
+    }
+
+    .headline{
+      margin: 16px 0 10px;
+      letter-spacing: -1px;
+      line-height: 1.0;
+    }
+    .headline .l1{display:block; font-size: 56px; font-weight: 700; color: rgba(9,16,42,.85)}
+    .headline .l2{display:block; font-size: 70px; font-weight: 900}
+    .sub{
+      margin: 18px 0 22px;
+      color: var(--muted);
+      line-height: 1.9;
+      font-size: 16px;
+      font-weight: 600;
+      max-width: 66ch;
+    }
+
+    .heroActions{
+      display:flex; gap:12px; flex-wrap:wrap; align-items:center;
+    }
+    .bigbtn{
+      width: 420px;
+      max-width: 92vw;
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 2.5px solid rgba(9,16,42,.22);
+      background: #fff;
+      font-size: 18px;
+      font-weight: 900;
+      cursor:pointer;
+      box-shadow: 12px 12px 0 rgba(9,16,42,.06);
+      transition: transform .2s ease, box-shadow .2s ease;
+      display:flex; align-items:center; justify-content:center; gap:10px;
+    }
+    .bigbtn:hover{transform: translateY(-2px)}
+    .bigbtn.primary{
+      border: none;
+      background: linear-gradient(135deg, rgba(8,181,141,.95), rgba(63,111,255,.90));
+      color: #06101a;
+      box-shadow: 12px 12px 0 rgba(9,16,42,.09);
+    }
+
+    /* Right card */
+    .heroCard{
       background:#fff;
-      border:3px solid #000;
-      border-radius:30px;
+      border-radius: 30px;
+      border: 2.5px solid rgba(9,16,42,.22);
+      box-shadow: 16px 16px 0 rgba(9,16,42,.06);
       overflow:hidden;
       display:flex;
       flex-direction:column;
-      justify-content:space-between;
-      box-shadow: 16px 16px 0 rgba(0,0,0,0.05);
+      min-height: 580px;
+      position:relative;
+      isolation:isolate;
+    }
+    .heroCard::before{
+      content:"";
+      position:absolute; inset:-2px;
+      background:
+        radial-gradient(500px 220px at 70% 10%, rgba(8,181,141,.14), transparent 60%),
+        radial-gradient(520px 240px at 20% 60%, rgba(63,111,255,.14), transparent 60%);
+      z-index:-1;
     }
     .cardTop{
       height:110px;
-      border-bottom:3px solid #000;
-      background:#fff;
+      border-bottom: 2.5px solid rgba(9,16,42,.22);
+      background: rgba(255,255,255,.6);
     }
     .cardMid{
       flex:1;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      padding:20px;
+      display:flex; align-items:center; justify-content:center;
+      padding: 26px;
     }
     .cardMid img{
-      width:85%;
-      height:85%;
-      object-fit:contain;
+      width: 86%;
+      height: 86%;
+      object-fit: contain;
+      filter: drop-shadow(0 18px 18px rgba(16,24,40,.12));
     }
     .cardBottom{
       height:120px;
-      border-top:3px solid #000;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      font-size:30px;
-      font-weight:900;
+      border-top: 2.5px solid rgba(9,16,42,.22);
+      display:flex; align-items:center; justify-content:center;
+      padding: 12px;
+      font-weight: 900;
+      font-size: 26px;
       text-align:center;
-      padding:10px;
+      letter-spacing: .4px;
+      background: rgba(255,255,255,.75);
     }
 
-    @media (max-width: 900px){
-      .wrap{ flex-direction:column; text-align:left; }
-      .line1{ font-size:64px; }
-      .line2{ font-size:72px; }
+    /* Section header */
+    .sectionHead{
+      display:flex; align-items:flex-end; justify-content:space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .sectionHead h2{
+      margin:0;
+      font-size: 34px;
+      letter-spacing:-.6px;
+    }
+    .sectionHead p{
+      margin: 0;
+      color: var(--muted);
+      max-width: 60ch;
+      line-height: 1.8;
+      font-weight: 600;
+    }
+
+    /* Layout helpers */
+    .grid3{display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px}
+    .grid2{display:grid; grid-template-columns: repeat(2, 1fr); gap: 16px}
+    @media (max-width: 980px){
+      .heroGrid{grid-template-columns:1fr}
+      .headline .l1{font-size:44px}
+      .headline .l2{font-size:52px}
+      .grid3,.grid2{grid-template-columns:1fr}
+    }
+
+    /* Cards */
+    .card{
+      background: rgba(255,255,255,.78);
+      border: 1px solid rgba(9,16,42,.12);
+      border-radius: var(--radius);
+      box-shadow: 0 12px 30px rgba(16,24,40,.08);
+      padding: 16px;
+      position:relative;
+      overflow:hidden;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    .card:hover{
+      transform: translateY(-3px);
+      box-shadow: var(--shadow);
+      border-color: rgba(63,111,255,.25);
+    }
+    .icon{
+      width:44px;height:44px;border-radius:16px;
+      display:grid;place-items:center;
+      background: linear-gradient(135deg, rgba(8,181,141,.14), rgba(63,111,255,.14));
+      border: 1px solid rgba(9,16,42,.12);
+      margin-bottom: 10px;
+      font-weight: 900;
+    }
+    .card h3{margin:0 0 8px; font-size: 16px}
+    .card p{margin:0; color:var(--muted); line-height:1.8; font-weight:600; font-size: 14px}
+
+    /* Stats row */
+    .statsRow{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+    @media (max-width: 980px){ .statsRow{grid-template-columns: repeat(2, 1fr)} }
+    .stat{
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(9,16,42,.12);
+      background: rgba(255,255,255,.78);
+      box-shadow: 0 10px 20px rgba(16,24,40,.06);
+      position:relative;
+      overflow:hidden;
+    }
+    .stat .k{font-size: 28px; font-weight: 900; letter-spacing:-.2px}
+    .stat .t{margin-top:6px; color: var(--muted); font-weight:700; font-size: 13px}
+    .stat::after{
+      content:""; position:absolute; inset:-60%;
+      background: radial-gradient(circle at 25% 25%, rgba(255,255,255,.75), transparent 55%);
+      transform: translateX(30%);
+      opacity:.6;
+    }
+
+    /* Track chips + tags */
+    .meta{display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px}
+    .tag{
+      font-size: 12px;
+      font-weight: 800;
+      color: rgba(9,16,42,.75);
+      border: 1px solid rgba(9,16,42,.12);
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.7);
+    }
+
+    /* Roadmap */
+    .roadmap{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    @media (max-width: 980px){ .roadmap{grid-template-columns:1fr} }
+    .step{
+      padding: 16px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(9,16,42,.12);
+      background: rgba(255,255,255,.78);
+      position:relative;
+    }
+    .step b{display:inline-flex; align-items:center; gap:10px}
+    .step .n{
+      width:28px;height:28px;border-radius:12px;
+      display:grid; place-items:center;
+      background: linear-gradient(135deg, rgba(8,181,141,.18), rgba(63,111,255,.18));
+      border: 1px solid rgba(9,16,42,.12);
+      font-weight: 900;
+    }
+    .step p{margin:10px 0 0; color: var(--muted); line-height:1.8; font-weight:600}
+
+    /* Showcase */
+    .showcase{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    @media (max-width: 980px){ .showcase{grid-template-columns:1fr} }
+    .board{
+      padding: 16px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(9,16,42,.12);
+      background: rgba(255,255,255,.78);
+      box-shadow: 0 12px 30px rgba(16,24,40,.08);
+      position:relative;
+      overflow:hidden;
+    }
+    .board .miniRow{display:flex; gap:10px; flex-wrap:wrap; margin: 12px 0 0}
+    .chip{
+      border: 1px dashed rgba(9,16,42,.20);
+      background: rgba(255,255,255,.7);
+      padding: 10px 12px;
+      border-radius: 16px;
+      font-weight: 900;
+      font-size: 12px;
+      color: rgba(9,16,42,.78);
+    }
+    .board .bar{
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(9,16,42,.08);
+      overflow:hidden;
+      margin-top: 12px;
+    }
+    .board .bar > span{
+      display:block;
+      height:100%;
+      width: 72%;
+      background: linear-gradient(90deg, rgba(8,181,141,.9), rgba(63,111,255,.9));
+    }
+
+    /* Slider */
+    .slider{
+      border: 1px solid rgba(9,16,42,.12);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.78);
+      overflow:hidden;
+      box-shadow: 0 12px 30px rgba(16,24,40,.08);
+    }
+    .slides{
+      display:flex;
+      transition: transform .45s cubic-bezier(.2,.9,.2,1);
+    }
+    .slide{
+      min-width:100%;
+      padding: 18px;
+      display:grid;
+      gap: 10px;
+    }
+    .quote{font-weight:700; color: rgba(9,16,42,.92); line-height:1.8}
+    .who{color: var(--muted); font-weight:700; font-size: 13px}
+    .sliderControls{
+      display:flex; justify-content:space-between; align-items:center;
+      padding: 12px 14px;
+      border-top: 1px solid rgba(9,16,42,.10);
+      background: rgba(255,255,255,.55);
+    }
+    .dots{display:flex; gap:8px}
+    .dotbtn{
+      width:10px;height:10px;border-radius:999px;
+      border: 1px solid rgba(9,16,42,.18);
+      background: rgba(9,16,42,.10);
+      cursor:pointer;
+      transition: transform .2s ease, background .2s ease;
+    }
+    .dotbtn.active{
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      transform: scale(1.2);
+      border-color: transparent;
+    }
+
+    /* FAQ */
+    .faqItem{
+      border: 1px solid rgba(9,16,42,.12);
+      background: rgba(255,255,255,.78);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+    .faqQ{
+      display:flex; justify-content:space-between; align-items:center;
+      gap: 12px;
+      cursor:pointer;
+      font-weight: 900;
+    }
+    .faqA{
+      max-height: 0;
+      overflow:hidden;
+      transition: max-height .25s ease;
+      color: var(--muted);
+      line-height: 1.8;
+      font-weight: 650;
+    }
+    .faqItem.open .faqA{max-height: 260px; margin-top: 10px}
+
+    /* Contact */
+    .contactGrid{
+      display:grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: 16px;
+    }
+    @media (max-width: 980px){ .contactGrid{grid-template-columns:1fr} }
+    .input{
+      width:100%;
+      padding: 12px 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(9,16,42,.15);
+      outline:none;
+      font-weight: 700;
+      background: rgba(255,255,255,.82);
+    }
+    textarea.input{resize: vertical; min-height: 120px}
+    .formRow{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 980px){ .formRow{grid-template-columns:1fr} }
+
+    /* Reveal on scroll */
+    .reveal{
+      opacity: 0;
+      transform: translateY(14px) scale(.99);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+    .reveal.isVisible{
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      *{animation:none !important; transition:none !important; scroll-behavior:auto !important}
+      .reveal{opacity:1; transform:none}
+    }
+
+    footer{
+      padding: 36px 0 50px;
+      border-top: 1px solid rgba(9,16,42,.12);
+      color: var(--muted);
+      background: rgba(255,255,255,.35);
+    }
+    .foot{
+      display:flex; justify-content:space-between; align-items:center; gap:12px;
+      flex-wrap:wrap;
     }
   </style>
 </head>
+
 <body>
+  <header>
+    <div class="container nav">
+      <a class="brand" href="#top" aria-label="Home">
+        <div class="logoMark" aria-hidden="true"></div>
+        <div>
+          <h1>MAE Academy</h1>
+          <p>Learn • Build • Simulate</p>
+        </div>
+      </a>
 
-  <div class="wrap">
-    <div class="left">
-      <h1 class="line1">Welcome to</h1>
-      <h1 class="line2">MAE Academy</h1>
+      <nav class="links" aria-label="Navigation">
+        <a class="active" href="#top">Home</a>
+        <a href="#tracks">Tracks</a>
+        <a href="#simhub">Simulations</a>
+        <a href="#showcase">Showcase</a>
+        <a href="#contact">Contact</a>
+      </nav>
 
-      <div class="sub">Learn & Enjoy</div>
-
-      <button class="btn" onclick="alert('Academic Courses: Soon')">Academic Courses</button>
-
-      <!-- GO TO SIMULATIONS PAGE -->
-      <button class="btn" onclick="location.href='simulations/'">Practical Simulations</button>
-    </div>
-
-    <div class="card">
-      <div class="cardTop"></div>
-
-      <div class="cardMid">
-        <img src="assets/mae.svg" alt="MAE Logo">
+      <div class="actions">
+        <button class="btn menuhint" type="button" id="jumpMenu">Menu</button>
+        <a class="btn" href="#simhub">Open Sim Hub</a>
+        <a class="btn primary" href="#contact">Start ↗</a>
       </div>
+    </div>
+  </header>
 
-      <div class="cardBottom">
-        MOHAMMAD ABU ELYAN
+  <!-- HERO -->
+  <main id="top">
+    <section class="hero">
+      <div class="container heroGrid">
+        <div class="reveal">
+          <div class="pill">
+            <span class="spark" aria-hidden="true"></span>
+            <span>Unique landing page — clean, bright, and built without libraries</span>
+          </div>
+
+          <h2 class="headline">
+            <span class="l1">Welcome to</span>
+            <span class="l2">MAE Academy</span>
+          </h2>
+
+          <p class="sub">
+            A modern engineering hub that blends structured academic tracks with practical simulations.
+            Start with the fundamentals, then test your understanding using interactive labs.
+          </p>
+
+          <div class="heroActions">
+            <button class="bigbtn" type="button" id="btnCourses">
+              🎓 Academic Courses
+            </button>
+            <button class="bigbtn primary" type="button" onclick="location.href='simulations/'">
+              ⚙️ Practical Simulations
+            </button>
+            <a class="btn ghost" href="#tracks">Explore tracks ↓</a>
+          </div>
+
+          <div class="statsRow reveal" style="margin-top:18px">
+            <div class="stat">
+              <div class="k"><span class="count" data-target="12">0</span>+</div>
+              <div class="t">Core modules</div>
+            </div>
+            <div class="stat">
+              <div class="k"><span class="count" data-target="30">0</span>+</div>
+              <div class="t">Practice tasks</div>
+            </div>
+            <div class="stat">
+              <div class="k"><span class="count" data-target="8">0</span>+</div>
+              <div class="t">Simulators</div>
+            </div>
+            <div class="stat">
+              <div class="k"><span class="count" data-target="2025">0</span></div>
+              <div class="t">Version</div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="heroCard reveal" aria-label="Logo card">
+          <div class="cardTop"></div>
+          <div class="cardMid">
+            <img src="assets/mae.svg" alt="MAE Logo">
+          </div>
+          <div class="cardBottom">MOHAMMAD ABU ELYAN</div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- WHY -->
+    <section>
+      <div class="container">
+        <div class="sectionHead reveal">
+          <div>
+            <h2>Why MAE Academy?</h2>
+            <p>Because learning sticks when you can test it. This page is designed to guide users from theory → practice → results.</p>
+          </div>
+        </div>
+
+        <div class="grid3">
+          <article class="card reveal">
+            <div class="icon">🧠</div>
+            <h3>Structured learning</h3>
+            <p>Clear tracks with milestones and a roadmap that makes progress feel visible.</p>
+          </article>
+
+          <article class="card reveal">
+            <div class="icon">⚡</div>
+            <h3>Simulation-first practice</h3>
+            <p>Hands-on labs: process control, power electronics, digital logic, and more.</p>
+          </article>
+
+          <article class="card reveal">
+            <div class="icon">🧩</div>
+            <h3>Portfolio-ready output</h3>
+            <p>Mini-projects and showcase sections help you present your skills in real format.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRACKS -->
+    <section id="tracks">
+      <div class="container">
+        <div class="sectionHead reveal">
+          <div>
+            <h2>Academic Tracks</h2>
+            <p>Pick a track, follow the roadmap, then jump to simulations that match the topic.</p>
+          </div>
+          <a class="btn" href="#simhub">Go to Sim Hub ↗</a>
+        </div>
+
+        <div class="grid3">
+          <article class="card reveal">
+            <div class="icon">🎛️</div>
+            <h3>Control Systems</h3>
+            <p>Modeling, stability, steady-state error, and PID tuning.</p>
+            <div class="meta">
+              <span class="tag">Beginner → Advanced</span>
+              <span class="tag">Quizzes</span>
+              <span class="tag">PID Labs</span>
+            </div>
+          </article>
+
+          <article class="card reveal">
+            <div class="icon">🔌</div>
+            <h3>Power Electronics</h3>
+            <p>Rectifiers, converters, inverters, firing angle, and waveform analysis.</p>
+            <div class="meta">
+              <span class="tag">Waveforms</span>
+              <span class="tag">Angle control</span>
+              <span class="tag">R/RL/RC</span>
+            </div>
+          </article>
+
+          <article class="card reveal">
+            <div class="icon">🏭</div>
+            <h3>PLC & Automation</h3>
+            <p>Industrial logic, timers, counters, and practical automation scenarios.</p>
+            <div class="meta">
+              <span class="tag">Siemens</span>
+              <span class="tag">Industrial</span>
+              <span class="tag">Projects</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="roadmap">
+          <div class="step reveal">
+            <b><span class="n">1</span> Fundamentals</b>
+            <p>Start with core concepts, formulas, and quick checks. Build confidence fast.</p>
+          </div>
+          <div class="step reveal">
+            <b><span class="n">2</span> Guided practice</b>
+            <p>Short tasks that mirror what you’ll see in real labs and exams.</p>
+          </div>
+          <div class="step reveal">
+            <b><span class="n">3</span> Simulations</b>
+            <p>Run interactive experiments, adjust parameters, and understand cause → effect.</p>
+          </div>
+          <div class="step reveal">
+            <b><span class="n">4</span> Showcase</b>
+            <p>Package your results into a portfolio-friendly format (plots, summaries, reports).</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SIM HUB -->
+    <section id="simhub">
+      <div class="container">
+        <div class="sectionHead reveal">
+          <div>
+            <h2>Practical Simulations Hub</h2>
+            <p>One page for all simulations. Make the button go to your existing folder: <b>simulations/</b></p>
+          </div>
+          <a class="btn primary" href="simulations/">Open simulations ↗</a>
+        </div>
+
+        <div class="grid3">
+          <article class="card reveal">
+            <div class="icon">🌡️</div>
+            <h3>Process Control</h3>
+            <p>Step response, tuning, overshoot/settling time, and stability intuition.</p>
+            <div class="meta">
+              <span class="tag">PID</span>
+              <span class="tag">Response</span>
+              <span class="tag">Tuning</span>
+            </div>
+          </article>
+
+          <article class="card reveal">
+            <div class="icon">📈</div>
+            <h3>Power Electronics Lab</h3>
+            <p>Firing angle control, rectifiers, and load comparison (R / RL / RC).</p>
+            <div class="meta">
+              <span class="tag">Waveforms</span>
+              <span class="tag">Angle</span>
+              <span class="tag">Loads</span>
+            </div>
+          </article>
+
+          <article class="card reveal">
+            <div class="icon">🧮</div>
+            <h3>Digital Logic</h3>
+            <p>Truth tables, decoders, encoders, mux/demux with interactive checks.</p>
+            <div class="meta">
+              <span class="tag">Logic</span>
+              <span class="tag">Mux</span>
+              <span class="tag">Practice</span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- SHOWCASE + TESTIMONIALS -->
+    <section id="showcase">
+      <div class="container">
+        <div class="sectionHead reveal">
+          <div>
+            <h2>Showcase</h2>
+            <p>A unique section that makes your website feel “alive”: progress board + testimonials slider.</p>
+          </div>
+        </div>
+
+        <div class="showcase">
+          <div class="board reveal">
+            <div class="icon">🗂️</div>
+            <h3 style="margin:0 0 6px">Progress Board</h3>
+            <p style="margin:0;color:var(--muted);font-weight:650;line-height:1.8">
+              Track what’s next: modules, tasks, and simulations. This can later pull data from a JSON file if you want.
+            </p>
+
+            <div class="miniRow">
+              <span class="chip">Next: PID tuning lab</span>
+              <span class="chip">Task: steady-state error set</span>
+              <span class="chip">Upload: waveform report</span>
+            </div>
+
+            <div class="bar" aria-label="progress bar"><span></span></div>
+            <p style="margin:10px 0 0;color:var(--muted);font-weight:650">Current progress (example): 72%</p>
+          </div>
+
+          <div class="slider reveal" aria-label="Testimonials slider">
+            <div class="slides" id="slides">
+              <div class="slide">
+                <div class="quote">“The simulations made the concepts click — I understood overshoot and settling time in minutes.”</div>
+                <div class="who">— Student, Control Systems</div>
+              </div>
+              <div class="slide">
+                <div class="quote">“Waveforms and firing angle control felt confusing, but the lab view made it visual.”</div>
+                <div class="who">— Student, Power Electronics</div>
+              </div>
+              <div class="slide">
+                <div class="quote">“The roadmap keeps me consistent: learn → practice → simulate → summarize.”</div>
+                <div class="who">— Learner, Engineering Track</div>
+              </div>
+            </div>
+
+            <div class="sliderControls">
+              <button class="btn" type="button" id="prev">◀</button>
+              <div class="dots" id="dots" aria-label="dots"></div>
+              <button class="btn" type="button" id="next">▶</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section>
+      <div class="container">
+        <div class="sectionHead reveal">
+          <div>
+            <h2>FAQ</h2>
+            <p>Quick answers that make the site look professional and complete.</p>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="faqItem reveal">
+            <div class="faqQ">Do simulations work on mobile? <span>＋</span></div>
+            <div class="faqA">Yes, but for best chart interaction and controls, desktop gives the smoothest experience.</div>
+          </div>
+          <div class="faqItem reveal">
+            <div class="faqQ">Can I add more simulators later? <span>＋</span></div>
+            <div class="faqA">Absolutely. Add a new folder under <b>simulations/</b> and link it from the Sim Hub cards.</div>
+          </div>
+          <div class="faqItem reveal">
+            <div class="faqQ">Can this become multiple pages? <span>＋</span></div>
+            <div class="faqA">Yes: Home (this page), Courses page, and a Simulations page. I can split it into files when you want.</div>
+          </div>
+          <div class="faqItem reveal">
+            <div class="faqQ">Can we add login/dashboard? <span>＋</span></div>
+            <div class="faqA">Yes. We can start with a simple “Student Dashboard” UI and later connect it to real auth.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact">
+      <div class="container">
+        <div class="sectionHead reveal">
+          <div>
+            <h2>Contact</h2>
+            <p>Drop a message (demo form). You can connect it later to EmailJS / backend.</p>
+          </div>
+        </div>
+
+        <div class="contactGrid">
+          <div class="card reveal">
+            <div class="icon">📍</div>
+            <h3>MAE Academy</h3>
+            <p>
+              Email: info@mae-academy.example<br/>
+              Location: Amman, Jordan<br/>
+              Hours: 10:00 — 18:00
+            </p>
+            <div class="meta">
+              <span class="tag">Academic</span>
+              <span class="tag">Simulations</span>
+              <span class="tag">Projects</span>
+            </div>
+          </div>
+
+          <form class="card reveal" id="contactForm">
+            <div class="formRow">
+              <input class="input" required name="name" placeholder="Your name" />
+              <input class="input" required type="email" name="email" placeholder="Email" />
+            </div>
+            <div style="height:12px"></div>
+            <input class="input" name="subject" placeholder="Subject (optional)" />
+            <div style="height:12px"></div>
+            <textarea class="input" required name="message" placeholder="Your message"></textarea>
+            <div style="height:12px"></div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
+              <button class="btn primary" type="submit">Send</button>
+              <span id="formMsg" style="color:var(--muted); font-weight:700"></span>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container foot">
+      <div>© <span id="year"></span> MAE Academy — All rights reserved</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <a class="btn" href="#top">Top ↑</a>
+        <a class="btn" href="#tracks">Tracks</a>
+        <a class="btn" href="#simhub">Simulations</a>
       </div>
     </div>
-  </div>
+  </footer>
 
+  <script>
+    // Mobile menu hint: jump to sections quickly
+    const jumpBtn = document.getElementById("jumpMenu");
+    if(jumpBtn){
+      jumpBtn.addEventListener("click", () => {
+        const target = document.querySelector("#tracks");
+        if(target) target.scrollIntoView({behavior:"smooth"});
+      });
+    }
+
+    // Hero buttons
+    document.getElementById("btnCourses").addEventListener("click", () => {
+      const target = document.querySelector("#tracks");
+      if(target) target.scrollIntoView({behavior:"smooth"});
+    });
+
+    // Reveal on scroll
+    const revealEls = document.querySelectorAll(".reveal");
+    const io = new IntersectionObserver((entries) => {
+      for(const e of entries){
+        if(e.isIntersecting){
+          e.target.classList.add("isVisible");
+          io.unobserve(e.target);
+        }
+      }
+    }, {threshold: 0.14});
+    revealEls.forEach(el => io.observe(el));
+
+    // Animated counters
+    const counters = document.querySelectorAll(".count");
+    let started = false;
+
+    function animateCount(el, target, duration=1100){
+      const start = performance.now();
+      const from = 0;
+      function frame(now){
+        const p = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1-p, 3);
+        const val = Math.floor(from + (target - from) * eased);
+        el.textContent = val.toLocaleString("en");
+        if(p < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    const hero = document.querySelector(".hero");
+    const io2 = new IntersectionObserver((entries) => {
+      for(const e of entries){
+        if(e.isIntersecting && !started){
+          started = true;
+          counters.forEach(c => animateCount(c, Number(c.dataset.target)));
+          io2.disconnect();
+        }
+      }
+    }, {threshold: 0.35});
+    if(hero) io2.observe(hero);
+
+    // Testimonials slider
+    const slides = document.getElementById("slides");
+    const dotsWrap = document.getElementById("dots");
+    const total = slides.children.length;
+    let idx = 0;
+
+    function renderDots(){
+      dotsWrap.innerHTML = "";
+      for(let i=0;i<total;i++){
+        const b = document.createElement("button");
+        b.className = "dotbtn" + (i===idx ? " active" : "");
+        b.addEventListener("click", () => go(i));
+        dotsWrap.appendChild(b);
+      }
+    }
+    function go(i){
+      idx = (i + total) % total;
+      slides.style.transform = `translateX(-${idx * 100}%)`;
+      renderDots();
+    }
+    document.getElementById("prev").addEventListener("click", () => go(idx - 1));
+    document.getElementById("next").addEventListener("click", () => go(idx + 1));
+    renderDots();
+    go(0);
+
+    // Auto advance
+    setInterval(() => {
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if(!reduce) go(idx + 1);
+    }, 6500);
+
+    // FAQ accordion
+    document.querySelectorAll(".faqItem").forEach(item => {
+      item.querySelector(".faqQ").addEventListener("click", () => {
+        item.classList.toggle("open");
+      });
+    });
+
+    // Demo form submit
+    document.getElementById("contactForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("formMsg");
+      msg.textContent = "Received ✅ We'll get back to you soon.";
+      setTimeout(() => msg.textContent = "", 4500);
+      e.target.reset();
+    });
+
+    // Year
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>
