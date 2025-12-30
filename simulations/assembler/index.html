@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>16-bit Assembly Emulator (MASM-like)</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#0f1a2e;
+      --panel2:#0c172b;
+      --text:#e6eefc;
+      --muted:#9fb0d0;
+      --border:rgba(255,255,255,.08);
+      --accent:#4f8cff;
+      --good:#3ddc97;
+      --bad:#ff5c7c;
+      --warn:#ffcc66;
+      --shadow: 0 12px 30px rgba(0,0,0,.35);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background: radial-gradient(900px 550px at 15% 5%, rgba(79,140,255,.18), transparent 55%),
+                  radial-gradient(900px 550px at 85% 15%, rgba(61,220,151,.12), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      font-family:var(--sans);
+      min-height:100vh;
+      padding:18px;
+    }
+    .app{
+      max-width:1500px;
+      margin:0 auto;
+      display:grid;
+      grid-template-columns: 1.25fr .9fr;
+      gap:16px;
+    }
+    header{
+      grid-column:1/-1;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:12px 14px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      box-shadow: var(--shadow);
+    }
+    header .title{ display:flex; flex-direction:column; gap:2px; }
+    header h1{ margin:0; font-size:16px; letter-spacing:.2px; }
+    header .sub{ margin:0; font-size:12px; color:var(--muted); }
+
+    .toolbar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-end; }
+
+    button, select, input{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color:var(--text);
+      border-radius:10px;
+      padding:10px 12px;
+      font-weight:600;
+      cursor:pointer;
+      transition:.15s ease;
+      font-family:var(--sans);
+    }
+    button:hover, select:hover{ border-color: rgba(79,140,255,.5); transform: translateY(-1px); }
+    button:active{ transform: translateY(0px); opacity:.92; }
+    button.primary{ background: linear-gradient(180deg, rgba(79,140,255,.85), rgba(79,140,255,.55)); border-color: rgba(79,140,255,.7); }
+    button.good{ background: linear-gradient(180deg, rgba(61,220,151,.85), rgba(61,220,151,.55)); border-color: rgba(61,220,151,.7); }
+    button.bad{ background: linear-gradient(180deg, rgba(255,92,124,.9), rgba(255,92,124,.55)); border-color: rgba(255,92,124,.7); }
+    button.ghost{ background: transparent; }
+
+    .pill{
+      font-family:var(--mono);
+      font-size:12px;
+      color:var(--muted);
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      user-select:none;
+    }
+
+    .panel{
+      border:1px solid var(--border);
+      border-radius:14px;
+      background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .panel .hd{
+      padding:12px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid var(--border);
+      background: rgba(255,255,255,.03);
+    }
+    .panel .hd h2{ margin:0; font-size:13px; letter-spacing:.2px; }
+    .panel .bd{ padding:12px 14px; }
+
+    .editorWrap{
+      display:grid;
+      grid-template-columns: 52px 1fr;
+      height: 580px;
+      background: var(--panel2);
+      border-radius:12px;
+      border:1px solid var(--border);
+      overflow:hidden;
+    }
+    .gutter{
+      background: rgba(255,255,255,.03);
+      border-right:1px solid var(--border);
+      padding:10px 0;
+      font-family:var(--mono);
+      font-size:12px;
+      line-height:18px;
+      color:rgba(230,238,252,.55);
+      user-select:none;
+      overflow:auto;
+    }
+    .line{
+      display:flex;
+      justify-content:space-between;
+      padding:0 8px;
+      gap:8px;
+      align-items:center;
+      height:18px;
+    }
+    .line .bp{
+      width:10px; height:10px;
+      border-radius:50%;
+      border:1px solid rgba(255,255,255,.18);
+      background: transparent;
+      flex:0 0 auto;
+    }
+    .line.bpOn .bp{
+      border-color: rgba(255,92,124,.8);
+      background: rgba(255,92,124,.85);
+      box-shadow: 0 0 0 2px rgba(255,92,124,.15);
+    }
+    .line.active{ background: rgba(79,140,255,.16); color: rgba(230,238,252,.9); }
+
+    textarea{
+      width:100%;
+      height:100%;
+      resize:none;
+      border:0;
+      outline:none;
+      background: transparent;
+      color: var(--text);
+      padding:10px 12px;
+      font-family: var(--mono);
+      font-size:12.8px;
+      line-height:18px;
+      tab-size: 4;
+    }
+
+    .hint{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+    }
+    .hint code{
+      font-family:var(--mono);
+      background: rgba(255,255,255,.05);
+      padding:2px 6px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      color: rgba(230,238,252,.92);
+    }
+
+    .rightGrid{
+      display:grid;
+      grid-template-rows: auto auto 1fr;
+      gap:16px;
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .kv{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background: rgba(255,255,255,.03);
+      font-family:var(--mono);
+      font-size:12px;
+      gap:10px;
+    }
+    .kv .k{ color: rgba(159,176,208,.9); font-weight:700; }
+    .kv .v{ font-weight:900; }
+
+    .flags{ display:flex; flex-wrap:wrap; gap:8px; }
+    .flag{
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      font-family:var(--mono);
+      font-size:12px;
+      color: rgba(159,176,208,.95);
+      user-select:none;
+    }
+    .flag.on{
+      border-color: rgba(61,220,151,.6);
+      background: rgba(61,220,151,.14);
+      color: rgba(230,238,252,.95);
+      box-shadow: 0 0 0 2px rgba(61,220,151,.08);
+    }
+
+    .tabs{ display:flex; gap:8px; flex-wrap:wrap; }
+    .tab{
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      font-weight:700;
+      font-size:12px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .tab.active{ border-color: rgba(79,140,255,.55); background: rgba(79,140,255,.13); }
+    .tabContent{ display:none; }
+    .tabContent.active{ display:block; }
+
+    .memBar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .memBar input{
+      cursor:text;
+      font-family:var(--mono);
+      font-weight:700;
+      width:170px;
+    }
+    .memDump{
+      border:1px solid var(--border);
+      border-radius:12px;
+      background: rgba(0,0,0,.22);
+      padding:10px;
+      overflow:auto;
+      max-height:360px;
+      font-family:var(--mono);
+      font-size:12px;
+      line-height:1.6;
+      white-space:pre;
+    }
+
+    .out{
+      border:1px solid var(--border);
+      border-radius:12px;
+      background: rgba(0,0,0,.22);
+      padding:10px;
+      overflow:auto;
+      max-height:250px;
+      font-family:var(--mono);
+      font-size:12px;
+      line-height:1.55;
+      white-space:pre-wrap;
+    }
+    .out .err{ color: var(--bad); font-weight:800; }
+    .out .warn{ color: var(--warn); font-weight:800; }
+    .out .ok{ color: var(--good); font-weight:800; }
+
+    @media (max-width: 1100px){
+      .app{ grid-template-columns:1fr; }
+      .editorWrap{ height:540px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <h1>16-bit Assembly Emulator (MASM-like Subset)</h1>
+        <p class="sub">Supports OFFSET, ORG, DB/DW/DD, strings, AL/AH.., TEST, LOOP, BYTE/WORD/DWORD PTR</p>
+      </div>
+      <div class="toolbar">
+        <button class="primary" id="runBtn" title="Ctrl+Enter">Run</button>
+        <button class="good" id="stepBtn" title="F10">Step</button>
+        <button class="bad" id="resetBtn" title="Ctrl+R">Reset</button>
+        <button class="ghost" id="assembleBtn">Assemble</button>
+        <select id="exampleSel" title="Load example">
+          <option value="">Load example…</option>
+          <option value="case">Toggle Case (your style)</option>
+          <option value="data">DB/DW/DD + PTR demo</option>
+        </select>
+        <select id="baseSel" title="Display base">
+          <option value="hex">HEX</option>
+          <option value="dec">DEC</option>
+        </select>
+        <span class="pill" id="statusPill">Idle</span>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="hd">
+        <h2>Code Editor</h2>
+        <div class="pill">Comments: <code>;</code> • Click line numbers to toggle breakpoints</div>
+      </div>
+      <div class="bd">
+        <div class="editorWrap">
+          <div class="gutter" id="gutter"></div>
+          <textarea id="code" spellcheck="false"></textarea>
+        </div>
+        <div class="hint">
+          <b>Numbers:</b> <code>123</code>, <code>0x7B</code>, <code>7Bh</code> •
+          <b>Data:</b> <code>DB</code> <code>DW</code> <code>DD</code> (supports <code>"text"</code> and <code>'A'</code>) •
+          <b>Memory:</b> <code>[SI]</code> <code>[DI+2]</code> <code>[0x200]</code> •
+          <b>Size:</b> <code>BYTE PTR [..]</code>, <code>WORD PTR [..]</code>, <code>DWORD PTR [..]</code> •
+          <b>Addr:</b> <code>OFFSET label</code>
+        </div>
+      </div>
+    </section>
+
+    <div class="rightGrid">
+      <section class="panel">
+        <div class="hd">
+          <h2>CPU State</h2>
+          <div class="pill">Registers: 16-bit + 8-bit views</div>
+        </div>
+        <div class="bd">
+          <div class="grid2" id="regsGrid"></div>
+          <div style="height:10px"></div>
+          <div class="flags" id="flagsRow"></div>
+          <div style="height:10px"></div>
+          <div class="kv"><span class="k">Cycles</span><span class="v" id="cycles">0</span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="hd">
+          <h2>Inspector</h2>
+          <div class="tabs">
+            <div class="tab active" data-tab="memory">Memory</div>
+            <div class="tab" data-tab="output">Output</div>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="tabContent active" id="tab-memory">
+            <div class="memBar">
+              <span class="pill">View from</span>
+              <input id="memStart" value="0x0100" />
+              <button id="memRefresh">Refresh</button>
+              <span class="pill">64KB RAM</span>
+            </div>
+            <div class="memDump" id="memDump"></div>
+          </div>
+
+          <div class="tabContent" id="tab-output">
+            <div class="out" id="out"></div>
+            <div class="hint">Assemble checks syntax/labels/data. Run executes with safety step limit.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="hd">
+          <h2>Practical Notes</h2>
+          <div class="pill">ORG affects data origin here</div>
+        </div>
+        <div class="bd">
+          <div class="hint" style="margin:0">
+            • <code>ORG 100h</code> sets the <b>data pointer</b> (so <code>STR DB "ab"</code> becomes at 0100h).<br>
+            • If you write <code>MOV SI, STR</code> it loads STR address too, but <code>OFFSET STR</code> is supported as MASM.<br>
+            • Default memory read size is BYTE unless you specify <code>WORD PTR</code>/<code>DWORD PTR</code>.
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const el = (id) => document.getElementById(id);
+  const codeEl = el("code");
+  const gutterEl = el("gutter");
+  const outEl = el("out");
+  const memDumpEl = el("memDump");
+  const statusPill = el("statusPill");
+  const baseSel = el("baseSel");
+  const memStartEl = el("memStart");
+  const cyclesEl = el("cycles");
+  const regsGrid = el("regsGrid");
+  const flagsRow = el("flagsRow");
+
+  const LS_CODE = "asm_emulator_code_v2";
+  const LS_BPS  = "asm_emulator_bps_v2";
+
+  function setStatus(text, kind="idle"){
+    statusPill.textContent = text;
+    statusPill.style.borderColor =
+      kind==="ok" ? "rgba(61,220,151,.55)" :
+      kind==="err"? "rgba(255,92,124,.55)" :
+      kind==="run"? "rgba(79,140,255,.6)" :
+      "rgba(255,255,255,.12)";
+    statusPill.style.background =
+      kind==="ok" ? "rgba(61,220,151,.12)" :
+      kind==="err"? "rgba(255,92,124,.12)" :
+      kind==="run"? "rgba(79,140,255,.12)" :
+      "rgba(255,255,255,.04)";
+  }
+
+  function clearOutput(){ outEl.innerHTML = ""; }
+  function logLine(msg, cls=""){
+    const span = document.createElement("span");
+    span.className = cls;
+    span.textContent = msg + "\n";
+    outEl.appendChild(span);
+    outEl.scrollTop = outEl.scrollHeight;
+  }
+
+  function clamp16(x){ return ((x % 0x10000) + 0x10000) & 0xFFFF; }
+  function clamp8(x){ return ((x % 0x100) + 0x100) & 0xFF; }
+  function clamp32(x){ return (x >>> 0); }
+
+  function parseNumber(tok){
+    const t = tok.trim();
+    if(!t) return null;
+    if(/^0x[0-9a-f]+$/i.test(t)) return parseInt(t,16);
+    if(/^[0-9a-f]+h$/i.test(t)) return parseInt(t.slice(0,-1),16);
+    if(/^[+-]?\d+$/.test(t)) return parseInt(t,10);
+    return null;
+  }
+
+  function fmt(n, width=4){
+    const base = baseSel.value;
+    if(base === "dec") return String(n >>> 0);
+    const hex = (n >>> 0).toString(16).toUpperCase().padStart(width,"0");
+    return "0x" + hex;
+  }
+
+  // ---- CPU model ----
+  const REG16 = ["AX","BX","CX","DX","SI","DI","BP","SP","IP"];
+  const REG8  = ["AL","AH","BL","BH","CL","CH","DL","DH"];
+  const FLAGS = ["ZF","SF","CF","OF"];
+
+  const cpu = {
+    regs: { AX:0,BX:0,CX:0,DX:0,SI:0,DI:0,BP:0,SP:0xFFFE,IP:0 },
+    flags:{ ZF:0,SF:0,CF:0,OF:0 },
+    cycles:0
+  };
+
+  // 64KB RAM
+  const mem = new Uint8Array(0x10000);
+
+  // Program + mappings
+  let program = [];
+  let ipToLine = new Map();
+  let lineToIp = new Map();
+  let labels = new Map(); // label -> numeric address (code IP or memory address)
+  let labelKind = new Map(); // label -> "code" | "data"
+
+  // ORG / data pointer
+  let dataPtrDefault = 0x0100;
+  let dataPtr = dataPtrDefault;
+
+  // Breakpoints by line number
+  let breakpoints = new Set();
+
+  // ---- Editor gutter ----
+  function getLines(){ return codeEl.value.replace(/\r\n/g,"\n").split("\n"); }
+  function refreshGutter(){
+    const lines = getLines();
+    const activeLine = ipToLine.get(cpu.regs.IP) ?? null;
+    gutterEl.innerHTML = "";
+    for(let i=0;i<lines.length;i++){
+      const ln = i+1;
+      const div = document.createElement("div");
+      div.className = "line";
+      if(breakpoints.has(ln)) div.classList.add("bpOn");
+      if(activeLine === ln) div.classList.add("active");
+      const bp = document.createElement("div"); bp.className="bp";
+      const num = document.createElement("div"); num.textContent = ln;
+      div.appendChild(bp); div.appendChild(num);
+      div.addEventListener("click", () => {
+        if(breakpoints.has(ln)) breakpoints.delete(ln); else breakpoints.add(ln);
+        localStorage.setItem(LS_BPS, JSON.stringify([...breakpoints]));
+        refreshGutter();
+      });
+      gutterEl.appendChild(div);
+    }
+  }
+  codeEl.addEventListener("input", () => {
+    localStorage.setItem(LS_CODE, codeEl.value);
+    program = [];
+    refreshGutter();
+  });
+  codeEl.addEventListener("scroll", () => { gutterEl.scrollTop = codeEl.scrollTop; });
+
+  function loadBreakpoints(){
+    try{
+      const raw = localStorage.getItem(LS_BPS);
+      if(raw) breakpoints = new Set(JSON.parse(raw));
+    }catch{}
+  }
+
+  // ---- Helpers ----
+  function stripComment(line){
+    const idx = line.indexOf(";");
+    return (idx>=0 ? line.slice(0,idx) : line).trim();
+  }
+
+  function tokenizeCommaAware(s){
+    // split by commas, but keep bracket expression intact
+    const parts = [];
+    let cur = "";
+    let depth = 0;
+    for(const ch of s){
+      if(ch === "[") depth++;
+      if(ch === "]") depth--;
+      if(ch === "," && depth === 0){
+        parts.push(cur.trim()); cur="";
+      }else cur += ch;
+    }
+    if(cur.trim()) parts.push(cur.trim());
+    return parts;
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+
+  // ---- Register access (16/8) ----
+  function getReg16(name){ return cpu.regs[name] & 0xFFFF; }
+  function setReg16(name,val){ cpu.regs[name] = clamp16(val); }
+
+  function getReg8(name){
+    const map = {
+      AL:["AX",0], AH:["AX",8],
+      BL:["BX",0], BH:["BX",8],
+      CL:["CX",0], CH:["CX",8],
+      DL:["DX",0], DH:["DX",8],
+    };
+    const [r,shift] = map[name];
+    return (getReg16(r) >> shift) & 0xFF;
+  }
+  function setReg8(name,val){
+    const map = {
+      AL:["AX",0], AH:["AX",8],
+      BL:["BX",0], BH:["BX",8],
+      CL:["CX",0], CH:["CX",8],
+      DL:["DX",0], DH:["DX",8],
+    };
+    const [r,shift] = map[name];
+    const v = clamp8(val);
+    const cur = getReg16(r);
+    const mask = ~(0xFF << shift) & 0xFFFF;
+    setReg16(r, (cur & mask) | (v << shift));
+  }
+
+  function isReg16(n){ return REG16.includes(n); }
+  function isReg8(n){ return REG8.includes(n); }
+
+  // ---- Flags math ----
+  function setZS(width, value){
+    if(width === 8){
+      const v = value & 0xFF;
+      cpu.flags.ZF = (v === 0) ? 1 : 0;
+      cpu.flags.SF = ((v & 0x80) !== 0) ? 1 : 0;
+    }else if(width === 16){
+      const v = value & 0xFFFF;
+      cpu.flags.ZF = (v === 0) ? 1 : 0;
+      cpu.flags.SF = ((v & 0x8000) !== 0) ? 1 : 0;
+    }else{ // 32
+      const v = value >>> 0;
+      cpu.flags.ZF = (v === 0) ? 1 : 0;
+      cpu.flags.SF = ((v & 0x80000000) !== 0) ? 1 : 0;
+    }
+  }
+
+  function addN(width, a, b){
+    if(width === 8){
+      const sum = a + b;
+      const res = sum & 0xFF;
+      cpu.flags.CF = (sum > 0xFF) ? 1 : 0;
+      const sa = (a & 0x80) !== 0, sb = (b & 0x80) !== 0, sr = (res & 0x80) !== 0;
+      cpu.flags.OF = (sa === sb && sa !== sr) ? 1 : 0;
+      setZS(8,res); return res;
+    }
+    if(width === 16){
+      const sum = a + b;
+      const res = sum & 0xFFFF;
+      cpu.flags.CF = (sum > 0xFFFF) ? 1 : 0;
+      const sa = (a & 0x8000) !== 0, sb = (b & 0x8000) !== 0, sr = (res & 0x8000) !== 0;
+      cpu.flags.OF = (sa === sb && sa !== sr) ? 1 : 0;
+      setZS(16,res); return res;
+    }
+    const sum = (a >>> 0) + (b >>> 0);
+    const res = sum >>> 0;
+    cpu.flags.CF = (sum > 0xFFFFFFFF) ? 1 : 0; // rarely meaningful in JS, but keep
+    const sa = (a & 0x80000000) !== 0, sb = (b & 0x80000000) !== 0, sr = (res & 0x80000000) !== 0;
+    cpu.flags.OF = (sa === sb && sa !== sr) ? 1 : 0;
+    setZS(32,res); return res;
+  }
+
+  function subN(width, a, b){
+    if(width === 8){
+      const diff = a - b;
+      const res = diff & 0xFF;
+      cpu.flags.CF = (diff < 0) ? 1 : 0;
+      const sa = (a & 0x80) !== 0, sb = (b & 0x80) !== 0, sr = (res & 0x80) !== 0;
+      cpu.flags.OF = (sa !== sb && sa !== sr) ? 1 : 0;
+      setZS(8,res); return res;
+    }
+    if(width === 16){
+      const diff = a - b;
+      const res = diff & 0xFFFF;
+      cpu.flags.CF = (diff < 0) ? 1 : 0;
+      const sa = (a & 0x8000) !== 0, sb = (b & 0x8000) !== 0, sr = (res & 0x8000) !== 0;
+      cpu.flags.OF = (sa !== sb && sa !== sr) ? 1 : 0;
+      setZS(16,res); return res;
+    }
+    const diff = (a >>> 0) - (b >>> 0);
+    const res = diff >>> 0;
+    cpu.flags.CF = (diff < 0) ? 1 : 0;
+    const sa = (a & 0x80000000) !== 0, sb = (b & 0x80000000) !== 0, sr = (res & 0x80000000) !== 0;
+    cpu.flags.OF = (sa !== sb && sa !== sr) ? 1 : 0;
+    setZS(32,res); return res;
+  }
+
+  // ---- Memory access (Little Endian) ----
+  function read8(addr){ return mem[addr & 0xFFFF] & 0xFF; }
+  function write8(addr, v){ mem[addr & 0xFFFF] = clamp8(v); }
+
+  function read16(addr){
+    const a = addr & 0xFFFF;
+    return (read8(a) | (read8(a+1) << 8)) & 0xFFFF;
+  }
+  function write16(addr, v){
+    const a = addr & 0xFFFF;
+    const w = v & 0xFFFF;
+    write8(a, w & 0xFF);
+    write8(a+1, (w >> 8) & 0xFF);
+  }
+  function read32(addr){
+    const a = addr & 0xFFFF;
+    return (read8(a) | (read8(a+1) << 8) | (read8(a+2) << 16) | (read8(a+3) << 24)) >>> 0;
+  }
+  function write32(addr, v){
+    const a = addr & 0xFFFF;
+    const d = v >>> 0;
+    write8(a, d & 0xFF);
+    write8(a+1, (d >>> 8) & 0xFF);
+    write8(a+2, (d >>> 16) & 0xFF);
+    write8(a+3, (d >>> 24) & 0xFF);
+  }
+
+  // ---- Operand parsing ----
+  function parseMemInside(inside){
+    // supports: REG, REG+imm, imm+REG, imm, REG-imm, etc.
+    let expr = inside.replace(/\s+/g,"");
+    expr = expr.replace(/-/g,"+-");
+    const chunks = expr.split("+").filter(Boolean);
+
+    let baseReg = null;
+    let offset = 0;
+
+    for(const c of chunks){
+      const up = c.toUpperCase();
+      if(isReg16(up)){
+        baseReg = up;
+      }else{
+        const n = parseNumber(up);
+        if(n === null) return { ok:false, error:`Bad memory expr: [${inside}]` };
+        offset += n;
+      }
+    }
+    return { ok:true, baseReg, offset: clamp16(offset) };
+  }
+
+  function parseOperand(raw){
+    // support: OFFSET label
+    let t = raw.trim();
+    if(!t) return { type:"bad", error:"Empty operand" };
+    let up = t.toUpperCase();
+
+    // remove extra tabs
+    up = up.replace(/\s+/g," ").trim();
+
+    // SIZE PTR [..]
+    // ex: BYTE PTR [SI], WORD PTR [0x200], DWORD PTR [BX+2]
+    let size = null; // 8/16/32
+    const ptrMatch = up.match(/^(BYTE|WORD|DWORD)\s+PTR\s+(.+)$/i);
+    if(ptrMatch){
+      size = ptrMatch[1].toUpperCase() === "BYTE" ? 8 :
+             ptrMatch[1].toUpperCase() === "WORD" ? 16 : 32;
+      up = ptrMatch[2].trim();
+    }
+
+    // OFFSET label
+    const offMatch = up.match(/^OFFSET\s+([A-Z_.$][A-Z0-9_.$]*)$/i);
+    if(offMatch){
+      return { type:"offset", name: offMatch[1], size: 16 };
+    }
+
+    // Register 16 / 8
+    if(isReg16(up)) return { type:"reg16", name: up, size: 16 };
+    if(isReg8(up))  return { type:"reg8",  name: up, size: 8  };
+
+    // Memory [ ... ]
+    if(up.startsWith("[") && up.endsWith("]")){
+      const inside = up.slice(1,-1);
+      const parsed = parseMemInside(inside);
+      if(!parsed.ok) return { type:"bad", error: parsed.error };
+      return { type:"mem", baseReg: parsed.baseReg, offset: parsed.offset, size: size ?? 8 };
+    }
+
+    // Immediate number?
+    const num = parseNumber(up);
+    if(num !== null) return { type:"imm", value: num >>> 0, size: 16 };
+
+    // Label reference
+    if(/^[A-Z_.$][A-Z0-9_.$]*$/i.test(up)) return { type:"label", name: up, size: 16 };
+
+    return { type:"bad", error:`Unknown operand: ${raw}` };
+  }
+
+  function addrOfMem(op){
+    const base = op.baseReg ? getReg16(op.baseReg) : 0;
+    return clamp16(base + (op.offset ?? 0));
+  }
+
+  function evalOperand(op){
+    if(op.type === "imm") return op.value >>> 0;
+    if(op.type === "reg16") return getReg16(op.name);
+    if(op.type === "reg8")  return getReg8(op.name);
+    if(op.type === "mem"){
+      const a = addrOfMem(op);
+      if(op.size === 8)  return read8(a);
+      if(op.size === 16) return read16(a);
+      return read32(a);
+    }
+    if(op.type === "resolved") return op.value >>> 0;
+    throw new Error("Bad eval operand");
+  }
+
+  function writeOperand(op, value){
+    if(op.type === "reg16"){ setReg16(op.name, value); return; }
+    if(op.type === "reg8"){ setReg8(op.name, value); return; }
+    if(op.type === "mem"){
+      const a = addrOfMem(op);
+      if(op.size === 8)  { write8(a, value); return; }
+      if(op.size === 16) { write16(a, value); return; }
+      write32(a, value); return;
+    }
+    throw new Error("Destination must be register or memory");
+  }
+
+  // ---- DB/DW/DD parsing ----
+  function parseDataItems(argStr, directive){
+    // Returns array of bytes for DB/DW/DD
+    // Supports: numbers, "string", 'A'
+    const items = tokenizeCommaAware(argStr);
+    if(items.length === 0) return { ok:false, error:`${directive} needs values` };
+
+    const bytes = [];
+    const pushWord = (w) => { bytes.push(w & 0xFF, (w >> 8) & 0xFF); };
+    const pushDword = (d) => {
+      bytes.push(d & 0xFF, (d >>> 8) & 0xFF, (d >>> 16) & 0xFF, (d >>> 24) & 0xFF);
+    };
+
+    for(const itRaw of items){
+      const it = itRaw.trim();
+      if(!it) continue;
+
+      // "string"
+      const strMatch = it.match(/^"(.*)"$/);
+      if(strMatch){
+        const s = strMatch[1];
+        for(let i=0;i<s.length;i++){
+          const ch = s.charCodeAt(i) & 0xFF;
+          if(directive === "DB") bytes.push(ch);
+          else if(directive === "DW") pushWord(ch);
+          else pushDword(ch);
+        }
+        continue;
+      }
+
+      // 'A'
+      const chrMatch = it.match(/^'(.*)'$/);
+      if(chrMatch){
+        const s = chrMatch[1];
+        const ch = (s.length ? s.charCodeAt(0) : 0) & 0xFF;
+        if(directive === "DB") bytes.push(ch);
+        else if(directive === "DW") pushWord(ch);
+        else pushDword(ch);
+        continue;
+      }
+
+      // number literal (supports 20h / 0x20 / 32)
+      const n = parseNumber(it.toUpperCase());
+      if(n === null) return { ok:false, error:`${directive} value must be number or string (got "${it}")` };
+
+      if(directive === "DB") bytes.push(n & 0xFF);
+      else if(directive === "DW") pushWord(n & 0xFFFF);
+      else pushDword(n >>> 0);
+    }
+
+    return { ok:true, bytes };
+  }
+
+  // ---- Assembler ----
+  function assemble(){
+    clearOutput();
+    setStatus("Assembling…","run");
+
+    const lines = getLines();
+    labels = new Map();
+    labelKind = new Map();
+    program = [];
+    ipToLine = new Map();
+    lineToIp = new Map();
+
+    // reset memory image
+    mem.fill(0);
+
+    // reset ORG/data pointer
+    dataPtr = dataPtrDefault;
+
+    // PASS 1: discover ORG early-ish, build labels for code and data, count IP
+    let ip = 0;
+    let sawAnyCode = false;
+
+    // First scan: allow ORG to set data origin before data directives
+    for(let i=0;i<lines.length;i++){
+      const ln = i+1;
+      const raw = stripComment(lines[i]);
+      if(!raw) continue;
+      const up = raw.toUpperCase().trim();
+      const m = up.match(/^ORG\s+(.+)$/);
+      if(m){
+        const n = parseNumber(m[1].trim());
+        if(n === null){
+          logLine(`Line ${ln}: ORG needs numeric value`, "err");
+          setStatus("Assemble error","err");
+          return false;
+        }
+        dataPtr = clamp16(n);
+        // do NOT break; allow multiple ORG but last wins before data used
+      }
+    }
+
+    // main pass1
+    for(let i=0;i<lines.length;i++){
+      const ln = i+1;
+      let raw = stripComment(lines[i]);
+      if(!raw) continue;
+
+      // Ignore ORG as instruction (already handled)
+      if(/^ORG\s+/i.test(raw)) continue;
+
+      // label? can be before instruction OR data
+      let rest = raw;
+      const labelMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*):/i);
+      let labelName = null;
+      if(labelMatch){
+        labelName = labelMatch[1].toUpperCase();
+        rest = rest.slice(labelMatch[0].length).trim();
+      }
+
+      // Determine if this line is data directive
+      const upRest = rest.toUpperCase();
+      const isData = upRest.startsWith("DB ") || upRest.startsWith("DW ") || upRest.startsWith("DD ");
+
+      if(labelName){
+        if(labels.has(labelName)){
+          logLine(`Line ${ln}: Duplicate label "${labelName}"`, "err");
+          setStatus("Assemble error","err");
+          return false;
+        }
+        if(isData){
+          labels.set(labelName, dataPtr);
+          labelKind.set(labelName, "data");
+        }else{
+          labels.set(labelName, ip);
+          labelKind.set(labelName, "code");
+        }
+      }
+
+      if(!rest) continue;
+
+      if(isData){
+        const dir = upRest.slice(0,2); // DB/DW/DD
+        const argStr = rest.slice(2).trim();
+        const parsed = parseDataItems(argStr, dir);
+        if(!parsed.ok){
+          logLine(`Line ${ln}: ${parsed.error}`, "err");
+          setStatus("Assemble error","err");
+          return false;
+        }
+        dataPtr = clamp16(dataPtr + parsed.bytes.length);
+        continue;
+      }
+
+      // Otherwise instruction
+      sawAnyCode = true;
+      ip++;
+    }
+
+    // PASS 2: build program and write data bytes to memory
+    dataPtr = dataPtrDefault;
+    // Re-apply ORG before writing actual data
+    for(let i=0;i<lines.length;i++){
+      const ln = i+1;
+      const raw = stripComment(lines[i]);
+      if(!raw) continue;
+      const up = raw.toUpperCase().trim();
+      const m = up.match(/^ORG\s+(.+)$/);
+      if(m){
+        const n = parseNumber(m[1].trim());
+        if(n !== null) dataPtr = clamp16(n);
+      }
+    }
+
+    ip = 0;
+    for(let i=0;i<lines.length;i++){
+      const ln = i+1;
+      const rawLine = lines[i];
+      let raw = stripComment(rawLine);
+      if(!raw) continue;
+
+      if(/^ORG\s+/i.test(raw)) continue;
+
+      // label inline
+      let rest = raw;
+      const labelMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*):/i);
+      if(labelMatch){
+        rest = rest.slice(labelMatch[0].length).trim();
+        if(!rest) continue;
+      }
+
+      const upRest = rest.toUpperCase();
+
+      // data directive
+      if(upRest.startsWith("DB ") || upRest.startsWith("DW ") || upRest.startsWith("DD ")){
+        const dir = upRest.slice(0,2); // DB/DW/DD
+        const argStr = rest.slice(2).trim();
+        const parsed = parseDataItems(argStr, dir);
+        if(!parsed.ok){
+          logLine(`Line ${ln}: ${parsed.error}`, "err");
+          setStatus("Assemble error","err");
+          return false;
+        }
+        for(const b of parsed.bytes){
+          write8(dataPtr, b);
+          dataPtr = clamp16(dataPtr + 1);
+        }
+        continue;
+      }
+
+      // instruction parse
+      const parts = rest.trim().split(/\s+/);
+      const op = parts[0].toUpperCase();
+      const operandStr = rest.slice(parts[0].length).trim();
+      const ops = operandStr ? tokenizeCommaAware(operandStr) : [];
+      const args = ops.map(parseOperand);
+
+      for(const a of args){
+        if(a.type === "bad"){
+          logLine(`Line ${ln}: ${a.error}`, "err");
+          setStatus("Assemble error","err");
+          return false;
+        }
+      }
+
+      program.push({ op, args, line: ln, src: rawLine });
+      lineToIp.set(ln, ip);
+      ipToLine.set(ip, ln);
+      ip++;
+    }
+
+    // Resolve labels + OFFSET
+    for(const inst of program){
+      for(let k=0;k<inst.args.length;k++){
+        const a = inst.args[k];
+        if(a.type === "label"){
+          const name = a.name.toUpperCase();
+          const val = labels.get(name);
+          if(val === undefined){
+            logLine(`Line ${inst.line}: Unknown label "${a.name}"`, "err");
+            setStatus("Assemble error","err");
+            return false;
+          }
+          inst.args[k] = { type:"imm", value: val >>> 0, size:16 };
+        }else if(a.type === "offset"){
+          const name = a.name.toUpperCase();
+          const val = labels.get(name);
+          if(val === undefined){
+            logLine(`Line ${inst.line}: Unknown label "${a.name}"`, "err");
+            setStatus("Assemble error","err");
+            return false;
+          }
+          inst.args[k] = { type:"imm", value: val >>> 0, size:16 };
+        }
+      }
+    }
+
+    logLine("Assemble OK ✅", "ok");
+    logLine(`Instructions: ${program.length} • Labels: ${labels.size}`, "ok");
+    setStatus("Assembled","ok");
+    return true;
+  }
+
+  // ---- Execution ----
+  function resetCPU(keepMemory=true){
+    cpu.regs.AX=0; cpu.regs.BX=0; cpu.regs.CX=0; cpu.regs.DX=0;
+    cpu.regs.SI=0; cpu.regs.DI=0; cpu.regs.BP=0; cpu.regs.SP=0xFFFE;
+    cpu.regs.IP=0;
+    cpu.flags.ZF=0; cpu.flags.SF=0; cpu.flags.CF=0; cpu.flags.OF=0;
+    cpu.cycles=0;
+    if(!keepMemory) mem.fill(0);
+    updateUI();
+    refreshGutter();
+    refreshMemory();
+  }
+
+  function stepOnce(){
+    if(cpu.regs.IP < 0 || cpu.regs.IP >= program.length){
+      logLine("Reached end of program (halt).", "warn");
+      setStatus("Stopped","ok");
+      return false;
+    }
+
+    const inst = program[cpu.regs.IP];
+    const op = inst.op;
+    const a0 = inst.args[0];
+    const a1 = inst.args[1];
+    const nextIP = cpu.regs.IP + 1;
+
+    try{
+      switch(op){
+        case "HLT":
+          cpu.regs.IP = nextIP;
+          cpu.cycles++;
+          logLine(`HLT at line ${inst.line}`, "ok");
+          setStatus("HLT (stopped)","ok");
+          updateUI(); refreshMemory(); refreshGutter();
+          return false;
+
+        case "MOV":{
+          if(inst.args.length !== 2) throw new Error("MOV needs 2 operands");
+          const v = evalOperand(a1);
+          writeOperand(a0, v);
+          cpu.flags.CF=0; cpu.flags.OF=0;
+          setZS(a0.size ?? 16, v);
+          cpu.regs.IP = nextIP; cpu.cycles++;
+          break;
+        }
+
+        case "ADD":{
+          if(inst.args.length !== 2) throw new Error("ADD needs 2 operands");
+          const w = a0.size ?? (a0.type==="reg8"?8:16);
+          const left = evalOperand(a0);
+          const right = evalOperand(a1);
+          const res = addN(w, left, right);
+          writeOperand(a0, res);
+          cpu.regs.IP = nextIP; cpu.cycles++;
+          break;
+        }
+
+        case "SUB":{
+          if(inst.args.length !== 2) throw new Error("SUB needs 2 operands");
+          const w = a0.size ?? (a0.type==="reg8"?8:16);
+          const left = evalOperand(a0);
+          const right = evalOperand(a1);
+          const res = subN(w, left, right);
+          writeOperand(a0, res);
+          cpu.regs.IP = nextIP; cpu.cycles++;
+          break;
+        }
+
+        case "INC":{
+          if(inst.args.length !== 1) throw new Error("INC needs 1 operand");
+          const w = a0.size ?? (a0.type==="reg8"?8:16);
+          const v = evalOperand(a0);
+          const oldCF = cpu.flags.CF;
+          const res = addN(w, v, 1);
+          cpu.flags.CF = oldCF; // like x86
+          writeOperand(a0, res);
+          cpu.regs.IP = nextIP; cpu.cycles++;
+          break;
+        }
+
+        case "DEC":{
+          if(inst.args.length !== 1) throw new Error("DEC needs 1 operand");
+          const w = a0.size ?? (a0.type==="reg8"?8:16);
+          const v = evalOperand(a0);
+          const oldCF = cpu.flags.CF;
+          const res = subN(w, v, 1);
+          cpu.flags.CF = oldCF; // like x86
+          writeOperand(a0, res);
+          cpu.regs.IP = nextIP; cpu.cycles++;
+          break;
+        }
+
+        case "AND":{
+          if(inst.args.length !== 2) throw new Error("AND needs 2 operands");
+          const w = a0.size ?? (a0.type==="reg8"?8:16);
+          const res = (evalOperand(a0) & evalOperand(a1)) >>> 0;
+          cpu.flags.CF=0; cpu.flags.OF=0;
+          setZS(w,res);
+          writeOperand(a0,res);
+          cpu.regs.IP = nextIP; cpu.cycles++;
+          break;
+        }
+
+        case "OR":{
+          if(inst.args.length !== 2) throw new Error("OR needs 2 operands");
+          const w = a0.size ?? (a0.type==="reg8"?8:16);
+          const res = (evalOperand(a0) | evalOperand(a1)) >>> 0;
+          cpu.flags.CF=0; cpu.flags.OF=0;
+          setZS(w,res);
+          writeOperand(a0,res);
+          cpu.regs.IP = nextIP; cpu.cycles++;
+          break;
+        }
+
+        case "XOR":{
+          if(inst.args.length !== 2) throw new Error("XOR needs 2 operands");
+          const w = a0.size ?? (a0.type==="reg8"?8:16);
+          const res = (evalOperand(a0) ^ evalOperand(a1)) >>> 0;
+          cpu.flags.CF=0; cpu.flags.OF=0;
+          setZS(w,res);
+          writeOperand(a0,res);
+          cpu.regs.IP = nextIP; cpu.cycles++;
+          break;
+        }
+
+        case "TEST":{
+          if(inst.args.length !== 2) throw new Error("TEST needs 2 operands");
+          const w = a0.size ?? (a0.type==="reg8"?8:16);
+          const res = (evalOperand(a0) & evalOperand(a1)) >>> 0;
+          cpu.flags.CF=0; cpu.flags.OF=0;
+          setZS(w,res);
+          cpu.regs.IP = nextIP; cpu.cycles++;
+          break;
+        }
+
+        case "CMP":{
+          if(inst.args.length !== 2) throw new Error("CMP needs 2 operands");
+          const w = a0.size ?? (a0.type==="reg8"?8:16);
+          const left = evalOperand(a0);
+          const right = evalOperand(a1);
+          subN(w,left,right); // flags only
+          cpu.regs.IP = nextIP; cpu.cycles++;
+          break;
+        }
+
+        // Jumps
+        case "JMP":{
+          if(inst.args.length !== 1) throw new Error("JMP needs 1 operand");
+          cpu.regs.IP = clamp16(evalOperand(a0));
+          cpu.cycles++;
+          break;
+        }
+        case "JZ":
+        case "JE":{
+          if(inst.args.length !== 1) throw new Error(op+" needs 1 operand");
+          cpu.regs.IP = cpu.flags.ZF ? clamp16(evalOperand(a0)) : nextIP;
+          cpu.cycles++;
+          break;
+        }
+        case "JNZ":
+        case "JNE":{
+          if(inst.args.length !== 1) throw new Error(op+" needs 1 operand");
+          cpu.regs.IP = !cpu.flags.ZF ? clamp16(evalOperand(a0)) : nextIP;
+          cpu.cycles++;
+          break;
+        }
+
+        case "LOOP":{
+          if(inst.args.length !== 1) throw new Error("LOOP needs 1 operand");
+          // CX = CX - 1; if CX != 0 => jump
+          setReg16("CX", (getReg16("CX") - 1) & 0xFFFF);
+          cpu.regs.IP = (getReg16("CX") !== 0) ? clamp16(evalOperand(a0)) : nextIP;
+          cpu.cycles++;
+          break;
+        }
+
+        default:
+          throw new Error(`Unknown instruction "${op}"`);
+      }
+    }catch(err){
+      setStatus("Runtime error","err");
+      logLine(`Runtime error at line ${inst.line}: ${err.message}`, "err");
+      activateTab("output");
+      updateUI(); refreshMemory(); refreshGutter();
+      return false;
+    }
+
+    updateUI();
+    refreshMemory();
+    refreshGutter();
+    return true;
+  }
+
+  function runProgram(){
+    clearOutput();
+    if(!assemble()){
+      activateTab("output");
+      return;
+    }
+    resetCPU(true);
+    setStatus("Running…","run");
+    activateTab("output");
+
+    const maxSteps = 200000;
+    let steps = 0;
+
+    while(steps < maxSteps){
+      const curLine = ipToLine.get(cpu.regs.IP);
+      if(curLine && breakpoints.has(curLine) && steps > 0){
+        setStatus(`Paused at breakpoint (line ${curLine})`,"run");
+        logLine(`Paused at breakpoint on line ${curLine}.`, "warn");
+        return;
+      }
+      const ok = stepOnce();
+      steps++;
+      if(!ok) return;
+    }
+
+    setStatus("Stopped (max steps)","err");
+    logLine("Stopped: exceeded max steps (possible infinite loop).", "err");
+  }
+
+  // ---- UI ----
+  function updateUI(){
+    regsGrid.innerHTML = "";
+
+    const pairs = [
+      ["AX", getReg16("AX"), 4], ["BX", getReg16("BX"), 4],
+      ["CX", getReg16("CX"), 4], ["DX", getReg16("DX"), 4],
+      ["SI", getReg16("SI"), 4], ["DI", getReg16("DI"), 4],
+      ["BP", getReg16("BP"), 4], ["SP", getReg16("SP"), 4],
+      ["IP", getReg16("IP"), 4],
+      ["AL", getReg8("AL"), 2], ["AH", getReg8("AH"), 2],
+      ["BL", getReg8("BL"), 2], ["BH", getReg8("BH"), 2],
+      ["CL", getReg8("CL"), 2], ["CH", getReg8("CH"), 2],
+      ["DL", getReg8("DL"), 2], ["DH", getReg8("DH"), 2],
+    ];
+
+    for(const [k,v,w] of pairs){
+      const div = document.createElement("div");
+      div.className = "kv";
+      div.innerHTML = `<span class="k">${k}</span><span class="v">${baseSel.value==="hex" ? fmt(v,w) : String(v)}</span>`;
+      regsGrid.appendChild(div);
+    }
+
+    flagsRow.innerHTML = "";
+    for(const f of FLAGS){
+      const div = document.createElement("div");
+      div.className = "flag" + (cpu.flags[f] ? " on" : "");
+      div.textContent = `${f}=${cpu.flags[f] ? 1 : 0}`;
+      flagsRow.appendChild(div);
+    }
+
+    cyclesEl.textContent = String(cpu.cycles);
+  }
+
+  function parseAddrInput(s){
+    const n = parseNumber(s.trim());
+    return (n === null) ? null : clamp16(n);
+  }
+
+  function refreshMemory(){
+    let start = parseAddrInput(memStartEl.value);
+    if(start === null) start = 0x0100;
+
+    const rows = 16, cols = 16;
+    let out = "";
+    for(let r=0;r<rows;r++){
+      const addr = (start + r*cols) & 0xFFFF;
+      out += fmt(addr,4) + "  ";
+      let ascii = "";
+      for(let c=0;c<cols;c++){
+        const b = mem[(addr+c) & 0xFFFF];
+        out += b.toString(16).toUpperCase().padStart(2,"0") + " ";
+        ascii += (b>=32 && b<=126) ? String.fromCharCode(b) : ".";
+      }
+      out += " |" + ascii + "|\n";
+    }
+    memDumpEl.textContent = out;
+  }
+
+  function activateTab(name){
+    document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === name));
+    document.querySelectorAll(".tabContent").forEach(c => c.classList.toggle("active", c.id === "tab-" + name));
+  }
+  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => activateTab(t.dataset.tab)));
+
+  // ---- Buttons / Events ----
+  el("assembleBtn").addEventListener("click", () => {
+    if(assemble()){
+      resetCPU(true);
+      activateTab("output");
+    }else activateTab("output");
+  });
+
+  el("runBtn").addEventListener("click", runProgram);
+
+  el("stepBtn").addEventListener("click", () => {
+    if(program.length === 0){
+      clearOutput();
+      if(!assemble()){ activateTab("output"); return; }
+      resetCPU(true);
+      setStatus("Ready to step","run");
+      activateTab("output");
+      logLine("Step mode ready. Press Step again.", "ok");
+      return;
+    }
+    setStatus("Stepping…","run");
+    const ok = stepOnce();
+    if(!ok) setStatus("Stopped","ok");
+  });
+
+  el("resetBtn").addEventListener("click", () => {
+    resetCPU(true);
+    setStatus("Reset","ok");
+    logLine("Reset OK.", "ok");
+    activateTab("output");
+  });
+
+  baseSel.addEventListener("change", () => { updateUI(); refreshMemory(); });
+
+  el("memRefresh").addEventListener("click", refreshMemory);
+
+  el("exampleSel").addEventListener("change", (e) => {
+    const v = e.target.value;
+    if(!v) return;
+
+    const EX = {
+      case: `ORG 100h
+        MOV SI, OFFSET STR
+        MOV CX, 2
+
+L:      MOV AL, BYTE PTR [SI]
+        MOV AH, AL
+        AND AH, 20h
+        TEST AH, 20h
+        JZ  C1
+        JNZ C2
+
+C1:
+        ADD AL, 20h
+        JMP OUT
+C2:
+        SUB AL, 20h
+        JMP OUT
+
+OUT:
+        MOV BYTE PTR [SI], AL
+        INC SI
+        LOOP L
+        HLT
+
+STR:    DB "ab"
+`,
+      data: `ORG 200h
+; Data demo:
+W1:     DW 1234h
+D1:     DD 89ABCDEFh
+S1:     DB "Hi", 0
+
+; Read/write with PTR sizes:
+        MOV SI, OFFSET W1
+        MOV AX, WORD PTR [SI]     ; AX = 1234h
+        ADD AX, 1
+        MOV WORD PTR [SI], AX     ; W1 becomes 1235h
+
+        MOV SI, OFFSET D1
+        ; Default is BYTE PTR, so specify DWORD:
+        MOV AX, DWORD PTR [SI]    ; (for demo) reads low 16 bits into AX via size mismatch? better keep same width ops in your code
+        HLT
+`
+    };
+
+    codeEl.value = EX[v];
+    localStorage.setItem(LS_CODE, codeEl.value);
+    program = [];
+    refreshGutter();
+    clearOutput();
+    setStatus("Loaded example","ok");
+    e.target.value = "";
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if(e.ctrlKey && e.key === "Enter"){ e.preventDefault(); runProgram(); }
+    if(e.key === "F10"){ e.preventDefault(); el("stepBtn").click(); }
+    if(e.ctrlKey && (e.key === "r" || e.key === "R")){ e.preventDefault(); el("resetBtn").click(); }
+  });
+
+  // ---- Boot ----
+  function boot(){
+    const saved = localStorage.getItem(LS_CODE);
+    codeEl.value = saved ?? `; Paste your MASM/TASM-like code here
+; Try the example: Toggle Case (your style)
+
+ORG 100h
+MOV SI, OFFSET STR
+MOV CX, 2
+
+L:  MOV AL, BYTE PTR [SI]
+    ; toggle bit5 using XOR (simple demo)
+    XOR AL, 20h
+    MOV BYTE PTR [SI], AL
+    INC SI
+    LOOP L
+HLT
+
+STR: DB "ab"
+`;
+    loadBreakpoints();
+    refreshGutter();
+    updateUI();
+    refreshMemory();
+    setStatus("Idle","idle");
+    clearOutput();
+    logLine("Tip: Assemble first to validate OFFSET/DB/DW/DD and labels.", "ok");
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
