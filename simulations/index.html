@@ -23,6 +23,13 @@
       --shadow: 0 22px 60px rgba(16,24,40,.12);
       --radius: 22px;
     }
+.logoImg{
+  width:44px;
+  height:44px;
+  object-fit:contain;
+  border-radius:14px;
+  box-shadow: 0 14px 30px rgba(63,111,255,.18);
+}
 
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -276,7 +283,9 @@
   <header>
     <div class="container nav">
       <a class="brand" href="../" aria-label="Back to Home">
-        <div class="logoMark" aria-hidden="true"></div>
+        <img class="logoImg" src="../assets/mae.svg" alt="MAE Academy Logo">
+
+        
         <div>
           <h1>MAE Academy</h1>
           <p>Simulations Hub</p>
