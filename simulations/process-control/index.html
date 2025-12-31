@@ -3,6 +3,824 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MAE Academy — Power Electronics</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root{
+      --bg:#eaf2ff;
+      --bg2:#f8fbff;
+      --card:#ffffff;
+      --text:#09102a;
+      --muted:#4c5d88;
+      --brand:#08b58d;
+      --brand2:#3f6fff;
+      --danger:#d32f2f;
+      --border: rgba(9,16,42,.14);
+      --shadow: 0 22px 60px rgba(16,24,40,.12);
+      --radius: 22px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 520px at 15% -10%, rgba(63,111,255,.20), transparent 55%),
+        radial-gradient(900px 520px at 86% 0%, rgba(8,181,141,.18), transparent 55%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      overflow-x:hidden;
+    }
+    a{color:inherit;text-decoration:none}
+    .container{width:min(1200px,92%);margin-inline:auto}
+
+    header{
+      position:sticky; top:0; z-index:50;
+      background: rgba(234,242,255,.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 14px 0;
+      gap: 14px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+      min-width: 240px;
+    }
+    .logoMark{
+      width:44px;height:44px;border-radius:14px;
+      background: conic-gradient(from 220deg, var(--brand), var(--brand2), var(--brand));
+      position:relative;
+      box-shadow: 0 14px 30px rgba(63,111,255,.18);
+      overflow:hidden;
+    }
+    .logoMark::after{
+      content:""; position:absolute; inset:-60%;
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.75), transparent 55%);
+      animation: shimmer 5.6s ease-in-out infinite;
+    }
+    @keyframes shimmer{
+      0%,100%{transform:translate(12%,12%) rotate(0deg)}
+      50%{transform:translate(-12%,-12%) rotate(25deg)}
+    }
+    .brand h1{margin:0;font-size:15px;line-height:1.2}
+    .brand p{margin:0;font-size:12px;color:var(--muted)}
+
+    .actions{display:flex; gap:10px; align-items:center}
+    .btn{
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.75);
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 16px;
+      cursor:pointer;
+      font-weight: 900;
+      transition: transform .2s ease, box-shadow .2s ease;
+      display:inline-flex; align-items:center; gap:8px;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{transform: translateY(-1px); box-shadow: var(--shadow)}
+    .btn.primary{
+      border: none;
+      background: linear-gradient(135deg, rgba(8,181,141,.95), rgba(63,111,255,.90));
+      color:#06101a;
+    }
+
+    main{padding: 46px 0 70px}
+
+    .headRow{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:16px;
+      flex-wrap:wrap;
+      margin-bottom: 16px;
+    }
+    .titleWrap{display:flex; align-items:center; gap:12px}
+    .simIcon{
+      width:46px;height:46px;border-radius:16px;
+      border:1px solid rgba(9,16,42,.12);
+      background: rgba(255,255,255,.72);
+      display:grid; place-items:center;
+      box-shadow: 0 10px 20px rgba(16,24,40,.08);
+      overflow:hidden;
+      font-size:22px;
+    }
+    h2{
+      margin:0;
+      font-size: 44px;
+      letter-spacing:-1px;
+      line-height:1.05;
+    }
+    .sub{
+      margin:8px 0 0;
+      color:var(--muted);
+      font-weight: 650;
+      line-height:1.8;
+      max-width: 72ch;
+    }
+
+    .simContainer{
+      background: rgba(255,255,255,.80);
+      border: 1px solid rgba(9,16,42,.12);
+      border-radius: calc(var(--radius) + 2px);
+      box-shadow: 0 12px 30px rgba(16,24,40,.08);
+      padding: 16px;
+      position:relative;
+      overflow:hidden;
+    }
+    .simContainer::before{
+      content:"";
+      position:absolute; inset:-2px;
+      background:
+        radial-gradient(520px 220px at 70% 10%, rgba(8,181,141,.14), transparent 60%),
+        radial-gradient(520px 240px at 20% 70%, rgba(63,111,255,.14), transparent 60%);
+      opacity:.8;
+      z-index:0;
+    }
+    .simContainer > *{position:relative; z-index:1}
+
+    .visualsRow{
+      display:grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+    @media (max-width: 980px){
+      .visualsRow{grid-template-columns:1fr}
+    }
+
+    .panel{
+      border: 1px solid rgba(9,16,42,.12);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.85);
+      padding: 12px;
+      box-shadow: 0 10px 20px rgba(16,24,40,.06);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      position:relative;
+      overflow:hidden;
+    }
+    .panel:hover{
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+      border-color: rgba(63,111,255,.22);
+    }
+    .panelLabel{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-weight: 900;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .panelLabel .small{
+      font-weight: 800;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .chartWrap{
+      position:relative;
+      height:360px;
+      width:100%;
+    }
+    canvas{
+      width:100% !important;
+      height:100% !important;
+      display:block;
+      border-radius: 16px;
+      background: #fff;
+      border: 1px solid rgba(9,16,42,.10);
+    }
+
+    .hint{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      line-height:1.35;
+    }
+
+    /* Controls (3 columns like Code #2) */
+    .controlsArea{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      background: rgba(255,255,255,.68);
+      border: 1px solid rgba(9,16,42,.12);
+      padding: 16px;
+      border-radius: var(--radius);
+      box-shadow: 0 10px 20px rgba(16,24,40,.06);
+    }
+    @media (max-width: 980px){
+      .controlsArea{grid-template-columns:1fr}
+    }
+
+    .col{display:flex; flex-direction:column; gap:12px}
+    .colHead{
+      font-weight: 1000;
+      font-size: 13px;
+      letter-spacing: .8px;
+      text-transform:uppercase;
+      color: rgba(9,16,42,.88);
+      border-bottom: 2px solid rgba(9,16,42,.14);
+      padding-bottom: 8px;
+    }
+
+    .group label{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      font-weight: 800;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: rgba(9,16,42,.92);
+    }
+    select, input[type="number"]{
+      width:100%;
+      padding: 10px 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(9,16,42,.16);
+      font-weight: 900;
+      background: rgba(255,255,255,.9);
+      font-family:"Inter",system-ui,sans-serif;
+      outline:none;
+    }
+    select:focus, input[type="number"]:focus{
+      box-shadow: 0 0 0 6px rgba(63,111,255,.12);
+      border-color: rgba(63,111,255,.35);
+    }
+
+    .primaryBtn{
+      width:100%;
+      border:none;
+      border-radius: 16px;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, rgba(8,181,141,.95), rgba(63,111,255,.90));
+      color:#06101a;
+      font-weight: 1000;
+      cursor:pointer;
+      transition: transform .12s ease, box-shadow .2s ease;
+      font-family:"Inter",system-ui,sans-serif;
+    }
+    .primaryBtn:hover{transform: translateY(-2px); box-shadow: var(--shadow)}
+    .primaryBtn:active{transform: translateY(0px)}
+
+    /* Metrics grid (styled like panels) */
+    .metricsGrid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .metricCard{
+      border: 1px solid rgba(9,16,42,.10);
+      border-radius: 16px;
+      background: rgba(255,255,255,.92);
+      padding: 10px;
+      box-shadow: 0 10px 18px rgba(16,24,40,.06);
+    }
+    .metricVal{
+      font-weight: 1000;
+      font-size: 14px;
+      color: rgba(9,16,42,.95);
+    }
+    .metricLbl{
+      margin-top: 2px;
+      font-size: 12px;
+      font-weight: 900;
+      color: rgba(9,16,42,.55);
+    }
+
+    .diagramBox{
+      border: 1px dashed rgba(9,16,42,.22);
+      border-radius: 16px;
+      background: rgba(255,255,255,.6);
+      padding: 12px;
+      min-height: 180px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      color: rgba(9,16,42,.65);
+      font-weight: 900;
+    }
+    .diagramBox img{
+      max-width:100%;
+      max-height:180px;
+      object-fit:contain;
+      border-radius: 12px;
+    }
+
+    .reveal{
+      opacity:0;
+      transform: translateY(14px) scale(.99);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+    .reveal.isVisible{
+      opacity:1;
+      transform: translateY(0) scale(1);
+    }
+    @media (prefers-reduced-motion: reduce){
+      *{animation:none !important; transition:none !important}
+      .reveal{opacity:1; transform:none}
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="container nav">
+      <a class="brand" href="#" aria-label="Home">
+        <div class="logoMark" aria-hidden="true"></div>
+        <div>
+          <h1>MAE Academy</h1>
+          <p>Power Electronics Simulator</p>
+        </div>
+      </a>
+
+      <div class="actions">
+        <button class="btn" type="button" onclick="runSimulation()">Simulate</button>
+        <button class="btn primary" type="button" onclick="resetDefaults()">Reset</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="headRow reveal">
+        <div class="titleWrap">
+          <div class="simIcon" title="Power icon">⚡</div>
+          <div>
+            <h2>Power Electronics</h2>
+            <div class="sub">1Φ / 3Φ rectifiers • R/RL/RC loads • metrics + waveform plotting</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="simContainer reveal">
+
+        <div class="visualsRow">
+          <!-- Chart panel -->
+          <div class="panel">
+            <div class="panelLabel">
+              <span>Waveforms</span>
+              <span class="small">Vin (phase A) • Vout • Iout</span>
+            </div>
+            <div class="chartWrap">
+              <canvas id="mainChart"></canvas>
+            </div>
+            <div class="hint">Tip: change configuration below, then press <b>Simulate</b>.</div>
+          </div>
+
+          <!-- Right column: diagram + metrics -->
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="panel">
+              <div class="panelLabel">
+                <span>Circuit Diagram</span>
+                <span class="small" id="circuitLabel">—</span>
+              </div>
+              <div class="diagramBox" id="diagramContainer">
+                <div>
+                  <div style="font-size:14px; margin-bottom:6px;">(Optional)</div>
+                  <div style="font-size:12px; font-weight:900; color:rgba(9,16,42,.55); line-height:1.35;">
+                    Add an image inside #diagramContainer<br>
+                    or replace this box with your SVG/PNG.
+                  </div>
+                </div>
+              </div>
+              <div class="hint">You can insert: <code>&lt;img src="..."&gt;</code> inside this box.</div>
+            </div>
+
+            <div class="panel">
+              <div class="panelLabel">
+                <span>Metrics</span>
+                <span class="small">steady-state</span>
+              </div>
+
+              <div class="metricsGrid">
+                <div class="metricCard"><div class="metricVal" id="out_Vrms">-</div><div class="metricLbl">V (RMS)</div></div>
+                <div class="metricCard"><div class="metricVal" id="out_Vdc">-</div><div class="metricLbl">V (DC/Avg)</div></div>
+                <div class="metricCard"><div class="metricVal" id="out_Irms">-</div><div class="metricLbl">I (RMS)</div></div>
+                <div class="metricCard"><div class="metricVal" id="out_Idc">-</div><div class="metricLbl">I (DC/Avg)</div></div>
+
+                <div class="metricCard"><div class="metricVal" id="out_Pdc">-</div><div class="metricLbl">Power (DC)</div></div>
+                <div class="metricCard"><div class="metricVal" id="out_Pac">-</div><div class="metricLbl">Power (AC Active)</div></div>
+
+                <div class="metricCard"><div class="metricVal" id="out_fo">-</div><div class="metricLbl">Freq Out</div></div>
+                <div class="metricCard"><div class="metricVal" id="out_Vac">-</div><div class="metricLbl">V (Ripple AC)</div></div>
+
+                <div class="metricCard"><div class="metricVal" id="out_FF">-</div><div class="metricLbl">Form Factor</div></div>
+                <div class="metricCard"><div class="metricVal" id="out_RF">-</div><div class="metricLbl">Ripple Factor</div></div>
+
+                <div class="metricCard" style="grid-column:1 / -1;">
+                  <div class="metricVal" id="out_EF">-</div><div class="metricLbl">Efficiency %</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controlsArea">
+          <!-- 1) Configuration -->
+          <div class="col">
+            <div class="colHead">1. Configuration</div>
+
+            <div class="group">
+              <label>Phase Configuration</label>
+              <select id="phase">
+                <option value="1">Single Phase</option>
+                <option value="3">Three Phase</option>
+              </select>
+            </div>
+
+            <div class="group">
+              <label>Rectifier Type</label>
+              <select id="rectType">
+                <option value="half">Half Wave</option>
+                <option value="full">Full Wave (Bridge)</option>
+              </select>
+            </div>
+
+            <div class="group">
+              <label>Load Type</label>
+              <select id="loadType" onchange="toggleInputs()">
+                <option value="R">Resistive (R)</option>
+                <option value="RL">Inductive (RL)</option>
+                <option value="RC">Capacitive (RC)</option>
+              </select>
+            </div>
+
+            <div class="group">
+              <label>Freewheeling Diode (FWD)</label>
+              <select id="fwd">
+                <option value="no">Without FWD</option>
+                <option value="yes">With FWD</option>
+              </select>
+            </div>
+
+            <button class="primaryBtn" type="button" onclick="runSimulation()">Simulate</button>
+          </div>
+
+          <!-- 2) Source -->
+          <div class="col">
+            <div class="colHead">2. Source</div>
+
+            <div class="group">
+              <label>Input Voltage Type</label>
+              <select id="vType">
+                <option value="rms">RMS</option>
+                <option value="max">Peak (Max)</option>
+              </select>
+            </div>
+
+            <div class="group">
+              <label>Voltage Magnitude (V)</label>
+              <input type="number" id="vin_val" value="220">
+            </div>
+
+            <div class="group">
+              <label>Frequency (Hz)</label>
+              <input type="number" id="freq" value="50">
+            </div>
+
+            <div class="hint">Vin plot uses Phase A as reference (same as your original Code #1).</div>
+          </div>
+
+          <!-- 3) Load -->
+          <div class="col">
+            <div class="colHead">3. Load</div>
+
+            <div class="group" id="input-R">
+              <label>Resistance R (Ω)</label>
+              <input type="number" id="r_val" value="10">
+            </div>
+
+            <div class="group" id="input-L" style="display:none;">
+              <label>Inductance L (H)</label>
+              <input type="number" id="l_val" value="0.1" step="0.001">
+            </div>
+
+            <div class="group" id="input-C" style="display:none;">
+              <label>Capacitance C (µF)</label>
+              <input type="number" id="c_val" value="1000">
+            </div>
+
+            <div class="hint">
+              RL uses Euler integration. RC uses capacitor charge/discharge model (same as your original).
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // =========================
+    // Chart.js (same idea as Code #1)
+    // =========================
+    let myChart = null;
+
+    function renderChart(labels, vIn, vOut, iOut) {
+      const ctx = document.getElementById('mainChart').getContext('2d');
+      if (myChart) myChart.destroy();
+
+      myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Input Voltage (Phase A)',
+              data: vIn,
+              borderWidth: 1,
+              pointRadius: 0,
+              borderDash: [6, 6],
+              yAxisID: 'y'
+            },
+            {
+              label: 'Output Voltage',
+              data: vOut,
+              borderWidth: 2,
+              pointRadius: 0,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Output Current',
+              data: iOut,
+              borderWidth: 2,
+              pointRadius: 0,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: {
+              title: { display: true, text: 'Time (s)' },
+              ticks: { maxTicksLimit: 10 }
+            },
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              title: { display: true, text: 'Voltage (V)' }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              title: { display: true, text: 'Current (A)' },
+              grid: { drawOnChartArea: false }
+            }
+          }
+        }
+      });
+    }
+
+    // =========================
+    // UI helpers
+    // =========================
+    function toggleInputs() {
+      const type = document.getElementById('loadType').value;
+      document.getElementById('input-L').style.display = (type === 'RL') ? 'block' : 'none';
+      document.getElementById('input-C').style.display = (type === 'RC') ? 'block' : 'none';
+    }
+
+    function resetDefaults(){
+      document.getElementById('phase').value = "1";
+      document.getElementById('rectType').value = "half";
+      document.getElementById('loadType').value = "R";
+      document.getElementById('fwd').value = "no";
+      document.getElementById('vType').value = "rms";
+      document.getElementById('vin_val').value = 220;
+      document.getElementById('freq').value = 50;
+      document.getElementById('r_val').value = 10;
+      document.getElementById('l_val').value = 0.1;
+      document.getElementById('c_val').value = 1000;
+      toggleInputs();
+      runSimulation();
+    }
+
+    // =========================
+    // SIMULATION (same logic as Code #1)
+    // =========================
+    function runSimulation() {
+      const phase = parseInt(document.getElementById('phase').value);
+      const rectType = document.getElementById('rectType').value; // 'half' or 'full'
+      const loadType = document.getElementById('loadType').value;
+      const useFWD = document.getElementById('fwd').value === 'yes';
+
+      let vInVal = parseFloat(document.getElementById('vin_val').value);
+      const vType = document.getElementById('vType').value;
+      const freq = parseFloat(document.getElementById('freq').value);
+      const R = parseFloat(document.getElementById('r_val').value);
+      const L = (loadType === 'RL') ? parseFloat(document.getElementById('l_val').value) : 0;
+      const C = (loadType === 'RC') ? parseFloat(document.getElementById('c_val').value) * 1e-6 : 0;
+
+      // Convert to Vpeak
+      let Vm = (vType === 'rms') ? vInVal * Math.sqrt(2) : vInVal;
+
+      // Simulation parameters
+      const cycles = 3;
+      const period = 1 / freq;
+      const samplesPerCycle = 360;
+      const totalSamples = samplesPerCycle * cycles;
+      const dt = period / samplesPerCycle;
+      const omega = 2 * Math.PI * freq;
+
+      let timeArr = [];
+      let vInArr = [];
+      let vOutArr = [];
+      let iOutArr = [];
+
+      // State vars
+      let i_curr = 0;
+      let v_cap = 0;
+
+      // Label
+      document.getElementById('circuitLabel').innerText =
+        `${phase}-Phase ${rectType}-Wave ${loadType}-Load ${useFWD ? '(With FWD)' : ''}`;
+
+      // Simulation loop
+      for (let n = 0; n < totalSamples; n++) {
+        let t = n * dt;
+        let theta = omega * t;
+
+        // Input voltages
+        let Va = Vm * Math.sin(theta);
+        let Vb = Vm * Math.sin(theta - (2*Math.PI/3));
+        let Vc = Vm * Math.sin(theta + (2*Math.PI/3));
+
+        let v_supply_instant = 0;
+
+        // Rectified voltage (unloaded)
+        if (phase === 1) {
+          if (rectType === 'half') {
+            v_supply_instant = (Va > 0) ? Va : 0;
+          } else {
+            v_supply_instant = Math.abs(Va);
+          }
+        } else {
+          if (rectType === 'half') {
+            v_supply_instant = Math.max(Va, Vb, Vc);
+            if (v_supply_instant < 0) v_supply_instant = 0;
+          } else {
+            let maxV = Math.max(Va, Vb, Vc);
+            let minV = Math.min(Va, Vb, Vc);
+            v_supply_instant = maxV - minV;
+          }
+        }
+
+        // Load physics
+        let v_load = 0;
+        let i_load = 0;
+
+        if (loadType === 'R') {
+          v_load = v_supply_instant;
+          i_load = v_load / R;
+        }
+        else if (loadType === 'RL') {
+          let v_forcing = 0;
+
+          // raw source for 1φ half-wave RL special logic
+          if (phase === 1 && rectType === 'half') {
+            if (useFWD) v_forcing = (Va > 0) ? Va : 0;
+            else v_forcing = Va; // allow forcing follow source (simplified)
+          } else {
+            v_forcing = v_supply_instant;
+          }
+
+          // Euler: L di/dt + R i = v_forcing
+          let di = (v_forcing - R * i_curr) * (dt / L);
+          let i_next = i_curr + di;
+
+          if (i_next < 0) i_next = 0;
+
+          // determine v_load
+          if (i_next > 0) v_load = v_forcing;
+          else v_load = (v_forcing > 0) ? v_forcing : 0;
+
+          i_curr = i_next;
+          i_load = i_curr;
+        }
+        else if (loadType === 'RC') {
+          if (v_supply_instant > v_cap) {
+            v_cap = v_supply_instant;
+          } else {
+            v_cap = v_cap * Math.exp(-dt / (R * C));
+          }
+          v_load = v_cap;
+          i_load = v_load / R;
+        }
+
+        // skip first cycle for steady state
+        if (n > samplesPerCycle) {
+          timeArr.push(t.toFixed(4));
+          vInArr.push(Va);
+          vOutArr.push(v_load);
+          iOutArr.push(i_load);
+        }
+      }
+
+      // Calculations
+      let sumV = 0, sumV2 = 0;
+      let sumI = 0, sumI2 = 0;
+      let sumP = 0;
+      const N = vOutArr.length;
+
+      let maxVout = -Infinity, minVout = Infinity;
+
+      for (let k = 0; k < N; k++) {
+        let v = vOutArr[k];
+        let i = iOutArr[k];
+        sumV += v;
+        sumV2 += v*v;
+        sumI += i;
+        sumI2 += i*i;
+        sumP += (v*i);
+
+        if (v > maxVout) maxVout = v;
+        if (v < minVout) minVout = v;
+      }
+
+      const Vdc = sumV / N;
+      const Vrms = Math.sqrt(sumV2 / N);
+      const Idc = sumI / N;
+      const Irms = Math.sqrt(sumI2 / N);
+
+      const Pdc = Vdc * Idc;
+      const Pac_active = sumP / N;
+
+      const Vac_ripple = Math.sqrt(Math.max(0, Vrms*Vrms - Vdc*Vdc));
+      const FF = (Vdc !== 0) ? (Vrms / Vdc) : 0;
+      const RF = (Vdc !== 0) ? (Vac_ripple / Vdc) : 0;
+      const EF = (Pac_active !== 0) ? (Pdc / Pac_active) * 100 : 0;
+
+      let pulseCount = 0;
+      if (phase === 1 && rectType === 'half') pulseCount = 1;
+      else if (phase === 1 && rectType === 'full') pulseCount = 2;
+      else if (phase === 3 && rectType === 'half') pulseCount = 3;
+      else if (phase === 3 && rectType === 'full') pulseCount = 6;
+      const fOut = freq * pulseCount;
+
+      // Update UI
+      document.getElementById('out_Vrms').innerText = Vrms.toFixed(2);
+      document.getElementById('out_Vdc').innerText = Vdc.toFixed(2);
+      document.getElementById('out_Irms').innerText = Irms.toFixed(2);
+      document.getElementById('out_Idc').innerText = Idc.toFixed(2);
+      document.getElementById('out_Pdc').innerText = Pdc.toFixed(2) + " W";
+      document.getElementById('out_Pac').innerText = Pac_active.toFixed(2) + " W";
+      document.getElementById('out_fo').innerText = fOut + " Hz";
+      document.getElementById('out_Vac').innerText = Vac_ripple.toFixed(2);
+      document.getElementById('out_FF').innerText = FF.toFixed(3);
+      document.getElementById('out_RF').innerText = RF.toFixed(3);
+      document.getElementById('out_EF').innerText = EF.toFixed(1) + "%";
+
+      // Render chart
+      renderChart(timeArr, vInArr, vOutArr, iOutArr);
+    }
+
+    // reveal animation (same behavior as Code #2)
+    (function setupReveal(){
+      const revealEls = document.querySelectorAll(".reveal");
+      const io = new IntersectionObserver((entries) => {
+        for(const e of entries){
+          if(e.isIntersecting){
+            e.target.classList.add("isVisible");
+            io.unobserve(e.target);
+          }
+        }
+      }, {threshold: 0.12});
+      revealEls.forEach(el => io.observe(el));
+    })();
+
+    // init
+    toggleInputs();
+    runSimulation();
+  </script>
+</body>
+</html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MAE Academy — Process Control</title>
 
   <link rel="icon" href="assets/mae.png">
