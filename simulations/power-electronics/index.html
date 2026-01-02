@@ -41,7 +41,6 @@
     a{color:inherit;text-decoration:none}
     .container{width:min(1200px,92%);margin-inline:auto}
 
-    /* Header */
     header{
       position:sticky; top:0; z-index:50;
       background: rgba(234,242,255,.85);
@@ -66,14 +65,13 @@
       display:grid;
       place-items:center;
     }
-
     .logoSvg{
       width:100%;
       height:100%;
       object-fit:contain;
-      filter: brightness(0) invert(1); /* makes svg white */
+      filter: brightness(0) invert(1);
       position:relative;
-      z-index:2; /* فوق shimmer */
+      z-index:2;
     }
     .logoMark::after{
       content:""; position:absolute; inset:-60%;
@@ -134,6 +132,7 @@
       .links{display:none}
       .menuhint{display:inline-flex}
     }
+
     main{padding: 46px 0 70px}
 
     .headRow{
@@ -168,7 +167,6 @@
       max-width: 72ch;
     }
 
-    /* Main card */
     .simContainer{
       background: rgba(255,255,255,.80);
       border: 1px solid rgba(9,16,42,.12);
@@ -189,13 +187,12 @@
     }
     .simContainer > *{position:relative; z-index:1}
 
-    /* Top row */
     .visualsRow{
       display:grid;
       grid-template-columns: 2fr 1fr;
       gap: 16px;
       margin-bottom: 16px;
-      align-items:start; /* ✅ prevents stretching */
+      align-items:start;
     }
     @media (max-width: 980px){
       .visualsRow{grid-template-columns:1fr}
@@ -211,7 +208,7 @@
       position:relative;
       overflow:hidden;
       align-self:start;
-      height: fit-content; /* ✅ hugs content */
+      height: fit-content;
     }
     .panel:hover{
       transform: translateY(-2px);
@@ -233,16 +230,14 @@
       color: var(--muted);
     }
 
-    /* ✅ FIX: chart container AUTO height (no empty area) */
     .chartWrap{
       position:relative;
       width:100%;
+      height: 340px; /* fixed height for Chart.js */
     }
-
-    /* canvas height is controlled safely */
     #mainChart{
       width:100% !important;
-      max-height: 320px;  /* ✅ adjust chart height here */
+      height:100% !important;
       display:block;
       border-radius: 16px;
       background: #fff;
@@ -257,7 +252,6 @@
       line-height:1.35;
     }
 
-    /* Controls */
     .controlsArea{
       display:grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -281,6 +275,7 @@
       color: rgba(9,16,42,.88);
       border-bottom: 2px solid rgba(9,16,42,.14);
       padding-bottom: 8px;
+      margin-bottom: 4px;
     }
 
     .group label{
@@ -292,6 +287,12 @@
       margin-bottom: 6px;
       color: rgba(9,16,42,.92);
     }
+    .group .unit{
+      color: rgba(9,16,42,.55);
+      font-weight: 900;
+      font-size: 12px;
+    }
+
     select, input[type="number"]{
       width:100%;
       padding: 10px 12px;
@@ -318,11 +319,11 @@
       cursor:pointer;
       transition: transform .12s ease, box-shadow .2s ease;
       font-family:"Inter",system-ui,sans-serif;
+      margin-top: 6px;
     }
     .primaryBtn:hover{transform: translateY(-2px); box-shadow: var(--shadow)}
     .primaryBtn:active{transform: translateY(0px)}
 
-    /* Metrics */
     .metricsGrid{
       display:grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -387,11 +388,9 @@
   <header>
     <div class="container nav">
       <a class="brand" href="#top" aria-label="Home">
-        
         <div class="logoMark" aria-hidden="true">
           <img class="logoSvg" src="../../assets/mae.svg" alt="">
         </div>
-
         <div>
           <h1>MAE Academy</h1>
           <p>Learn • Build • Simulate</p>
@@ -414,7 +413,7 @@
     </div>
   </header>
 
-  <main>
+  <main id="top">
     <div class="container">
       <div class="headRow reveal">
         <div class="titleWrap">
@@ -427,9 +426,7 @@
       </div>
 
       <div class="simContainer reveal">
-
         <div class="visualsRow">
-          <!-- Waveforms -->
           <div class="panel">
             <div class="panelLabel">
               <span>Waveforms</span>
@@ -443,7 +440,6 @@
             <div class="hint">Tip: change configuration below, then press <b>Simulate</b>.</div>
           </div>
 
-          <!-- Right side -->
           <div style="display:flex; flex-direction:column; gap:16px; align-self:start;">
             <div class="panel">
               <div class="panelLabel">
@@ -491,49 +487,92 @@
           </div>
         </div>
 
-        <!-- Controls -->
         <div class="controlsArea">
-          <!-- 1) Configuration -->
-<div class="sidebar">
-          <h2>Configuration</h2>
+          <div class="col">
+            <div class="colHead">Configuration</div>
 
-          <div class="control-group">
-            <label>Phase Configuration</label>
-            <select id="phase" onchange="updateAlphaLabel(); runSimulation();">
-              <option value="1">Single Phase</option>
-              <option value="3">Three Phase</option>
-            </select>
+            <div class="group">
+              <label>Phase Configuration</label>
+              <select id="phase">
+                <option value="1">Single Phase</option>
+                <option value="3">Three Phase</option>
+              </select>
+            </div>
+
+            <div class="group">
+              <label>Rectifier Type</label>
+              <select id="rectType">
+                <option value="half">Half Wave</option>
+                <option value="full">Full Wave (Bridge)</option>
+              </select>
+            </div>
+
+            <div class="group">
+              <label>Load Type</label>
+              <select id="loadType">
+                <option value="R">Resistive (R)</option>
+                <option value="RL">Inductive (RL)</option>
+                <option value="RC">Capacitive (RC)</option>
+              </select>
+            </div>
+
+            <div class="group">
+              <label>Freewheeling Diode (FWD)</label>
+              <select id="fwd">
+                <option value="no">Without FWD</option>
+                <option value="yes">With FWD</option>
+              </select>
+            </div>
           </div>
 
-          <div class="control-group">
-            <label>Rectifier Type</label>
-            <select id="rectType" onchange="updateAlphaLabel(); runSimulation();">
-              <option value="half">Half Wave</option>
-              <option value="full">Full Wave (Bridge)</option>
-            </select>
+          <div class="col">
+            <div class="colHead">Source</div>
+
+            <div class="group">
+              <label>Voltage Type</label>
+              <select id="vType">
+                <option value="rms">RMS</option>
+                <option value="peak">Peak</option>
+              </select>
+            </div>
+
+            <div class="group">
+              <label>Input Voltage <span class="unit">(V)</span></label>
+              <input id="vin_val" type="number" value="220" step="1" min="0">
+            </div>
+
+            <div class="group">
+              <label>Frequency <span class="unit">(Hz)</span></label>
+              <input id="freq" type="number" value="50" step="1" min="1">
+            </div>
+
+            <button class="primaryBtn" type="button" id="simulateBtn">Simulate</button>
           </div>
 
-          <div class="control-group">
-            <label>Load Type</label>
-            <select id="loadType" onchange="toggleInputs(); runSimulation();">
-              <option value="R">Resistive (R)</option>
-              <option value="RL">Inductive (RL)</option>
-              <option value="RC">Capacitive (RC)</option>
-            </select>
-          </div>
+          <div class="col">
+            <div class="colHead">Load Values</div>
 
-          <div class="control-group">
-            <label>Freewheeling Diode (FWD)</label>
-            <select id="fwd" onchange="runSimulation()">
-              <option value="no">Without FWD</option>
-              <option value="yes">With FWD</option>
-            </select>
-          </div>
+            <div class="group">
+              <label>Resistance R <span class="unit">(Ω)</span></label>
+              <input id="r_val" type="number" value="10" step="0.1" min="0.1">
+            </div>
 
-          <button class="btn primary" type="button" onclick="runSimulation()">Simulate</button>
+            <div class="group" id="input-L" style="display:none;">
+              <label>Inductance L <span class="unit">(H)</span></label>
+              <input id="l_val" type="number" value="0.1" step="0.01" min="0.001">
+            </div>
+
+            <div class="group" id="input-C" style="display:none;">
+              <label>Capacitance C <span class="unit">(µF)</span></label>
+              <input id="c_val" type="number" value="1000" step="10" min="1">
+            </div>
+
+            <button class="btn" type="button" id="resetBtn">Reset</button>
+          </div>
         </div>
-
       </div>
+    </div>
+  </main>
 
   <script>
     let myChart = null;
@@ -541,6 +580,13 @@
     function renderChart(labels, vIn, vOut, iOut) {
       const ctx = document.getElementById('mainChart').getContext('2d');
       if (myChart) myChart.destroy();
+
+      // MAE palette
+      const MAE_GREEN = "#08b58d";
+      const MAE_BLUE  = "#3f6fff";
+      const MAE_IN    = "rgba(76, 93, 136, 0.95)";   // muted
+      const GRID      = "rgba(9,16,42,0.10)";
+      const TICKS     = "rgba(9,16,42,0.70)";
 
       myChart = new Chart(ctx, {
         type: 'line',
@@ -550,23 +596,32 @@
             {
               label: 'Input Voltage (Phase A)',
               data: vIn,
-              borderWidth: 1,
+              borderColor: MAE_IN,
+              backgroundColor: "rgba(76,93,136,0.12)",
+              borderWidth: 2,
               pointRadius: 0,
               borderDash: [6, 6],
+              tension: 0.25,
               yAxisID: 'y'
             },
             {
               label: 'Output Voltage',
               data: vOut,
-              borderWidth: 2,
+              borderColor: MAE_BLUE,
+              backgroundColor: "rgba(63,111,255,0.15)",
+              borderWidth: 3,
               pointRadius: 0,
+              tension: 0.25,
               yAxisID: 'y'
             },
             {
               label: 'Output Current',
               data: iOut,
-              borderWidth: 2,
+              borderColor: MAE_GREEN,
+              backgroundColor: "rgba(8,181,141,0.14)",
+              borderWidth: 3,
               pointRadius: 0,
+              tension: 0.25,
               yAxisID: 'y1'
             }
           ]
@@ -575,23 +630,44 @@
           responsive: true,
           maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
+
+          plugins: {
+            legend: {
+              labels: {
+                color: TICKS,
+                font: { family: "Inter", weight: "800" },
+                usePointStyle: true,
+                boxWidth: 10
+              }
+            },
+            tooltip: {
+              backgroundColor: "rgba(255,255,255,0.96)",
+              titleColor: "rgba(9,16,42,0.95)",
+              bodyColor: "rgba(9,16,42,0.85)",
+              borderColor: "rgba(9,16,42,0.12)",
+              borderWidth: 1
+            }
+          },
+
           scales: {
             x: {
-              title: { display: true, text: 'Time (s)' },
-              ticks: { maxTicksLimit: 10 }
+              grid: { color: GRID },
+              ticks: { color: TICKS, maxTicksLimit: 10 },
+              title: { display: true, text: 'Time (s)', color: TICKS, font: { weight: "900" } }
             },
             y: {
               type: 'linear',
-              display: true,
               position: 'left',
-              title: { display: true, text: 'Voltage (V)' }
+              grid: { color: GRID },
+              ticks: { color: TICKS },
+              title: { display: true, text: 'Voltage (V)', color: TICKS, font: { weight: "900" } }
             },
             y1: {
               type: 'linear',
-              display: true,
               position: 'right',
-              title: { display: true, text: 'Current (A)' },
-              grid: { drawOnChartArea: false }
+              grid: { drawOnChartArea: false },
+              ticks: { color: TICKS },
+              title: { display: true, text: 'Current (A)', color: TICKS, font: { weight: "900" } }
             }
           }
         }
@@ -628,9 +704,10 @@
       let vInVal = parseFloat(document.getElementById('vin_val').value);
       const vType = document.getElementById('vType').value;
       const freq = parseFloat(document.getElementById('freq').value);
-      const R = parseFloat(document.getElementById('r_val').value);
-      const L = (loadType === 'RL') ? parseFloat(document.getElementById('l_val').value) : 0;
-      const C = (loadType === 'RC') ? parseFloat(document.getElementById('c_val').value) * 1e-6 : 0;
+
+      const R = Math.max(0.0001, parseFloat(document.getElementById('r_val').value));
+      const L = (loadType === 'RL') ? Math.max(0.000001, parseFloat(document.getElementById('l_val').value)) : 0;
+      const C = (loadType === 'RC') ? Math.max(0.000000001, parseFloat(document.getElementById('c_val').value)) * 1e-6 : 0;
 
       let Vm = (vType === 'rms') ? vInVal * Math.sqrt(2) : vInVal;
 
@@ -682,6 +759,7 @@
         if (loadType === 'R') {
           v_load = v_supply_instant;
           i_load = v_load / R;
+
         } else if (loadType === 'RL') {
           let v_forcing = 0;
 
@@ -696,8 +774,7 @@
           let i_next = i_curr + di;
           if (i_next < 0) i_next = 0;
 
-          if (i_next > 0) v_load = v_forcing;
-          else v_load = (v_forcing > 0) ? v_forcing : 0;
+          v_load = (i_next > 0) ? v_forcing : Math.max(0, v_forcing);
 
           i_curr = i_next;
           i_load = i_curr;
@@ -711,7 +788,7 @@
         }
 
         if (n > samplesPerCycle) {
-          timeArr.push(t.toFixed(4));
+          timeArr.push(Number(t.toFixed(4)));
           vInArr.push(Va);
           vOutArr.push(v_load);
           iOutArr.push(i_load);
@@ -721,7 +798,7 @@
       let sumV = 0, sumV2 = 0;
       let sumI = 0, sumI2 = 0;
       let sumP = 0;
-      const N = vOutArr.length;
+      const N = vOutArr.length || 1;
 
       for (let k = 0; k < N; k++) {
         let v = vOutArr[k];
@@ -759,7 +836,7 @@
       document.getElementById('out_Idc').innerText = Idc.toFixed(2);
       document.getElementById('out_Pdc').innerText = Pdc.toFixed(2) + " W";
       document.getElementById('out_Pac').innerText = Pac_active.toFixed(2) + " W";
-      document.getElementById('out_fo').innerText = fOut + " Hz";
+      document.getElementById('out_fo').innerText = fOut.toFixed(0) + " Hz";
       document.getElementById('out_Vac').innerText = Vac_ripple.toFixed(2);
       document.getElementById('out_FF').innerText = FF.toFixed(3);
       document.getElementById('out_RF').innerText = RF.toFixed(3);
@@ -781,13 +858,20 @@
       revealEls.forEach(el => io.observe(el));
     })();
 
-    // Mobile menu hint: jump to sections quickly
     const jumpBtn = document.getElementById("jumpMenu");
     if(jumpBtn){
-      jumpBtn.addEventListener("click", () => {
-        window.location.href = "../../#tracks";
-      });
+      jumpBtn.addEventListener("click", () => window.location.href = "../../#tracks");
     }
+
+    document.getElementById('loadType').addEventListener('change', () => { toggleInputs(); runSimulation(); });
+    ['phase','rectType','fwd','vType','vin_val','freq','r_val','l_val','c_val'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.addEventListener('change', runSimulation);
+    });
+
+    document.getElementById('simulateBtn').addEventListener('click', runSimulation);
+    document.getElementById('resetBtn').addEventListener('click', resetDefaults);
 
     toggleInputs();
     runSimulation();
