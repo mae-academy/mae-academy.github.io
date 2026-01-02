@@ -24,7 +24,129 @@
       --border: rgba(9,16,42,.14);
       --shadow: 0 22px 60px rgba(16,24,40,.12);
       --radius: 22px;
+      --primary:#2563eb;
+      --panel:#ffffff;
     }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 520px at 15% -10%, rgba(63,111,255,.20), transparent 55%),
+        radial-gradient(900px 520px at 86% 0%, rgba(8,181,141,.18), transparent 55%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      overflow-x:hidden;
+      padding:0;
+      display:block;
+      min-height:100vh;
+    }
+
+    header{
+      position:sticky; top:0; z-index:50;
+      background: rgba(234,242,255,.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 14px 0;
+      gap: 14px;
+      max-width:1200px;
+      margin:0 auto;
+      padding-inline:20px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+      min-width: 220px;
+    }
+    .logoMark{
+      width:44px;height:44px;border-radius:14px;
+      background: conic-gradient(from 220deg, var(--brand), var(--brand2), var(--brand));
+      position:relative;
+      box-shadow: 0 14px 30px rgba(63,111,255,.18);
+      overflow:hidden;
+      display:grid;
+      place-items:center;
+    }
+
+    .logoSvg{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      filter: brightness(0) invert(1); /* makes svg white */
+      position:relative;
+      z-index:2; /* فوق shimmer */
+    }
+    .logoMark::after{
+      content:""; position:absolute; inset:-60%;
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.75), transparent 55%);
+      animation: shimmer 5.6s ease-in-out infinite;
+    }
+    @keyframes shimmer{
+      0%,100%{transform:translate(12%,12%) rotate(0deg)}
+      50%{transform:translate(-12%,-12%) rotate(25deg)}
+    }
+    .brand h1{margin:0;font-size:15px;line-height:1.2}
+    .brand p{margin:0;font-size:12px;color:var(--muted)}
+
+    .actions{display:flex; gap:10px; align-items:center}
+    .btn{
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.75);
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 16px;
+      cursor:pointer;
+      font-weight: 900;
+      transition: transform .2s ease, box-shadow .2s ease;
+      display:inline-flex; align-items:center; gap:8px;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{transform: translateY(-1px); box-shadow: var(--shadow)}
+    .btn.primary{
+      border: none;
+      background: linear-gradient(135deg, rgba(8,181,141,.95), rgba(63,111,255,.90));
+      color:#06101a;
+    }
+
+    .container{
+      max-width:1200px;
+      margin:0 auto;
+      padding:20px;
+      display:grid;
+      grid-template-columns:300px 1fr;
+      gap:20px;
+      min-height:calc(100vh - 80px);
+    }
+    .sidebar{
+      background:var(--panel);
+      padding:20px;
+      border-radius:12px;
+      box-shadow:0 4px 6px -1px rgba(0,0,0,.1);
+      border:1px solid var(--border);
+      overflow-y:auto;
+    }
+    h2,h3{margin-top:0;color:var(--primary)}
+    .control-group{margin-bottom:15px}
+    label{display:block;font-size:.9em;font-weight:600;margin-bottom:6px}
+    select,input{width:100%;padding:8px;border:1px solid var(--border);border-radius:6px}
+    button{
+      width:100%;
+      background:var(--primary);
+      color:#fff;
+      border:none;
+      padding:12px;
+      border-radius:6px;
+      cursor:pointer;
+      font-weight:700;
+      margin-top:10px;
+    }
+    button:hover{opacity:.9}
+    .small-note{font-size:.82em;color:#64748b;margin-top:6px}
+    
 
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -358,43 +480,39 @@
         </div>
       </a>
 
+  <header>
+    <div class="nav">
+      <a class="brand" href="../../" aria-label="Back to Home">
+        <div class="logoMark" aria-hidden="true">
+          <img class="logoSvg" src="../../assets/mae.svg" alt="">
+        </div>
+        <div>
+          <h1>MAE Academy</h1>
+          <p>Power Electronics</p>
+        </div>
+      </a>
+
       <div class="actions">
-        <button class="btn" type="button" onclick="runSimulation()">Simulate</button>
-        <button class="btn primary" type="button" onclick="resetDefaults()">Reset</button>
+        <button class="btn" type="button" onclick="location.href='../'">← Back to Sim Hub</button>
+        <a class="btn primary" href="../../#contact">Start ↗</a>
       </div>
     </div>
   </header>
 
-  <main>
-    <div class="container">
-      <div class="headRow reveal">
-        <div class="titleWrap">
-          <div class="simIcon" title="Power icon">⚡</div>
-          <div>
-            <h2>Power Electronics</h2>
-            <div class="sub">1Φ / 3Φ rectifiers • R/RL/RC loads • metrics + waveform plotting</div>
-          </div>
-        </div>
+  <div class="container">
+    <div class="sidebar">
+      <h2>Configuration</h2>
+
+      <div class="control-group">
+        <label>Phase Configuration</label>
+        <select id="phase" onchange="updateAlphaLabel(); runSimulation();">
+          <option value="1">Single Phase</option>
+          <option value="3">Three Phase</option>
+        </select>
       </div>
-
-      <div class="simContainer reveal">
-
-        <div class="visualsRow">
-          <!-- Waveforms -->
-          <div class="panel">
-            <div class="panelLabel">
-              <span>Waveforms</span>
-              <span class="small">Vin (phase A) • Vout • Iout</span>
-            </div>
-
-            <div class="chartWrap">
-              <canvas id="mainChart"></canvas>
-            </div>
-
-            <div class="hint">Tip: change configuration below, then press <b>Simulate</b>.</div>
           </div>
 
-          <!-- Right side -->
+      <div class="main">
           <div style="display:flex; flex-direction:column; gap:16px; align-self:start;">
             <div class="panel">
               <div class="panelLabel">
@@ -785,5 +903,7 @@
     toggleInputs();
     runSimulation();
   </script>
+  </div>
+  </div>
 </body>
 </html>
