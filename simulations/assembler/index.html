@@ -98,18 +98,6 @@
       color:var(--muted);
       font-weight:600;
     }
-    .links{
-      display:flex; gap:20px;
-    }
-    .links a{
-      color: var(--text);
-      text-decoration: none;
-      font-weight: 500;
-      transition: color .2s;
-    }
-    .links a:hover{
-      color: var(--brand);
-    }
     .actions{
       display:flex; gap:8px;
     }
@@ -138,37 +126,6 @@
       background: var(--brand2);
       color: var(--brand);
     }
-    .menuhint{
-      display: none;
-    }
-
-    @media (max-width: 768px) {
-      .menuhint {
-        display: block;
-      }
-      .links {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: rgba(234,242,255,.95);
-        backdrop-filter: blur(10px);
-        border-bottom: 1px solid var(--border);
-        flex-direction: column;
-        padding: 20px;
-        gap: 16px;
-        transform: translateY(-100%);
-        opacity: 0;
-        pointer-events: none;
-        transition: all .3s;
-      }
-      .links.open {
-        transform: translateY(0);
-        opacity: 1;
-        pointer-events: auto;
-      }
-    }
-
     /* ----- Emulator Layout ----- */
     .app{
       max-width:1500px;
@@ -452,17 +409,8 @@
         </div>
       </a>
 
-      <nav class="links" aria-label="Navigation">
-        <a href="../../#top">Home</a>
-        <a href="../../#tracks">Tracks</a>
-        <a href="../../#simhub">Simulations</a>
-        <a href="../../#showcase">Showcase</a>
-        <a href="../../#contact">Contact</a>
-      </nav>
-
       <div class="actions">
-        <button class="btn menuhint" type="button" id="jumpMenu">Menu</button>
-        <a class="btn" href="../">Open Sim Hub</a>
+        <a class="btn" href="../">Back to Simulations</a>
         <a class="btn primary" href="../../#contact">Start ↗</a>
       </div>
     </div>
@@ -1445,16 +1393,6 @@ STR: DB "ab"
 })();
 </script>
 
-<script>
-  const jumpMenu = document.getElementById('jumpMenu');
-  if (jumpMenu) {
-    jumpMenu.addEventListener('click', () => {
-      const links = document.querySelector('.links');
-      if (links) {
-        links.classList.toggle('open');
-      }
-    });
-  }
 </script>
 </body>
 </html>
