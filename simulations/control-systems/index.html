@@ -427,7 +427,7 @@
             
             <div>
               <h2>Control Systems</h2>
-              <div class="sub">Time response • Root locus • PID tuning (scroll on graph = adjust SP)</div>
+              <div class="sub">Time response • Root locus • PID tuning</div>
             </div>
           </div>
         </div>
@@ -442,7 +442,7 @@
           <div class="panel">
             <div class="panelLabel">
               <span>Time Response</span>
-              <span class="small">Scroll = adjust SP (Shift fast, Ctrl fine)</span>
+              
             </div>
 
             <div style="position:relative">
@@ -457,7 +457,7 @@
               </div>
             </div>
 
-            <div class="hint">Tip: scroll to change SP. (Shift = faster, Ctrl = fine)</div>
+            <div class="hint">Use the SP slider below to set the setpoint.</div>
           </div>
 
           <div class="panel">
@@ -501,6 +501,11 @@
             <div class="group param-2nd">
               <label>Damping Ratio (ζ): <span id="val-zeta">0.5</span></label>
               <input type="range" id="inp-zeta" min="0" max="2.0" step="0.05" value="0.5">
+            </div>
+
+            <div class="group">
+              <label>Setpoint (SP): <span id="val-sp">50</span></label>
+              <input type="range" id="inp-sp" min="0" max="125" step="1" value="50">
             </div>
 
             <div class="group param-3rd" style="display:none;">
@@ -622,13 +627,7 @@
 
     function init() {
       // wheel on Time chart = adjust SP
-      const simCanvas = document.getElementById('simCanvas');
-      simCanvas.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const step = e.ctrlKey ? 0.2 : (e.shiftKey ? 5 : 1);
-        pid.sp += (e.deltaY < 0 ? step : -step);
-        pid.sp = Math.max(0, Math.min(125, pid.sp));
-      }, { passive: false });
+      // Removed: SP now controlled by slider
 
       bindInputs();
       makeCharts();
@@ -830,6 +829,7 @@
       bind('inp-zeta', sys, 'zeta');
       bind('inp-p3', sys, 'p3');
 
+      bind('inp-sp', pid, 'sp');
       bind('inp-kp', pid, 'kp');
       bind('inp-ki', pid, 'ki');
       bind('inp-kd', pid, 'kd');
@@ -903,6 +903,8 @@
 
     function triggerStep() {
       pid.sp = (pid.sp === 50) ? 80 : 50;
+      document.getElementById('inp-sp').value = pid.sp;
+      document.getElementById('val-sp').innerText = pid.sp;
     }
 
     // =========================
