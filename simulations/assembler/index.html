@@ -6,9 +6,6 @@
   <title>MAE Academy — Assembler</title>
 
   <link rel="icon" href="assets/mae.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
 
   <style>
     :root{
@@ -39,8 +36,10 @@
     html,body{height:100%}
     body{
       margin:0;
-      font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      font-family:"Apple Gothic",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
       color:var(--text);
+      transition: opacity 0.5s ease;
+      opacity: 0;
       background:
         radial-gradient(900px 520px at 15% -10%, rgba(63,111,255,.20), transparent 55%),
         radial-gradient(900px 520px at 86% 0%, rgba(8,181,141,.18), transparent 55%),
@@ -109,7 +108,7 @@
       display:inline-flex; align-items:center; gap:8px;
       user-select:none;
       white-space:nowrap;
-      font-family:"Inter",system-ui,sans-serif;
+      font-family:"Apple Gothic",system-ui,sans-serif;
     }
     .btn:hover{transform: translateY(-1px); box-shadow: var(--shadow)}
     .btn:active{transform: translateY(0px)}
@@ -137,7 +136,7 @@
 
     /* inputs/selects match rounded style */
     select, input, textarea{
-      font-family:"Inter",system-ui,sans-serif;
+      font-family:"Apple Gothic",system-ui,sans-serif;
     }
     select, input{
       width:auto;
@@ -582,6 +581,21 @@
   </main>
 
 <script>
+  // Page transition
+  window.addEventListener('load', () => {
+    document.body.style.opacity = '1';
+  });
+  document.addEventListener('click', e => {
+    const link = e.target.closest('a');
+    if (link && link.href && !link.href.startsWith('javascript') && !link.target) {
+      e.preventDefault();
+      document.body.style.opacity = '0';
+      setTimeout(() => {
+        window.location = link.href;
+      }, 500);
+    }
+  });
+
 (() => {
   const el = (id) => document.getElementById(id);
   const codeEl = el("code");
