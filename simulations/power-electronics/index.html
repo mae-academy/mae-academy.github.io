@@ -166,8 +166,8 @@
 
     .visualsRow{
       display:grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 16px;
+      grid-template-columns: auto 1fr;
+      gap: 0;
       margin-bottom: 16px;
       align-items:start;
     }
@@ -209,8 +209,8 @@
 
     .chartWrap{
       position:relative;
-      width:100%;
-      height: 340px; /* fixed height for Chart.js */
+      width: 860px;
+      height: 320px; /* larger height for Chart.js */
     }
     #mainChart{
       width:100% !important;
@@ -303,7 +303,7 @@
 
     .metricsGrid{
       display:grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: 1fr;
       gap: 10px;
     }
     .metricCard{
@@ -330,7 +330,8 @@
       border-radius: 16px;
       background: rgba(255,255,255,.6);
       padding: 12px;
-      min-height: 180px;
+      min-height: 272px;
+      width:860px;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -395,20 +396,17 @@
 
       <div class="simContainer reveal">
         <div class="visualsRow">
-          <div class="panel">
-            <div class="panelLabel">
-              <span>Waveforms</span>
-              <span class="small">Vin (phase A) • Vout • Iout</span>
+          <div style="display:flex; flex-direction:column; gap:16px; align-self:start; width:760px;">
+            <div class="panel">
+              <div class="panelLabel">
+                <span>Waveforms</span>
+                <span class="small">Vin (phase A) • Vout • Iout</span>
+              </div>
+              <div class="chartWrap">
+                <canvas id="mainChart"></canvas>
+              </div>
+              <div class="hint">Tip: change configuration below, then press <b>Simulate</b>.</div>
             </div>
-
-            <div class="chartWrap">
-              <canvas id="mainChart"></canvas>
-            </div>
-
-            <div class="hint">Tip: change configuration below, then press <b>Simulate</b>.</div>
-          </div>
-
-          <div style="display:flex; flex-direction:column; gap:16px; align-self:start;">
             <div class="panel">
               <div class="panelLabel">
                 <span>Circuit Diagram</span>
@@ -423,33 +421,27 @@
                   </div>
                 </div>
               </div>
-              <div class="hint">You can insert: <code>&lt;img src="..."&gt;</code> inside this box.</div>
+              <div class="hint">You can insert: <code>&lt;img src=\"...\"&gt;</code> inside this box.</div>
             </div>
-
-            <div class="panel">
-              <div class="panelLabel">
-                <span>Metrics</span>
-                <span class="small">steady-state</span>
-              </div>
-
-              <div class="metricsGrid">
-                <div class="metricCard"><div class="metricVal" id="out_Vrms">-</div><div class="metricLbl">V (RMS)</div></div>
-                <div class="metricCard"><div class="metricVal" id="out_Vdc">-</div><div class="metricLbl">V (DC/Avg)</div></div>
-                <div class="metricCard"><div class="metricVal" id="out_Irms">-</div><div class="metricLbl">I (RMS)</div></div>
-                <div class="metricCard"><div class="metricVal" id="out_Idc">-</div><div class="metricLbl">I (DC/Avg)</div></div>
-
-                <div class="metricCard"><div class="metricVal" id="out_Pdc">-</div><div class="metricLbl">Power (DC)</div></div>
-                <div class="metricCard"><div class="metricVal" id="out_Pac">-</div><div class="metricLbl">Power (AC Active)</div></div>
-
-                <div class="metricCard"><div class="metricVal" id="out_fo">-</div><div class="metricLbl">Freq Out</div></div>
-                <div class="metricCard"><div class="metricVal" id="out_Vac">-</div><div class="metricLbl">V (Ripple AC)</div></div>
-
-                <div class="metricCard"><div class="metricVal" id="out_FF">-</div><div class="metricLbl">Form Factor</div></div>
-                <div class="metricCard"><div class="metricVal" id="out_RF">-</div><div class="metricLbl">Ripple Factor</div></div>
-
-                <div class="metricCard" style="grid-column:1 / -1;">
-                  <div class="metricVal" id="out_EF">-</div><div class="metricLbl">Efficiency %</div>
-                </div>
+          </div>
+          <div class="panel" style="align-self:start; min-width:260px; margin-left:auto;">
+            <div class="panelLabel">
+              <span>Metrics</span>
+              <span class="small">steady-state</span>
+            </div>
+            <div class="metricsGrid">
+              <div class="metricCard"><div class="metricVal" id="out_Vrms">-</div><div class="metricLbl">V (RMS)</div></div>
+              <div class="metricCard"><div class="metricVal" id="out_Vdc">-</div><div class="metricLbl">V (DC/Avg)</div></div>
+              <div class="metricCard"><div class="metricVal" id="out_Irms">-</div><div class="metricLbl">I (RMS)</div></div>
+              <div class="metricCard"><div class="metricVal" id="out_Idc">-</div><div class="metricLbl">I (DC/Avg)</div></div>
+              <div class="metricCard"><div class="metricVal" id="out_Pdc">-</div><div class="metricLbl">Power (DC)</div></div>
+              <div class="metricCard"><div class="metricVal" id="out_Pac">-</div><div class="metricLbl">Power (AC Active)</div></div>
+              <div class="metricCard"><div class="metricVal" id="out_fo">-</div><div class="metricLbl">Freq Out</div></div>
+              <div class="metricCard"><div class="metricVal" id="out_Vac">-</div><div class="metricLbl">V (Ripple AC)</div></div>
+              <div class="metricCard"><div class="metricVal" id="out_FF">-</div><div class="metricLbl">Form Factor</div></div>
+              <div class="metricCard"><div class="metricVal" id="out_RF">-</div><div class="metricLbl">Ripple Factor</div></div>
+              <div class="metricCard" style="grid-column:1 / -1;">
+                <div class="metricVal" id="out_EF">-</div><div class="metricLbl">Efficiency %</div>
               </div>
             </div>
           </div>
@@ -813,17 +805,17 @@
       else if (phase === 3 && rectType === 'full') pulseCount = 6;
       const fOut = freq * pulseCount;
 
-      document.getElementById('out_Vrms').innerText = Vrms.toFixed(2);
-      document.getElementById('out_Vdc').innerText = Vdc.toFixed(2);
-      document.getElementById('out_Irms').innerText = Irms.toFixed(2);
-      document.getElementById('out_Idc').innerText = Idc.toFixed(2);
-      document.getElementById('out_Pdc').innerText = Pdc.toFixed(2) + " W";
-      document.getElementById('out_Pac').innerText = Pac_active.toFixed(2) + " W";
+      document.getElementById('out_Vrms').innerText = Vrms.toFixed(6) + " V";
+      document.getElementById('out_Vdc').innerText = Vdc.toFixed(6) + " V";
+      document.getElementById('out_Irms').innerText = Irms.toFixed(6) + " A";
+      document.getElementById('out_Idc').innerText = Idc.toFixed(6) + " A";
+      document.getElementById('out_Pdc').innerText = Pdc.toFixed(6) + " W";
+      document.getElementById('out_Pac').innerText = Pac_active.toFixed(6) + "W";
       document.getElementById('out_fo').innerText = fOut.toFixed(0) + " Hz";
-      document.getElementById('out_Vac').innerText = Vac_ripple.toFixed(2);
-      document.getElementById('out_FF').innerText = FF.toFixed(3);
-      document.getElementById('out_RF').innerText = RF.toFixed(3);
-      document.getElementById('out_EF').innerText = EF.toFixed(1) + "%";
+      document.getElementById('out_Vac').innerText = Vac_ripple.toFixed(6);
+      document.getElementById('out_FF').innerText = FF.toFixed(6); 
+      document.getElementById('out_RF').innerText = RF.toFixed(6); 
+      document.getElementById('out_EF').innerText = EF.toFixed(2) + " %";
 
       renderChart(timeArr, vInArr, vOutArr, iOutArr);
     }
