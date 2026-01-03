@@ -590,7 +590,7 @@
         document.body.style.opacity = '0';
         setTimeout(() => {
           window.location = link.href;
-        }, 500);
+        }, 250);
       }
     });
 
@@ -1067,4 +1067,20 @@
     }
   </script>
 </body>
+<script>
+// Page transition
+window.addEventListener('load', () => {
+  document.body.style.opacity = '1';
+});
+document.addEventListener('click', e => {
+  const link = e.target.closest('a');
+  if (link && link.href && !link.href.startsWith('javascript') && !link.target) {
+    e.preventDefault();
+    document.body.style.opacity = '0';
+    setTimeout(() => {
+      window.location = link.href;
+    }, 250);
+  }
+});
+</script>
 </html>
