@@ -1,0 +1,1122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MAE Academy — Convolution Simulator</title>
+
+  <link rel="icon" type="image/svg+xml" href="../../favicon-16.svg">
+
+  <!-- Fonts (same vibe as your MAE pages) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#eaf2ff;
+      --bg2:#f8fbff;
+      --card:#ffffff;
+      --text:#09102a;
+      --muted:#4c5d88;
+      --brand:#08b58d;
+      --brand2:#3f6fff;
+      --danger:#d32f2f;
+      --warn:#ffb020;
+      --border: rgba(9,16,42,.14);
+      --shadow: 0 22px 60px rgba(16,24,40,.12);
+      --radius: 22px;
+
+      --W: 1200px;
+
+      --ring: 0 0 0 10px rgba(63,111,255,.12);
+      --ring2: 0 0 0 8px rgba(8,181,141,.14);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 450px at 20% 0%, rgba(63,111,255,.16), transparent 55%),
+        radial-gradient(800px 420px at 85% 10%, rgba(8,181,141,.14), transparent 60%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+    }
+
+    /* Header */
+    .topbar{
+      position:sticky; top:0; z-index:20;
+      backdrop-filter: blur(10px);
+      background: rgba(234,242,255,.75);
+      border-bottom:1px solid var(--border);
+    }
+    .topbar-inner{
+      max-width:var(--W);
+      margin:0 auto;
+      padding:14px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+      text-decoration:none; color:inherit;
+      min-width: 220px;
+    }
+    .logo{
+      width:38px; height:38px; border-radius:12px;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      box-shadow: 0 10px 26px rgba(63,111,255,.18);
+      display:grid; place-items:center;
+    }
+    .logo svg{width:22px;height:22px;opacity:.95}
+    .brand h1{
+      margin:0; line-height:1;
+      font-size:14px;
+      letter-spacing:.2px;
+      font-weight:900;
+    }
+    .brand p{
+      margin:2px 0 0 0;
+      font-size:12px;
+      color:var(--muted);
+      font-weight:600;
+    }
+    .top-actions{
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .btn{
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, #fff, #f6f9ff);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius: 14px;
+      font-weight:800;
+      font-size:13px;
+      letter-spacing:.2px;
+      cursor:pointer;
+      box-shadow: 0 12px 26px rgba(16,24,40,.08);
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+      user-select:none;
+      display:inline-flex; align-items:center; gap:8px;
+    }
+    .btn:hover{ transform: translateY(-1px); box-shadow: 0 18px 38px rgba(16,24,40,.10); border-color: rgba(63,111,255,.28);}
+    .btn:active{ transform: translateY(0px) scale(.99); }
+    .btn.primary{
+      border: none;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      color:#fff;
+      box-shadow: 0 16px 40px rgba(63,111,255,.18);
+    }
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:10px 12px;
+      border-radius: 999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.7);
+      box-shadow: 0 10px 22px rgba(16,24,40,.08);
+      font-weight:800;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .dot{
+      width:9px; height:9px; border-radius:99px;
+      background: var(--brand2);
+      box-shadow: var(--ring);
+    }
+    .dot.green{ background: var(--brand); box-shadow: var(--ring2); }
+
+    /* Page */
+    .wrap{
+      max-width: var(--W);
+      margin: 0 auto;
+      padding: 18px 18px 40px;
+    }
+
+    .hero{
+      display:flex; gap:18px; align-items:flex-start; justify-content:space-between;
+      padding: 18px 0 10px;
+      flex-wrap: wrap;
+    }
+    .hero-left{min-width: 280px; flex: 1 1 520px;}
+    .hero h2{
+      margin:0;
+      font-size: 28px;
+      letter-spacing:-.5px;
+      font-weight: 900;
+    }
+    .hero p{
+      margin:8px 0 0 0;
+      color: var(--muted);
+      font-weight: 600;
+      line-height:1.5;
+      max-width: 62ch;
+    }
+    .hero-right{
+      flex: 0 0 auto;
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      justify-content:flex-end;
+      min-width: 260px;
+    }
+
+    /* Grid */
+    .grid{
+      display:grid;
+      grid-template-columns: 380px 1fr;
+      gap: 16px;
+      margin-top: 10px;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+      .brand{min-width: auto;}
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card-h{
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      background: linear-gradient(180deg, rgba(248,251,255,.95), rgba(255,255,255,.9));
+    }
+    .card-h strong{font-weight: 900;}
+    .card-b{ padding: 14px 16px; }
+
+    .row{ display:flex; gap:10px; flex-wrap:wrap; }
+    .row > *{ flex: 1 1 150px; }
+
+    label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      font-weight:800;
+      margin-bottom:6px;
+    }
+    select, input[type="number"], input[type="text"]{
+      width:100%;
+      padding:10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      font-weight: 700;
+      outline: none;
+    }
+    input[type="range"]{ width:100%; }
+    .hint{
+      margin-top:8px;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 12px;
+      line-height:1.45;
+    }
+    .divider{ height:1px; background: var(--border); margin: 14px 0; }
+
+    .toggle{
+      display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    }
+    .seg{
+      display:inline-flex;
+      border:1px solid var(--border);
+      border-radius: 999px;
+      overflow:hidden;
+      background:#fff;
+    }
+    .seg button{
+      border:0;
+      padding:10px 12px;
+      font-weight: 900;
+      font-size: 12px;
+      cursor:pointer;
+      background:transparent;
+      color:var(--muted);
+    }
+    .seg button.on{
+      background: linear-gradient(135deg, rgba(8,181,141,.18), rgba(63,111,255,.18));
+      color: var(--text);
+    }
+
+    /* Plots */
+    .plots{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      padding: 14px;
+    }
+    @media (max-width: 980px){
+      .plots{ grid-template-columns: 1fr; }
+    }
+    .plot{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 10px;
+      background: linear-gradient(180deg, rgba(248,251,255,.9), #fff);
+    }
+    .plot-title{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px;
+      padding: 4px 4px 10px;
+      font-weight: 900;
+      letter-spacing:.2px;
+    }
+    .plot-title span{ color: var(--muted); font-weight: 800; font-size: 12px; }
+    canvas{ width:100%; height: 220px; display:block; }
+    .plot canvas.big{ height: 260px; }
+
+    .footerline{
+      margin-top: 16px;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 12px;
+      text-align:center;
+    }
+
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.75);
+      color: var(--muted);
+      font-weight: 800;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#">
+        <div class="logo" aria-hidden="true">
+          <!-- simple MAE-ish mark -->
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M5 16.5V7.8c0-.9 1.1-1.3 1.7-.7l2.6 2.6c.4.4 1 .4 1.4 0l2.6-2.6c.6-.6 1.7-.2 1.7.7v8.7" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5 16.5c0 .9.7 1.5 1.6 1.5h10.8c.9 0 1.6-.6 1.6-1.5" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1>MAE Academy</h1>
+          <p>Signals & Systems · Convolution</p>
+        </div>
+      </a>
+
+      <div class="top-actions">
+        <div class="pill"><span class="dot green"></span> Live</div>
+        <button class="btn" id="btnReset" title="Reset all controls (R)">
+          Reset <span class="kbd">R</span>
+        </button>
+        <button class="btn primary" id="btnRecalc" title="Recompute convolution (Enter)">
+          Recompute <span class="kbd">↵</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="hero">
+      <div class="hero-left">
+        <h2>Convolution Integral Simulator</h2>
+        <p>
+          Pick <b>x(t)</b> and <b>h(t)</b>, then slide <b>t</b> to see the integrand <b>x(τ)·h(t−τ)</b> and the output <b>y(t)=∫ x(τ)h(t−τ)dτ</b>.
+          Switch to discrete mode to compute the sum convolution.
+        </p>
+      </div>
+      <div class="hero-right">
+        <div class="pill"><span class="dot"></span> MAE Style UI</div>
+        <div class="pill"><span class="dot green"></span> Continuous + Discrete</div>
+      </div>
+    </div>
+
+    <section class="grid">
+      <!-- Controls -->
+      <div class="card">
+        <div class="card-h">
+          <strong>Controls</strong>
+          <div class="toggle">
+            <div class="seg" role="tablist" aria-label="Mode">
+              <button id="modeCont" class="on" type="button">Continuous</button>
+              <button id="modeDisc" type="button">Discrete</button>
+            </div>
+          </div>
+        </div>
+        <div class="card-b">
+
+          <div class="row">
+            <div>
+              <label>Time Range (t)</label>
+              <div class="row">
+                <input id="tMin" type="number" step="0.5" value="-6">
+                <input id="tMax" type="number" step="0.5" value="6">
+              </div>
+              <div class="hint">Tip: larger range = slower recompute.</div>
+            </div>
+            <div>
+              <label>Resolution</label>
+              <div class="row">
+                <input id="nT" type="number" min="120" max="900" step="10" value="420" title="Number of samples along t for plotting y(t)">
+                <input id="nTau" type="number" min="300" max="2500" step="50" value="1100" title="Number of samples along τ for integration/sum">
+              </div>
+              <div class="hint"><b>Continuous:</b> uses numeric integration. <b>Discrete:</b> uses summation.</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row">
+            <div>
+              <label>x(t) Signal</label>
+              <select id="xType">
+                <option value="delta">δ(t) (approx)</option>
+                <option value="u" selected>u(t)</option>
+                <option value="r">r(t)</option>
+                <option value="sin">sin(t)</option>
+                <option value="cos">cos(t)</option>
+                <option value="rect">rect(t)</option>
+                <option value="tri">tri(t)</option>
+                <option value="sinc">sinc(πt)</option>
+                <option value="sa">sa(t)=sin(t)/t</option>
+              </select>
+            </div>
+            <div>
+              <label>h(t) Signal</label>
+              <select id="hType">
+                <option value="delta">δ(t) (approx)</option>
+                <option value="u">u(t)</option>
+                <option value="r">r(t)</option>
+                <option value="sin">sin(t)</option>
+                <option value="cos">cos(t)</option>
+                <option value="rect" selected>rect(t)</option>
+                <option value="tri">tri(t)</option>
+                <option value="sinc">sinc(πt)</option>
+                <option value="sa">sa(t)=sin(t)/t</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <div>
+              <label>x(t): Amplitude</label>
+              <input id="xA" type="number" step="0.1" value="1">
+            </div>
+            <div>
+              <label>x(t): Shift</label>
+              <input id="xShift" type="number" step="0.1" value="0">
+            </div>
+            <div>
+              <label>x(t): Scale</label>
+              <input id="xScale" type="number" min="0.1" step="0.1" value="1">
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <div>
+              <label>h(t): Amplitude</label>
+              <input id="hA" type="number" step="0.1" value="1">
+            </div>
+            <div>
+              <label>h(t): Shift</label>
+              <input id="hShift" type="number" step="0.1" value="0">
+            </div>
+            <div>
+              <label>h(t): Scale</label>
+              <input id="hScale" type="number" min="0.1" step="0.1" value="1">
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div>
+            <label>Slide t (for integrand x(τ)·h(t−τ))</label>
+            <input id="tSlider" type="range" min="0" max="1000" value="500">
+            <div class="row" style="margin-top:8px">
+              <div class="pill" style="justify-content:center; flex:1 1 auto;">
+                <span class="dot"></span> t = <span id="tNow" style="margin-left:6px;color:var(--text)"></span>
+              </div>
+              <div class="pill" style="justify-content:center; flex:1 1 auto;">
+                <span class="dot green"></span> y(t) = <span id="yNow" style="margin-left:6px;color:var(--text)"></span>
+              </div>
+            </div>
+            <div class="hint">
+              <span class="kbd">←</span>/<span class="kbd">→</span> for fine sliding · <span class="kbd">Shift</span>+arrows for faster.
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row">
+            <button class="btn" id="btnExport">Export y(t) as CSV</button>
+            <button class="btn" id="btnAuto">Auto Recompute: <span id="autoState">ON</span></button>
+          </div>
+
+          <div class="hint" style="margin-top:10px">
+            Notes:
+            <ul style="margin:8px 0 0 16px; padding:0; line-height:1.55">
+              <li><b>δ(t)</b> is approximated (for display + numeric stability).</li>
+              <li><b>sinc(πt)</b> uses sin(πt)/(πt), while <b>sa(t)</b> uses sin(t)/t.</li>
+              <li>In <b>discrete mode</b>, shifts are rounded to nearest integer sample.</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Plots -->
+      <div class="card">
+        <div class="card-h">
+          <strong>Plots</strong>
+          <span class="pill"><span class="dot"></span> τ-domain integrand + y(t)</span>
+        </div>
+        <div class="plots">
+          <div class="plot">
+            <div class="plot-title">x(t) <span id="xDesc"></span></div>
+            <canvas id="cx" width="900" height="320"></canvas>
+          </div>
+          <div class="plot">
+            <div class="plot-title">h(t) <span id="hDesc"></span></div>
+            <canvas id="ch" width="900" height="320"></canvas>
+          </div>
+          <div class="plot">
+            <div class="plot-title">Integrand vs τ: x(τ) · h(t−τ) <span id="intDesc"></span></div>
+            <canvas id="cint" class="big" width="900" height="360"></canvas>
+          </div>
+          <div class="plot">
+            <div class="plot-title">y(t) (convolution output) <span id="yDesc"></span></div>
+            <canvas id="cy" class="big" width="900" height="360"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footerline">
+      MAE Academy · Original implementation · Numeric convolution (no copied site code)
+    </div>
+  </main>
+
+<script>
+/* ==========================
+   MAE Convolution Simulator
+   - Original code (not copied)
+   - Continuous: y(t)=∫ x(τ)h(t-τ)dτ via numeric integration
+   - Discrete:   y[n]=Σ x[k] h[n-k]
+========================== */
+
+(() => {
+  // ---------- Utils ----------
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a,b,t) => a + (b-a)*t;
+
+  function niceStep(range){
+    if (range <= 0) return 1;
+    const p = Math.pow(10, Math.floor(Math.log10(range)));
+    const n = range / p;
+    if (n < 1.5) return 0.2 * p;
+    if (n < 3) return 0.5 * p;
+    if (n < 7) return 1 * p;
+    return 2 * p;
+  }
+
+  // ---------- Signal library (base) ----------
+  function baseSignal(type, t, mode, approxDt){
+    // approxDt used for delta approximation width
+    const eps = 1e-12;
+
+    switch(type){
+      case "delta": {
+        // Approx delta as narrow Gaussian, scaled so integral ~ 1.
+        // sigma tied to approxDt so it behaves stable with resolution.
+        const sigma = Math.max(approxDt * 1.2, 0.03);
+        const norm = 1 / (sigma * Math.sqrt(2*Math.PI));
+        return norm * Math.exp(-(t*t)/(2*sigma*sigma));
+      }
+      case "u": return (t >= 0) ? 1 : 0;
+      case "r": return (t >= 0) ? t : 0;
+      case "sin": return Math.sin(t);
+      case "cos": return Math.cos(t);
+      case "rect": {
+        // rect(t): 1 for |t|<=0.5
+        return (Math.abs(t) <= 0.5) ? 1 : 0;
+      }
+      case "tri": {
+        // tri(t): 1-|t| for |t|<=1
+        const a = Math.abs(t);
+        return (a <= 1) ? (1 - a) : 0;
+      }
+      case "sinc": {
+        // sinc(pi t) = sin(pi t)/(pi t)
+        const x = Math.PI * t;
+        return (Math.abs(x) < eps) ? 1 : Math.sin(x)/x;
+      }
+      case "sa": {
+        // sa(t)=sin(t)/t
+        return (Math.abs(t) < eps) ? 1 : Math.sin(t)/t;
+      }
+      default: return 0;
+    }
+  }
+
+  function buildSignal(type, A, shift, scale, mode, approxDt){
+    const s = Math.max(0.1, Math.abs(scale || 1));
+    const sh = shift || 0;
+
+    // In discrete mode, shifts should be integer-ish.
+    const shDisc = (mode === "discrete") ? Math.round(sh) : sh;
+
+    return (t) => {
+      const tt = (t - shDisc) / s;
+      return (A || 0) * baseSignal(type, tt, mode, approxDt);
+    };
+  }
+
+  // ---------- Canvas plotting ----------
+  function plotLine(canvas, xs, ys, opts){
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height;
+
+    const pad = {l:44, r:16, t:18, b:34};
+    const w = W - pad.l - pad.r;
+    const h = H - pad.t - pad.b;
+
+    // Compute bounds
+    const xMin = (opts && opts.xMin != null) ? opts.xMin : Math.min(...xs);
+    const xMax = (opts && opts.xMax != null) ? opts.xMax : Math.max(...xs);
+    let yMin = (opts && opts.yMin != null) ? opts.yMin : Math.min(...ys);
+    let yMax = (opts && opts.yMax != null) ? opts.yMax : Math.max(...ys);
+
+    if (!isFinite(yMin) || !isFinite(yMax)){ yMin=-1; yMax=1; }
+    if (Math.abs(yMax - yMin) < 1e-9){ yMax = yMin + 1; }
+
+    // give breathing room
+    const r = yMax - yMin;
+    yMin -= r * 0.08;
+    yMax += r * 0.08;
+
+    const X = (x) => pad.l + (x - xMin) / (xMax - xMin) * w;
+    const Y = (y) => pad.t + (1 - (y - yMin) / (yMax - yMin)) * h;
+
+    // background
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = "rgba(255,255,255,0.0)";
+    ctx.fillRect(0,0,W,H);
+
+    // grid
+    const gx = niceStep((xMax - xMin) / 6);
+    const gy = niceStep((yMax - yMin) / 5);
+
+    ctx.lineWidth = 1;
+
+    // vertical grid
+    ctx.strokeStyle = "rgba(9,16,42,0.08)";
+    for (let x = Math.ceil(xMin/gx)*gx; x <= xMax + 1e-9; x += gx){
+      const px = X(x);
+      ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, pad.t+h); ctx.stroke();
+    }
+    // horizontal grid
+    for (let y = Math.ceil(yMin/gy)*gy; y <= yMax + 1e-9; y += gy){
+      const py = Y(y);
+      ctx.beginPath(); ctx.moveTo(pad.l, py); ctx.lineTo(pad.l+w, py); ctx.stroke();
+    }
+
+    // axes (x=0, y=0)
+    ctx.strokeStyle = "rgba(9,16,42,0.25)";
+    if (0 >= xMin && 0 <= xMax){
+      const px = X(0);
+      ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, pad.t+h); ctx.stroke();
+    }
+    if (0 >= yMin && 0 <= yMax){
+      const py = Y(0);
+      ctx.beginPath(); ctx.moveTo(pad.l, py); ctx.lineTo(pad.l+w, py); ctx.stroke();
+    }
+
+    // labels
+    ctx.fillStyle = "rgba(76,93,136,0.95)";
+    ctx.font = "800 11px Inter, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    for (let x = Math.ceil(xMin/gx)*gx; x <= xMax + 1e-9; x += gx){
+      const px = X(x);
+      ctx.fillText(trimNum(x), px, pad.t+h+8);
+    }
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    for (let y = Math.ceil(yMin/gy)*gy; y <= yMax + 1e-9; y += gy){
+      const py = Y(y);
+      ctx.fillText(trimNum(y), pad.l-8, py);
+    }
+
+    // line
+    ctx.strokeStyle = "rgba(63,111,255,0.95)";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    for (let i=0;i<xs.length;i++){
+      const px = X(xs[i]);
+      const py = Y(ys[i]);
+      if (i===0) ctx.moveTo(px,py);
+      else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+
+    // markers (optional)
+    if (opts && opts.vline != null){
+      const px = X(opts.vline);
+      ctx.strokeStyle = "rgba(8,181,141,0.9)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, pad.t+h); ctx.stroke();
+    }
+
+    // point marker (x,y)
+    if (opts && opts.point){
+      const px = X(opts.point.x);
+      const py = Y(opts.point.y);
+      ctx.fillStyle = "rgba(8,181,141,0.95)";
+      ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.95)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI*2); ctx.stroke();
+    }
+
+    // shaded area under integrand (optional)
+    if (opts && opts.shade && opts.shade.xs && opts.shade.ys){
+      const sx = opts.shade.xs, sy = opts.shade.ys;
+      ctx.fillStyle = "rgba(8,181,141,0.16)";
+      ctx.beginPath();
+      ctx.moveTo(X(sx[0]), Y(0));
+      for (let i=0;i<sx.length;i++) ctx.lineTo(X(sx[i]), Y(sy[i]));
+      ctx.lineTo(X(sx[sx.length-1]), Y(0));
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // return for mapping if needed
+    return {xMin,xMax,yMin,yMax};
+  }
+
+  function trimNum(v){
+    // nicer labels
+    const av = Math.abs(v);
+    if (av >= 1000) return v.toFixed(0);
+    if (av >= 100) return v.toFixed(0);
+    if (av >= 10) return v.toFixed(1);
+    if (av >= 1) return v.toFixed(2);
+    return v.toFixed(3);
+  }
+
+  // ---------- Numeric convolution ----------
+  function makeLinspace(a,b,n){
+    const xs = new Array(n);
+    if (n===1){ xs[0]=a; return xs; }
+    const step = (b-a)/(n-1);
+    for (let i=0;i<n;i++) xs[i]=a + step*i;
+    return xs;
+  }
+
+  function computeConvolutionContinuous(xFun, hFun, tVec, tauMin, tauMax, nTau){
+    const tau = makeLinspace(tauMin, tauMax, nTau);
+    const dTau = (tauMax - tauMin)/(nTau - 1);
+
+    // Precompute x(τ)
+    const xTau = tau.map(xFun);
+
+    const y = new Array(tVec.length).fill(0);
+    for (let i=0;i<tVec.length;i++){
+      const t = tVec[i];
+      let acc = 0;
+      for (let k=0;k<tau.length;k++){
+        const ht = hFun(t - tau[k]);
+        acc += xTau[k] * ht;
+      }
+      y[i] = acc * dTau;
+    }
+    return {tau, xTau, y, dTau};
+  }
+
+  function computeConvolutionDiscrete(xFun, hFun, nVec, kMin, kMax){
+    const ks = [];
+    for (let k=kMin;k<=kMax;k++) ks.push(k);
+
+    const xk = ks.map(xFun);
+
+    const y = new Array(nVec.length).fill(0);
+    for (let i=0;i<nVec.length;i++){
+      const n = nVec[i];
+      let acc = 0;
+      for (let idx=0; idx<ks.length; idx++){
+        const k = ks[idx];
+        const hv = hFun(n - k);
+        acc += xk[idx] * hv;
+      }
+      y[i] = acc; // sum (dt=1)
+    }
+    return {ks, xk, y};
+  }
+
+  // ---------- State + UI ----------
+  const els = {
+    modeCont: document.getElementById("modeCont"),
+    modeDisc: document.getElementById("modeDisc"),
+    tMin: document.getElementById("tMin"),
+    tMax: document.getElementById("tMax"),
+    nT: document.getElementById("nT"),
+    nTau: document.getElementById("nTau"),
+    xType: document.getElementById("xType"),
+    hType: document.getElementById("hType"),
+    xA: document.getElementById("xA"),
+    xShift: document.getElementById("xShift"),
+    xScale: document.getElementById("xScale"),
+    hA: document.getElementById("hA"),
+    hShift: document.getElementById("hShift"),
+    hScale: document.getElementById("hScale"),
+    tSlider: document.getElementById("tSlider"),
+    tNow: document.getElementById("tNow"),
+    yNow: document.getElementById("yNow"),
+    btnReset: document.getElementById("btnReset"),
+    btnRecalc: document.getElementById("btnRecalc"),
+    btnExport: document.getElementById("btnExport"),
+    btnAuto: document.getElementById("btnAuto"),
+    autoState: document.getElementById("autoState"),
+
+    cx: document.getElementById("cx"),
+    ch: document.getElementById("ch"),
+    cint: document.getElementById("cint"),
+    cy: document.getElementById("cy"),
+
+    xDesc: document.getElementById("xDesc"),
+    hDesc: document.getElementById("hDesc"),
+    intDesc: document.getElementById("intDesc"),
+    yDesc: document.getElementById("yDesc"),
+  };
+
+  const state = {
+    mode: "continuous",
+    auto: true,
+    tVec: [],
+    yVec: [],
+    tauVec: [],
+    xTau: [],
+    // caches
+    lastComputeKey: "",
+  };
+
+  function readControls(){
+    const mode = state.mode;
+
+    const tMin = parseFloat(els.tMin.value);
+    const tMax = parseFloat(els.tMax.value);
+    const nT   = clamp(parseInt(els.nT.value || "420",10), 60, 2000);
+    const nTau = clamp(parseInt(els.nTau.value || "1100",10), 120, 5000);
+
+    const xType = els.xType.value;
+    const hType = els.hType.value;
+
+    const xA = parseFloat(els.xA.value);
+    const xShift = parseFloat(els.xShift.value);
+    const xScale = parseFloat(els.xScale.value);
+
+    const hA = parseFloat(els.hA.value);
+    const hShift = parseFloat(els.hShift.value);
+    const hScale = parseFloat(els.hScale.value);
+
+    // approx dt used for delta gaussian width
+    const approxDt = (tMax - tMin) / Math.max(100, nTau);
+
+    const xFun = buildSignal(xType, xA, xShift, xScale, mode, approxDt);
+    const hFun = buildSignal(hType, hA, hShift, hScale, mode, approxDt);
+
+    return {mode, tMin, tMax, nT, nTau, xType, hType, xA, xShift, xScale, hA, hShift, hScale, approxDt, xFun, hFun};
+  }
+
+  function describeSignal(type, A, shift, scale, mode){
+    const s = `${type}`;
+    const sh = (mode === "discrete") ? Math.round(shift) : shift;
+    return `${s} · A=${trimNum(A)} · shift=${trimNum(sh)} · scale=${trimNum(scale)}`;
+  }
+
+  function updateModeButtons(){
+    els.modeCont.classList.toggle("on", state.mode === "continuous");
+    els.modeDisc.classList.toggle("on", state.mode === "discrete");
+  }
+
+  function setMode(mode){
+    state.mode = mode;
+    updateModeButtons();
+    // In discrete mode, suggest integer-ish settings
+    if (mode === "discrete"){
+      els.nTau.value = String(clamp(parseInt(els.nTau.value,10), 200, 800));
+      // also lock step visually via hint; shifts rounded in code anyway
+    }
+    recompute(true);
+  }
+
+  function setSliderFromT(t, tMin, tMax){
+    const u = (t - tMin) / (tMax - tMin);
+    els.tSlider.value = String(Math.round(clamp(u,0,1)*1000));
+  }
+
+  function getTFromSlider(tMin, tMax){
+    const u = parseInt(els.tSlider.value,10) / 1000;
+    return lerp(tMin, tMax, u);
+  }
+
+  function recompute(force=false){
+    const C = readControls();
+
+    if (!(C.tMax > C.tMin + 1e-9)){
+      els.tMax.value = String(C.tMin + 1);
+      return recompute(true);
+    }
+
+    // time vectors
+    let tVec;
+    if (C.mode === "continuous"){
+      tVec = makeLinspace(C.tMin, C.tMax, C.nT);
+    } else {
+      // discrete: integer n
+      const nMin = Math.ceil(C.tMin);
+      const nMax = Math.floor(C.tMax);
+      const len = Math.max(2, nMax - nMin + 1);
+      tVec = new Array(len);
+      for (let i=0;i<len;i++) tVec[i]=nMin + i;
+    }
+
+    // build compute key to avoid unnecessary heavy recompute
+    const key = JSON.stringify({
+      mode:C.mode, tMin:C.tMin, tMax:C.tMax, nT:C.nT, nTau:C.nTau,
+      x:C.xType, xA:C.xA, xShift:(C.mode==="discrete"?Math.round(C.xShift):C.xShift), xScale:C.xScale,
+      h:C.hType, hA:C.hA, hShift:(C.mode==="discrete"?Math.round(C.hShift):C.hShift), hScale:C.hScale
+    });
+
+    const shouldCompute = force || (key !== state.lastComputeKey);
+
+    // Plot x(t), h(t) always (fast)
+    const xYs = tVec.map(C.xFun);
+    const hYs = tVec.map(C.hFun);
+
+    plotLine(els.cx, tVec, xYs, {xMin:C.tMin, xMax:C.tMax});
+    plotLine(els.ch, tVec, hYs, {xMin:C.tMin, xMax:C.tMax});
+
+    els.xDesc.textContent = describeSignal(C.xType, C.xA, C.xShift, C.xScale, C.mode);
+    els.hDesc.textContent = describeSignal(C.hType, C.hA, C.hShift, C.hScale, C.mode);
+    els.yDesc.textContent = (C.mode === "continuous") ? "y(t)=∫ x(τ)h(t−τ)dτ" : "y[n]=Σ x[k]h[n−k]";
+
+    if (shouldCompute){
+      state.lastComputeKey = key;
+
+      if (C.mode === "continuous"){
+        // Integrate over tau range (use a bit wider than t-range)
+        const pad = 0.35*(C.tMax - C.tMin);
+        const tauMin = C.tMin - pad;
+        const tauMax = C.tMax + pad;
+
+        const out = computeConvolutionContinuous(C.xFun, C.hFun, tVec, tauMin, tauMax, C.nTau);
+        state.tVec = tVec;
+        state.yVec = out.y;
+        state.tauVec = out.tau;
+        state.xTau = out.xTau;
+      } else {
+        // discrete summation range: choose k range around n range
+        const pad = Math.round(0.45*(C.tMax - C.tMin)) + 8;
+        const kMin = Math.ceil(C.tMin) - pad;
+        const kMax = Math.floor(C.tMax) + pad;
+        const out = computeConvolutionDiscrete(C.xFun, C.hFun, tVec, kMin, kMax);
+        state.tVec = tVec;
+        state.yVec = out.y;
+        state.tauVec = out.ks; // reuse as k
+        state.xTau = out.xk;   // reuse as x[k]
+      }
+    }
+
+    // draw y(t) plot + marker
+    const tNow = getTFromSlider(C.tMin, C.tMax);
+    const tMarker = (C.mode === "continuous") ? tNow : Math.round(tNow);
+
+    const yNow = sampleAt(state.tVec, state.yVec, tMarker, (C.mode==="continuous"));
+    plotLine(els.cy, state.tVec, state.yVec, {
+      xMin: (C.mode==="continuous")?C.tMin:Math.ceil(C.tMin),
+      xMax: (C.mode==="continuous")?C.tMax:Math.floor(C.tMax),
+      vline: tMarker,
+      point: {x: tMarker, y: yNow}
+    });
+
+    // draw integrand plot at current t
+    drawIntegrand(C, tMarker, yNow);
+
+    els.tNow.textContent = trimNum(tMarker);
+    els.yNow.textContent = trimNum(yNow);
+  }
+
+  function sampleAt(xs, ys, x, continuous){
+    if (!xs.length) return 0;
+    if (!continuous){
+      // exact match (integer)
+      const idx = xs.indexOf(x);
+      return (idx >= 0) ? ys[idx] : 0;
+    }
+    // linear interpolation
+    if (x <= xs[0]) return ys[0];
+    if (x >= xs[xs.length-1]) return ys[ys.length-1];
+    let lo = 0, hi = xs.length - 1;
+    while (hi - lo > 1){
+      const mid = (lo + hi) >> 1;
+      if (xs[mid] <= x) lo = mid;
+      else hi = mid;
+    }
+    const t = (x - xs[lo]) / (xs[hi] - xs[lo]);
+    return lerp(ys[lo], ys[hi], t);
+  }
+
+  function drawIntegrand(C, tMarker, yNow){
+    const mode = C.mode;
+
+    let tau, integrand, xTau, hShifted;
+
+    if (mode === "continuous"){
+      tau = state.tauVec;
+      if (!tau.length) return;
+
+      xTau = tau.map(C.xFun);
+      hShifted = tau.map(tt => C.hFun(tMarker - tt)); // h(t-τ)
+      integrand = xTau.map((v,i) => v * hShifted[i]);
+
+      // Shade area = integrand (can be negative; we still fill to y=0)
+      plotLine(els.cint, tau, integrand, {
+        xMin: tau[0], xMax: tau[tau.length-1],
+        vline: 0, // shows τ=0
+        shade: {xs: tau, ys: integrand}
+      });
+
+      els.intDesc.textContent = `t=${trimNum(tMarker)} · numeric ∫ ≈ ${trimNum(yNow)}`;
+    } else {
+      // Discrete: k axis
+      const ks = state.tauVec;
+      if (!ks.length) return;
+
+      xTau = ks.map(C.xFun);
+      hShifted = ks.map(k => C.hFun(tMarker - k)); // h[n-k]
+      integrand = xTau.map((v,i) => v * hShifted[i]);
+
+      plotLine(els.cint, ks, integrand, {
+        xMin: ks[0], xMax: ks[ks.length-1],
+        vline: 0,
+        shade: {xs: ks, ys: integrand}
+      });
+
+      els.intDesc.textContent = `n=${trimNum(tMarker)} · Σ ≈ ${trimNum(yNow)}`;
+    }
+  }
+
+  // ---------- Events ----------
+  const inputs = [
+    els.tMin, els.tMax, els.nT, els.nTau,
+    els.xType, els.hType,
+    els.xA, els.xShift, els.xScale,
+    els.hA, els.hShift, els.hScale
+  ];
+
+  inputs.forEach(el => {
+    el.addEventListener("input", () => {
+      if (state.auto) recompute(true);
+      else recompute(false);
+    });
+    el.addEventListener("change", () => {
+      if (state.auto) recompute(true);
+      else recompute(false);
+    });
+  });
+
+  els.tSlider.addEventListener("input", () => {
+    // fast update: no recompute, just re-draw marker + integrand using cached yVec
+    recompute(false);
+  });
+
+  els.modeCont.addEventListener("click", () => setMode("continuous"));
+  els.modeDisc.addEventListener("click", () => setMode("discrete"));
+
+  els.btnRecalc.addEventListener("click", () => recompute(true));
+
+  els.btnReset.addEventListener("click", () => {
+    // Defaults
+    state.mode = "continuous";
+    updateModeButtons();
+
+    els.tMin.value = "-6";
+    els.tMax.value = "6";
+    els.nT.value = "420";
+    els.nTau.value = "1100";
+
+    els.xType.value = "u";
+    els.hType.value = "rect";
+
+    els.xA.value = "1";
+    els.xShift.value = "0";
+    els.xScale.value = "1";
+
+    els.hA.value = "1";
+    els.hShift.value = "0";
+    els.hScale.value = "1";
+
+    setSliderFromT(0, parseFloat(els.tMin.value), parseFloat(els.tMax.value));
+    recompute(true);
+  });
+
+  els.btnAuto.addEventListener("click", () => {
+    state.auto = !state.auto;
+    els.autoState.textContent = state.auto ? "ON" : "OFF";
+    els.btnAuto.classList.toggle("primary", !state.auto);
+  });
+
+  els.btnExport.addEventListener("click", () => {
+    if (!state.tVec.length) return;
+
+    const rows = [["t","y"]];
+    for (let i=0;i<state.tVec.length;i++){
+      rows.push([state.tVec[i], state.yVec[i]]);
+    }
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "mae_convolution_y.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  // keyboard shortcuts
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Enter"){
+      e.preventDefault();
+      recompute(true);
+      return;
+    }
+    if (e.key.toLowerCase() === "r"){
+      e.preventDefault();
+      els.btnReset.click();
+      return;
+    }
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight"){
+      const step = e.shiftKey ? 12 : 3;
+      const v = parseInt(els.tSlider.value,10);
+      els.tSlider.value = String(clamp(v + (e.key==="ArrowRight"?step:-step), 0, 1000));
+      recompute(false);
+    }
+  });
+
+  // init
+  setSliderFromT(0, parseFloat(els.tMin.value), parseFloat(els.tMax.value));
+  recompute(true);
+})();
+</script>
+</body>
+</html>
