@@ -1,0 +1,5 @@
+
+{
+  "name": "MAE Academy - Digital Transmission Simulator",
+  "description": "A comprehensive simulation tool for digital line coding techniques including NRZ-L, NRZ-I, Manchester, AMI, and Unipolar signals, featuring real-time waveform plotting and signal metrics."
+}
