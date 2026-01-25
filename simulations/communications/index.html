@@ -3,528 +3,615 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Transmission — MAE Academy</title>
-    <link rel="icon" type="image/svg+xml" href="../../assets/favicon-16.svg">
+    <title>MAE Academy — Digital Transmission Simulator</title>
+    <meta name="description" content="Interactive Line Coding Simulator for Digital Transmission. Visualize various encoding schemes including B8ZS and HDB3 scrambling.">
+    <meta name="author" content="MAE Academy">
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90' text-anchor='middle'           x='50'%3E�%3C/text%3E%3C/svg%3E">           
     
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
 
-    <style>
-        :root {
-            --bg: #f8fafc;
-            --panel: #ffffff;
-            --panel2: #f2f6ff;
-            --card: #ffffff;
-            --text: #0f172a;
-            --muted: #51607a;
-            --border: rgba(15,23,42,.12);
-            --accent: #2563eb;
-            --good: #16a34a;
-            --warn: #f59e0b;
-            --bad: #ef4444;
-            --shadow: 0 10px 25px rgba(2,8,23,.08);
-            --radius: 16px;
-            --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-            --sans: system-ui,-apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
-        }
-
-        *{box-sizing:border-box}
-        body{
-            margin:0;
-            font-family:var(--sans);
-            background: radial-gradient(1200px 500px at 20% 0%, rgba(37,99,235,.10), transparent 55%),
-                        radial-gradient(900px 450px at 90% 10%, rgba(22,163,74,.10), transparent 55%),
-                        var(--bg);
-            color:var(--text);
-        }
-
-        /* Header */
-        header{
-            position:sticky; top:0; z-index:10;
-            backdrop-filter: blur(10px);
-            background: rgba(246,248,252,.72);
-            border-bottom:1px solid var(--border);
-        }
-        .wrap{max-width:1200px; margin:0 auto; padding:16px 18px;}
-        .brand{
-            display:flex; align-items:center; justify-content:space-between; gap:12px;
-        }
-        .logo{
-            display:flex; align-items:center; gap:12px; text-decoration: none; color: inherit;
-        }
-        .badge{
-            width:40px; height:40px; border-radius:12px;
-            background: linear-gradient(135deg, rgba(37,99,235,.16), rgba(22,163,74,.14));
-            border:1px solid var(--border);
-            box-shadow: var(--shadow);
-            display:grid; place-items:center;
-            font-weight:900;
-            color:var(--accent);
-        }
-        h1{font-size:18px; margin:0; letter-spacing:.2px;}
-        .sub{color:var(--muted); font-size:12px; margin-top:2px;}
-        .topRight{
-            display:flex; gap:8px; align-items:center; flex-wrap:wrap;
-            color:var(--muted);
-            font-size:12px;
-        }
-        .pill{
-            padding:8px 10px; border-radius:999px;
-            background:var(--panel);
-            border:1px solid var(--border);
-            box-shadow: 0 6px 18px rgba(2,8,23,.05);
-            display:flex; gap:8px; align-items:center;
-        }
-
-        /* Main */
-        .main{
-            max-width:1200px; margin:0 auto; padding:18px;
-            display:grid; gap:16px;
-            grid-template-columns: 330px 1fr;
-        }
-        @media (max-width: 980px){
-            .main{grid-template-columns: 1fr;}
-        }
-
-        /* Cards */
-        .card{
-            background:var(--panel);
-            border:1px solid var(--border);
-            border-radius:var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-        }
-        .card h2{
-            margin:0;
-            padding:14px 14px 10px 14px;
-            font-size:14px;
-            border-bottom:1px solid var(--border);
-            display:flex; justify-content:space-between; align-items:center;
-        }
-        .card h2 small{color:var(--muted); font-weight:600; font-size:12px;}
-        .pad{padding:14px;}
-
-        /* Chart Area */
-        .chart-container {
-            position: relative;
-            height: 400px;
-            width: 100%;
-        }
-
-        /* Controls */
-        .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
-        label{font-size:12px; color:var(--muted); font-weight:700; display:block; margin-bottom:4px;}
-        
-        input[type="text"], select{
-            border:1px solid var(--border);
-            background:var(--panel);
-            color:var(--text);
-            border-radius:12px;
-            padding:10px 10px;
-            font-size:13px;
-            outline:none;
-            width: 100%;
-            font-family: var(--mono);
-        }
-        select { font-family: var(--sans); }
-        
-        button{
-            border:1px solid var(--border);
-            background: linear-gradient(180deg, #ffffff, #f7f9ff);
-            color:var(--text);
-            padding:10px 12px;
-            border-radius:12px;
-            cursor:pointer;
-            font-weight:800;
-            font-size:13px;
-            transition:.15s ease;
-            width: 100%;
-        }
-        button:hover{transform: translateY(-1px); box-shadow: 0 10px 18px rgba(2,8,23,.08);}
-        .primary{
-            border-color: rgba(37,99,235,.35);
-            background: linear-gradient(180deg, rgba(37,99,235,.12), rgba(37,99,235,.06));
-            color: #0b2a7a;
-        }
-        
-        .divider{height:1px; background:var(--border); margin:16px 0;}
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 13px;
-        }
-        .stat-label { color: var(--muted); }
-        .stat-val { font-weight: 700; font-family: var(--mono); }
-        .mono { font-family: var(--mono); }
-    </style>
-</head>
-<body>
-
-<header>
-    <div class="wrap">
-        <div class="brand">
-            <a href="../../" class="logo">
-                <div class="badge">DT</div>
-                <div>
-                    <h1>Digital Transmission</h1>
-                    <div class="sub">Line Coding • Signal Analysis • Bandwidth</div>
-                </div>
-            </a>
-            <div class="topRight">
-                <div class="pill"><span>Sim:</span><span class="mono">Chart.js</span></div>
-            </div>
-        </div>
-    </div>
-</header>
-
-<div class="main">
-    <!-- LEFT: Controls -->
-    <div class="card">
-        <h2>Configuration <small>Input & Settings</small></h2>
-        <div class="pad">
-            
-            <div style="margin-bottom: 16px;">
-                <label>Binary Sequence</label>
-                <input type="text" id="bitsInput" value="01011011" placeholder="010110...">
-            </div>
-
-            <div style="margin-bottom: 16px;">
-                <label>Encoding Scheme</label>
-                <select id="encodingSelect">
-                    <optgroup label="Core Methods">
-                        <option value="nrz_l">NRZ-L</option>
-                        <option value="nrz_i">NRZ-I</option>
-                        <option value="unipolar">Unipolar</option>
-                        <option value="polar_nrz">Polar NRZ</option>
-                        <option value="ami">AMI</option>
-                        <option value="manchester">Manchester</option>
-                        <option value="diff_manchester">Diff. Manchester</option>
-                    </optgroup>
-                    <optgroup label="Advanced">
-                        <option value="b8zs">B8ZS (AMI Scrambled)</option>
-                        <option value="hdb3">HDB3 (AMI Scrambled)</option>
-                        <option value="mlt_3">MLT-3</option>
-                        <option value="2b1q">2B1Q</option>
-                        <option value="4d_pam5">4D-PAM5</option>
-                    </optgroup>
-                </select>
-            </div>
-
-            <button class="primary" id="refreshBtn">Update Waveform</button>
-
-            <div class="divider"></div>
-
-            <label>Presets</label>
-            <div class="row">
-                <button onclick="setParams('01011011')">Typical</button>
-                <button onclick="setParams('00000000')">Zeros</button>
-                <button onclick="setParams('11111111')">Ones</button>
-                <button onclick="setParams('10101010')">Alt</button>
-            </div>
-
-            <div class="divider"></div>
-
-            <label>Analysis</label>
-            <div class="stat-row">
-                <span class="stat-label">Transitions</span>
-                <span class="stat-val" id="transitionCount">0</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Levels</span>
-                <span class="stat-val" id="levelsCount">2</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">DC Component</span>
-                <span class="stat-val" id="dcComp">None</span>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- RIGHT: Chart -->
-    <div class="card">
-        <h2>Oscilloscope <small>Signal Output</small></h2>
-        <div class="pad">
-            <div class="chart-container">
-                <canvas id="waveformChart"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    // --- Logic ---
-    const EncodingType = {
-        NRZ_L: 'nrz_l',
-        NRZ_I: 'nrz_i',
-        UNIPOLAR: 'unipolar',
-        POLAR_NRZ: 'polar_nrz',
-        AMI: 'ami',
-        MANCHESTER: 'manchester',
-        DIFF_MANCHESTER: 'diff_manchester',
-        B8ZS: 'b8zs',
-        HDB3: 'hdb3',
-        TWO_B_ONE_Q: '2b1q',
-        MLT_3: 'mlt_3',
-        FOUR_D_PAM5: '4d_pam5'
-    };
-
-    function encodeSignal(bitsStr, voltage, type) {
-        const bits = bitsStr.split('').map(b => parseInt(b));
-        const data = [];
-        let transitions = 0;
-        
-        let currentLevel = voltage;
-        let lastNonZero = -voltage; // For AMI
-        
-        // Initial state setup
-        if (type === 'nrz-i') currentLevel = voltage; // Assume start High
-        if (type === 'diff_manchester') currentLevel = voltage;
-
-        for (let i = 0; i < bits.length; i++) {
-            const bit = bits[i];
-            const t = i;
-            
-            switch (type) {
-                case 'unipolar':
-                    data.push({x: t, y: bit ? voltage : 0});
-                    break;
-                case 'nrz-l':
-                    // 0 -> +V, 1 -> -V
-                    data.push({x: t, y: bit === 0 ? voltage : -voltage});
-                    break;
-                case 'nrz-i':
-                    // 1 -> Invert, 0 -> No change
-                    if (bit === 1) currentLevel = -currentLevel;
-                    data.push({x: t, y: currentLevel});
-                    break;
-                case 'polar_nrz':
-                    // 1 -> +V, 0 -> -V
-                    data.push({x: t, y: bit === 1 ? voltage : -voltage});
-                    break;
-                case 'ami':
-                case 'b8zs': // Simplified AMI for now
-                case 'hdb3': // Simplified AMI for now
-                    // 0 -> 0, 1 -> Alternating
-                    if (bit === 0) {
-                        data.push({x: t, y: 0});
-                    } else {
-                        lastNonZero = -lastNonZero;
-                        data.push({x: t, y: lastNonZero});
-                    }
-                    break;
-                case 'manchester':
-                    // 0: High->Low, 1: Low->High
-                    data.push({x: t, y: bit === 0 ? voltage : -voltage});
-                    data.push({x: t + 0.5, y: bit === 0 ? -voltage : voltage});
-                    break;
-                case 'diff-manchester':
-                    // 0 -> Transition at start, 1 -> No transition
-                    if (bit === 0) currentLevel = -currentLevel;
-                    data.push({x: t, y: currentLevel});
-                    currentLevel = -currentLevel; // Always transition at mid
-                    data.push({x: t + 0.5, y: currentLevel});
-                    break;
-                default:
-                    data.push({x: t, y: bit ? voltage : 0});
-            }
-        }
-        
-        // Final point to extend the last level
-        if (data.length > 0) {
-            data.push({x: bits.length, y: data[data.length - 1].y});
-        }
-
-        // Count transitions
-        for (let i = 1; i < data.length; i++) {
-            if (data[i].y !== data[i-1].y) transitions++;
-        }
-
-        return { labels: [], signal: data, processedBits: bitsStr, transitions };
-    }
-
-    // Chart.js Plugin for Textbook Style
-    const textbookPlugin = {
-      id: 'textbookPlugin',
-      afterDraw: (chart) => {
-        const { ctx, chartArea, scales } = chart;
-        const x = scales.x;
-        const y = scales.y;
-        const bits = chart.config.options.plugins.textbookPlugin.bits || '';
-        
-        ctx.save();
-        ctx.strokeStyle = '#e2e8f0';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([5, 5]);
-
-        // Draw vertical grid lines for bits
-        for (let i = 0; i <= bits.length; i++) {
-          const xPos = x.getPixelForValue(i);
-          if (xPos >= chartArea.left && xPos <= chartArea.right) {
-            ctx.beginPath();
-            ctx.moveTo(xPos, chartArea.top - 20);
-            ctx.lineTo(xPos, chartArea.bottom);
-            ctx.stroke();
-          }
-        }
-
-        // Draw Bit Labels
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#64748b';
-        ctx.font = 'bold 14px monospace';
-        ctx.textAlign = 'center';
-        for (let i = 0; i < bits.length; i++) {
-          const xPos = x.getPixelForValue(i + 0.5);
-          if (xPos >= chartArea.left && xPos <= chartArea.right) {
-            ctx.fillText(bits[i], xPos, chartArea.top - 10);
-          }
-        }
-
-        // Draw Axes Arrows
-        ctx.strokeStyle = '#0f172a';
-        ctx.lineWidth = 2;
-        
-        // Y-axis arrow
-        ctx.beginPath();
-        ctx.moveTo(chartArea.left, chartArea.bottom + 10);
-        ctx.lineTo(chartArea.left, chartArea.top - 30);
-        ctx.stroke();
-        // Arrowhead Y
-        ctx.beginPath();
-        ctx.moveTo(chartArea.left - 5, chartArea.top - 25);
-        ctx.lineTo(chartArea.left, chartArea.top - 35);
-        ctx.lineTo(chartArea.left + 5, chartArea.top - 25);
-        ctx.stroke();
-
-        // X-axis arrow
-        const yZero = y.getPixelForValue(0) || chartArea.bottom;
-        ctx.beginPath();
-        ctx.moveTo(chartArea.left - 10, yZero);
-        ctx.lineTo(chartArea.right + 20, yZero);
-        ctx.stroke();
-        // Arrowhead X
-        ctx.beginPath();
-        ctx.moveTo(chartArea.right + 15, yZero - 5);
-        ctx.lineTo(chartArea.right + 25, yZero);
-        ctx.lineTo(chartArea.right + 15, yZero + 5);
-        ctx.stroke();
-
-        ctx.restore();
-      }
-    };
-
-    // --- App State & Render ---
-    let chartInstance = null;
-    const voltage = 5;
-
-    function updateSimulation() {
-        const bitsInput = document.getElementById('bitsInput');
-        const encodingSelect = document.getElementById('encodingSelect');
-        
-        // Clean input
-        const rawBits = bitsInput.value.replace(/[^01]/g, '');
-        if (bitsInput.value !== rawBits) bitsInput.value = rawBits;
-        
-        const bits = rawBits || '0'; // Fallback
-        const type = encodingSelect.value;
-
-        // Run Simulation
-        const result = encodeSignal(bits, voltage, type);
-
-        // Update Stats
-        document.getElementById('transitionCount').textContent = result.transitions;
-        
-        // DC Component Estimate
-        const sum = result.signal.reduce((a, b) => a + b.y, 0);
-        const avg = sum / result.signal.length;
-        document.getElementById('dcComp').textContent = Math.abs(avg) < 0.1 ? "Zero" : (avg > 0 ? "+ Positive" : "- Negative");
-
-        // Update Levels Text
-        let levels = 2;
-        if (type === '2b1q') levels = 4;
-        else if (type === '4d_pam5') levels = 5;
-        else if (['ami', 'b8zs', 'hdb3', 'mlt_3'].includes(type)) levels = 3;
-        document.getElementById('levelsCount').textContent = `${levels} States`;
-
-        // Render Chart
-        const ctx = document.getElementById('waveformChart').getContext('2d');
-        
-        if (chartInstance) {
-            chartInstance.destroy();
-        }
-
-        chartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                datasets: [{
-                    data: result.signal,
-                    borderColor: '#0083cc',
-                    borderWidth: 3,
-                    pointRadius: 0,
-                    stepped: 'before',
-                    tension: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                layout: { padding: { top: 40, right: 40, left: 20, bottom: 20 } },
-                scales: {
-                    x: {
-                        type: 'linear',
-                        min: 0,
-                        max: bits.length,
-                        grid: { display: false },
-                        ticks: { display: false },
-                        border: { display: false }
+    
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#08b58d',
+                        brand2: '#3f6fff',
+                        bg: '#eaf2ff',
+                        bg2: '#f8fbff',
+                        text: '#09102a',
+                        muted: '#4c5d88',
+                        panel: 'rgba(255, 255, 255, 0.8)',
+                        border: 'rgba(9, 16, 42, 0.15)'
                     },
-                    y: {
-                        min: -voltage - 1.5,
-                        max: voltage + 1.5,
-                        grid: { display: false },
-                        border: { display: false },
-                        ticks: {
-                            callback: function(val) {
-                                if (Math.abs(val - voltage) < 0.1) return '+V';
-                                if (Math.abs(val) < 0.1) return '0V';
-                                if (Math.abs(val + voltage) < 0.1) return '-V';
-                                return '';
-                            },
-                            font: { weight: 'bold', size: 12 },
-                            color: '#64748b',
-                            padding: 10
+                    fontFamily: {
+                        sans: ['"Apple Gothic"', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+                    },
+                    animation: {
+                        shimmer: 'shimmer 5.6s ease-in-out infinite',
+                        pulseCustom: 'pulseCustom 2.4s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        shimmer: {
+                            '0%, 100%': { transform: 'translate(12%, 12%) rotate(0deg)' },
+                            '50%': { transform: 'translate(-12%, -12%) rotate(25deg)' },
+                        },
+                        pulseCustom: {
+                            '0%, 100%': { transform: 'scale(1)' },
+                            '50%': { transform: 'scale(1.35)' },
                         }
                     }
                 },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { enabled: false },
-                    textbookPlugin: { bits: result.processedBits }
-                },
-                animation: { duration: 0 }
             },
-            plugins: [textbookPlugin]
-        });
-    }
+        }
+    </script>
 
-    // Helpers
-    window.setParams = function(bits, type) {
-        if (bits !== undefined) document.getElementById('bitsInput').value = bits;
-        if (type !== undefined) document.getElementById('encodingSelect').value = type;
-        updateSimulation();
-    };
+    <!-- 2. React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- 3. Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- 4. Babel (to compile JSX in browser) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    // Event Listeners
-    document.getElementById('bitsInput').addEventListener('input', updateSimulation);
-    document.getElementById('encodingSelect').addEventListener('change', updateSimulation);
-    document.getElementById('refreshBtn').addEventListener('click', updateSimulation);
+    <style>
+        html { scroll-behavior: smooth; }
+        body { background-color: #eaf2ff; }
+        
+        /* Glassmorphism Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+        ::-webkit-scrollbar-thumb { background: rgba(63,111,255,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(63,111,255,0.4); }
 
-    // Init
-    updateSimulation();
-</script>
+        /* Utilities */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(9, 16, 42, 0.15);
+        }
+    </style>
+</head>
+<body class="antialiased text-text selection:bg-brand2 selection:text-white">
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- ICONS (Inline SVGs to replace Lucide dependency) ---
+        const LayoutGrid = (props) => (
+            <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+        );
+        const ArrowLeft = (props) => (
+            <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        );
+        const ArrowUpRight = (props) => (
+            <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
+        );
+        const Settings = (props) => (
+            <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        );
+        const Activity = (props) => (
+            <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        );
+        const ChevronDown = (props) => (
+            <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        );
+
+        // --- CONSTANTS & TYPES ---
+        const EncodingType = {
+            NRZ_L: 'nrz_l',
+            NRZ_I: 'nrz_i',
+            UNIPOLAR: 'unipolar',
+            POLAR_NRZ: 'polar_nrz',
+            AMI: 'ami',
+            MANCHESTER: 'manchester',
+            DIFF_MANCHESTER: 'diff_manchester',
+            B8ZS: 'b8zs',
+            HDB3: 'hdb3',
+        };
+
+        // --- LOGIC: Signal Encoding (FIXED) ---
+        function encodeSignal(bitsStr, voltage, type) {
+            const bits = bitsStr.split('').map(b => parseInt(b));
+            const data = [];
+            let transitions = 0;
+            
+            let currentLevel = voltage;
+            let lastNonZero = -voltage; // Default previous pulse for AMI/B8ZS/HDB3
+            let hdb3PulseCount = 0; // Pulses since last substitution
+
+            // Initial state for differential methods
+            if (type === EncodingType.NRZ_I || type === EncodingType.DIFF_MANCHESTER) {
+                currentLevel = voltage;
+            }
+
+            for (let i = 0; i < bits.length; i++) {
+                const bit = bits[i];
+                const t = i;
+
+                // --- SCRAMBLING LOGIC (B8ZS & HDB3) ---
+                
+                // B8ZS: Check for 8 consecutive zeros
+                if (type === EncodingType.B8ZS && bit === 0 && bits.slice(i, i + 8).join('') === '00000000') {
+                    // Pattern: 0 0 0 V B 0 V B
+                    const v = lastNonZero;      // Violation (same as last)
+                    const b = -lastNonZero;     // Bipolar (opposite)
+                    
+                    // 0 0 0
+                    data.push({x: t, y: 0});
+                    data.push({x: t+1, y: 0});
+                    data.push({x: t+2, y: 0});
+                    // V
+                    data.push({x: t+3, y: v});
+                    // B
+                    data.push({x: t+4, y: b});
+                    lastNonZero = b; // Update valid pulse
+                    // 0
+                    data.push({x: t+5, y: 0});
+                    // V
+                    data.push({x: t+6, y: -lastNonZero}); // Violation relative to new lastNonZero? No, V follows B logic of scrambling.
+                                                           // Standard B8ZS: The second V is same polarity as previous pulse (which was B).
+                                                           // Actually, let's stick to standard definition: 000VB0VB relative to *original* lastNonZero.
+                                                           // If last was +, V is +, B is -. Next V is -, B is +.
+                    
+                    // Let's do it cleanly based on current lastNonZero state entering the block
+                    // We already set v = lastNonZero.
+                    // The sequence is: 0, 0, 0, V(v), B(-v), 0, V(-v), B(v)
+                    
+                    // We did 0,0,0,V,B.
+                    // Next is 0
+                    // Next is V (same polarity as previous pulse, which was B=-v). So V2 = -v.
+                    data.push({x: t+6, y: -v});
+                    // Next is B (opposite to V2). B2 = v.
+                    data.push({x: t+7, y: v});
+                    
+                    lastNonZero = v; // The last pulse was 'v'
+
+                    i += 7; 
+                    continue;
+                }
+
+                // HDB3: Check for 4 consecutive zeros
+                if (type === EncodingType.HDB3 && bit === 0 && bits.slice(i, i + 4).join('') === '0000') {
+                    // Check pulses since last substitution
+                    // If odd: 000V. If even: B00V.
+                    
+                    if (hdb3PulseCount % 2 !== 0) {
+                        // Odd: 0 0 0 V
+                        data.push({x: t, y: 0});
+                        data.push({x: t+1, y: 0});
+                        data.push({x: t+2, y: 0});
+                        
+                        const v = lastNonZero; // Violation = same as last pulse
+                        data.push({x: t+3, y: v});
+                        
+                        lastNonZero = v;
+                        hdb3PulseCount = 0; // Reset
+                    } else {
+                        // Even: B 0 0 V
+                        const b = -lastNonZero; // Bipolar = opposite
+                        data.push({x: t, y: b});
+                        lastNonZero = b; // update reference
+                        
+                        data.push({x: t+1, y: 0});
+                        data.push({x: t+2, y: 0});
+                        
+                        const v = lastNonZero; // Violation = same as last (which is b)
+                        data.push({x: t+3, y: v});
+                        
+                        lastNonZero = v;
+                        hdb3PulseCount = 0; // Reset
+                    }
+                    
+                    i += 3;
+                    continue;
+                }
+
+                // --- STANDARD LOGIC ---
+                switch (type) {
+                    case EncodingType.UNIPOLAR:
+                        data.push({x: t, y: bit ? voltage : 0});
+                        break;
+                    case EncodingType.NRZ_L:
+                        data.push({x: t, y: bit === 0 ? voltage : -voltage});
+                        break;
+                    case EncodingType.NRZ_I:
+                        if (bit === 1) currentLevel = -currentLevel;
+                        data.push({x: t, y: currentLevel});
+                        break;
+                    case EncodingType.POLAR_NRZ:
+                        data.push({x: t, y: bit === 1 ? voltage : -voltage});
+                        break;
+                    case EncodingType.AMI:
+                    case EncodingType.B8ZS: // Fallback
+                    case EncodingType.HDB3: // Fallback
+                        if (bit === 0) {
+                            data.push({x: t, y: 0});
+                        } else {
+                            lastNonZero = -lastNonZero;
+                            data.push({x: t, y: lastNonZero});
+                            hdb3PulseCount++;
+                        }
+                        break;
+                    case EncodingType.MANCHESTER:
+                        data.push({x: t, y: bit === 0 ? voltage : -voltage});
+                        data.push({x: t + 0.5, y: bit === 0 ? -voltage : voltage});
+                        break;
+                    case EncodingType.DIFF_MANCHESTER:
+                        if (bit === 0) currentLevel = -currentLevel;
+                        data.push({x: t, y: currentLevel});
+                        currentLevel = -currentLevel;
+                        data.push({x: t + 0.5, y: currentLevel});
+                        break;
+                    default:
+                        data.push({x: t, y: bit ? voltage : 0});
+                }
+            }
+
+            // Extend last point to end of period
+            if (data.length > 0) {
+                data.push({x: bits.length, y: data[data.length - 1].y});
+            }
+
+            // Calc Transitions
+            for (let i = 1; i < data.length; i++) {
+                if (data[i].y !== data[i-1].y) transitions++;
+            }
+
+            return { labels: [], signal: data, processedBits: bitsStr, transitions };
+        }
+
+        // --- COMPONENTS ---
+
+        const Header = () => (
+            <header className="sticky top-0 z-50 bg-[#eaf2ff]/85 backdrop-blur-md border-b border-[#09102a]/15">
+                <div className="w-[min(1200px,92%)] mx-auto flex items-center justify-between py-3.5 gap-3.5">
+                    <a href="#" className="flex items-center gap-3 min-w-[220px] group text-inherit no-underline">
+                        <div className="relative w-11 h-11 rounded-2xl overflow-hidden grid place-items-center shadow-[0_14px_30px_rgba(63,111,255,0.18)]">
+                            <div className="absolute inset-0 bg-[conic-gradient(from_220deg,var(--tw-gradient-stops))] from-brand via-brand2 to-brand"></div>
+                            <div className="absolute inset-[-60%] bg-[radial-gradient(circle_at_35%_35%,rgba(255,255,255,0.75),transparent_55%)] animate-shimmer z-10"></div>
+                            <LayoutGrid className="relative z-20 text-white w-6 h-6" />
+                        </div>
+                        <div>
+                            <h1 className="m-0 text-[15px] leading-[1.2] font-bold text-text">MAE Academy</h1>
+                            <p className="m-0 text-xs text-muted font-normal">Digital Transmission</p>
+                        </div>
+                    </a>
+                    <div className="flex gap-2.5 items-center">
+                        <button className="hidden sm:inline-flex items-center gap-2 px-3.5 py-3 border border-border bg-white/70 text-text rounded-2xl cursor-pointer font-black text-sm transition-all hover:-translate-y-[1px] hover:shadow-lg">
+                            <ArrowLeft className="w-4 h-4" />
+                            Back to Hub
+                        </button>
+                        <a href="#start" className="inline-flex items-center gap-2 px-3.5 py-3 border-none bg-gradient-to-br from-[#08b58d] to-[#3f6fff] text-[#06101a] rounded-2xl cursor-pointer font-black text-sm transition-all hover:-translate-y-[1px] hover:shadow-lg shadow-sm">
+                            Simulate
+                            <ArrowUpRight className="w-4 h-4" />
+                        </a>
+                    </div>
+                </div>
+            </header>
+        );
+
+        const Footer = () => (
+            <footer className="border-t border-border bg-white/35 py-7 pb-10 text-muted mt-auto">
+                <div className="w-[min(1200px,92%)] mx-auto flex flex-wrap justify-between items-center gap-3">
+                    <div className="text-sm font-semibold">
+                        © <span id="year">{new Date().getFullYear()}</span> MAE Academy — All rights reserved
+                    </div>
+                    <div className="flex gap-2.5 flex-wrap">
+                        <span className="px-3.5 py-2.5 border border-border bg-white/70 text-text rounded-2xl text-xs font-bold">Home</span>
+                        <span className="px-3.5 py-2.5 border border-border bg-white/70 text-text rounded-2xl text-xs font-bold">Sim Hub</span>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        // --- MAIN APP COMPONENT ---
+        const App = () => {
+            const [mounted, setMounted] = useState(false);
+            const [bits, setBits] = useState("01011011");
+            const [encoding, setEncoding] = useState("nrz_l");
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+            const [stats, setStats] = useState({ transitions: 0, levels: 2, dc: "None" });
+
+            useEffect(() => {
+                setMounted(true);
+            }, []);
+
+            useEffect(() => {
+                if (!chartRef.current) return;
+
+                const voltage = 5;
+                const rawBits = bits.replace(/[^01]/g, '') || '0';
+                const result = encodeSignal(rawBits, voltage, encoding);
+
+                // Update Stats
+                const sum = result.signal.reduce((a, b) => a + b.y, 0);
+                const avg = sum / result.signal.length;
+                let levels = 2;
+                if (['ami', 'b8zs', 'hdb3', 'mlt_3'].includes(encoding)) levels = 3;
+
+                setStats({
+                    transitions: result.transitions,
+                    levels: levels,
+                    dc: Math.abs(avg) < 0.1 ? "Zero" : (avg > 0 ? "+ Positive" : "- Negative")
+                });
+
+                // Destroy old
+                if (chartInstance.current) chartInstance.current.destroy();
+
+                // Textbook Plugin for Grid
+                const textbookPlugin = {
+                    id: 'textbookPlugin',
+                    afterDraw: (chart) => {
+                        const { ctx, chartArea, scales } = chart;
+                        const x = scales.x;
+                        const bitsArr = result.processedBits;
+                        
+                        ctx.save();
+                        ctx.strokeStyle = 'rgba(9,16,42,0.1)';
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([5, 5]);
+
+                        for (let i = 0; i <= bitsArr.length; i++) {
+                            const xPos = x.getPixelForValue(i);
+                            if (xPos >= chartArea.left && xPos <= chartArea.right) {
+                                ctx.beginPath();
+                                ctx.moveTo(xPos, chartArea.top - 20);
+                                ctx.lineTo(xPos, chartArea.bottom);
+                                ctx.stroke();
+                            }
+                        }
+
+                        ctx.setLineDash([]);
+                        ctx.fillStyle = '#4c5d88';
+                        ctx.font = 'bold 14px "Apple Gothic", sans-serif';
+                        ctx.textAlign = 'center';
+                        for (let i = 0; i < bitsArr.length; i++) {
+                            const xPos = x.getPixelForValue(i + 0.5);
+                            if (xPos >= chartArea.left && xPos <= chartArea.right) {
+                                ctx.fillText(bitsArr[i], xPos, chartArea.top - 10);
+                            }
+                        }
+                        ctx.restore();
+                    }
+                };
+
+                // Create Chart
+                chartInstance.current = new Chart(chartRef.current, {
+                    type: 'line',
+                    data: {
+                        datasets: [{
+                            data: result.signal,
+                            borderColor: '#3f6fff',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            stepped: 'before',
+                            tension: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: { padding: { top: 40, right: 20, left: 10, bottom: 10 } },
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                min: 0,
+                                max: rawBits.length,
+                                grid: { display: false },
+                                ticks: { display: false },
+                                border: { display: false }
+                            },
+                            y: {
+                                min: -voltage - 1.5,
+                                max: voltage + 1.5,
+                                grid: { display: false },
+                                border: { display: false },
+                                ticks: {
+                                    callback: function(val) {
+                                        if (Math.abs(val - voltage) < 0.1) return '+V';
+                                        if (Math.abs(val) < 0.1) return '0V';
+                                        if (Math.abs(val + voltage) < 0.1) return '-V';
+                                        return '';
+                                    },
+                                    font: { weight: 'bold', size: 12 },
+                                    color: '#4c5d88',
+                                    padding: 10
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false },
+                        },
+                        animation: { duration: 0 }
+                    },
+                    plugins: [textbookPlugin]
+                });
+
+                return () => {
+                    if (chartInstance.current) chartInstance.current.destroy();
+                };
+            }, [bits, encoding]);
+
+            return (
+                <div className={`min-h-screen flex flex-col font-sans transition-opacity duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+                    {/* Background */}
+                    <div className="fixed inset-0 pointer-events-none -z-10 bg-gradient-to-b from-bg to-bg2 overflow-hidden">
+                        <div className="absolute top-[-10%] left-[15%] w-[900px] h-[520px] rounded-full bg-brand2/20 blur-[3em]" />
+                        <div className="absolute top-[0%] right-[86%] sm:right-[14%] w-[900px] h-[520px] rounded-full bg-brand/18 blur-[3em]" />
+                    </div>
+
+                    <Header />
+
+                    <main className="py-11 pb-[70px] flex-grow">
+                        <div className="w-[min(1200px,92%)] mx-auto">
+                            
+                            {/* Notification Pill */}
+                            <div className="inline-flex items-center gap-2.5 border border-border bg-white/65 px-3 py-2 rounded-full text-muted font-bold text-[13px] w-fit">
+                                <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-brand to-brand2 shadow-[0_0_0_6px_rgba(63,111,255,0.12)] animate-pulseCustom"></span>
+                                <span>Sim: Chart.js</span>
+                            </div>
+
+                            {/* Heading */}
+                            <div className="flex justify-between items-end gap-4 mt-[18px] mb-[18px] flex-wrap">
+                                <div>
+                                    <h2 className="m-0 text-[42px] lg:text-[52px] tracking-tight leading-[1.05] font-bold text-text">
+                                        Digital Transmission
+                                    </h2>
+                                    <p className="mt-2.5 mb-0 text-muted font-semibold leading-[1.8] max-w-[70ch]">
+                                        Interactive Line Coding Simulator. Configure the binary input and encoding scheme to visualize signal changes, including B8ZS and HDB3 scrambling.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6 mt-8">
+                                
+                                {/* LEFT: Config */}
+                                <div className="glass-panel rounded-[22px] p-6 shadow-[0_12px_30px_rgba(16,24,40,0.08)] relative overflow-hidden h-fit">
+                                   <div className="absolute inset-[-2px] opacity-80 z-0 pointer-events-none bg-[radial-gradient(520px_220px_at_70%_10%,rgba(8,181,141,0.14),transparent_60%)]"></div>
+                                   
+                                   <div className="relative z-10">
+                                      <div className="flex items-center gap-3 mb-6">
+                                        <div className="w-10 h-10 rounded-xl grid place-items-center bg-gradient-to-br from-brand/15 to-brand2/15 border border-border font-black text-lg">
+                                          <Settings className="w-5 h-5 text-brand2" />
+                                        </div>
+                                        <h3 className="m-0 text-lg font-bold text-text">Configuration</h3>
+                                      </div>
+
+                                      <div className="space-y-5">
+                                        <div>
+                                          <label className="block text-xs font-extrabold text-muted uppercase tracking-wider mb-2">Binary Sequence</label>
+                                          <input 
+                                            type="text" 
+                                            value={bits}
+                                            onChange={(e) => setBits(e.target.value)}
+                                            className="w-full bg-white/70 border border-border rounded-xl px-4 py-3 text-sm font-mono text-text focus:outline-none focus:border-brand2/50 focus:ring-2 focus:ring-brand2/10 transition-all"
+                                            placeholder="010110..."
+                                          />
+                                        </div>
+
+                                        <div>
+                                          <label className="block text-xs font-extrabold text-muted uppercase tracking-wider mb-2">Encoding Scheme</label>
+                                          <div className="relative">
+                                            <select 
+                                              value={encoding}
+                                              onChange={(e) => setEncoding(e.target.value)}
+                                              className="w-full appearance-none bg-white/70 border border-border rounded-xl px-4 py-3 text-sm font-bold text-text focus:outline-none focus:border-brand2/50 focus:ring-2 focus:ring-brand2/10 transition-all"
+                                            >
+                                                <optgroup label="Core Methods">
+                                                    <option value="nrz_l">NRZ-L</option>
+                                                    <option value="nrz_i">NRZ-I</option>
+                                                    <option value="unipolar">Unipolar</option>
+                                                    <option value="polar_nrz">Polar NRZ</option>
+                                                    <option value="ami">AMI</option>
+                                                    <option value="manchester">Manchester</option>
+                                                    <option value="diff_manchester">Diff. Manchester</option>
+                                                </optgroup>
+                                                <optgroup label="Scrambling (Long Zeros)">
+                                                    <option value="b8zs">B8ZS</option>
+                                                    <option value="hdb3">HDB3</option>
+                                                </optgroup>
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
+                                                <ChevronDown className="w-4 h-4" />
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div className="pt-2">
+                                           <label className="block text-xs font-extrabold text-muted uppercase tracking-wider mb-2">Presets</label>
+                                           <div className="grid grid-cols-4 gap-2">
+                                              {[
+                                                  {l: 'Typical', v:'01011011'}, 
+                                                  {l: 'Zeros', v:'0000000000'}, 
+                                                  {l: 'Ones', v:'11111111'}, 
+                                                  {l: 'HDB3', v:'100000000'}
+                                              ].map((p, i) => (
+                                                <button 
+                                                  key={i}
+                                                  onClick={() => setBits(p.v)}
+                                                  className="px-2 py-2 rounded-lg border border-border bg-white/50 text-[10px] font-bold text-muted hover:bg-brand2/10 hover:text-brand2 hover:border-brand2/20 transition-all truncate"
+                                                >
+                                                  {p.l}
+                                                </button>
+                                              ))}
+                                           </div>
+                                        </div>
+
+                                        <hr className="border-border my-2" />
+
+                                        <div>
+                                          <label className="block text-xs font-extrabold text-muted uppercase tracking-wider mb-3">Analysis</label>
+                                          <div className="space-y-3">
+                                            <div className="flex justify-between items-center text-sm">
+                                              <span className="text-muted font-semibold">Transitions</span>
+                                              <span className="font-mono font-bold text-text bg-white/50 px-2 py-1 rounded border border-border">{stats.transitions}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm">
+                                              <span className="text-muted font-semibold">Voltage Levels</span>
+                                              <span className="font-mono font-bold text-text bg-white/50 px-2 py-1 rounded border border-border">{stats.levels}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm">
+                                              <span className="text-muted font-semibold">DC Component</span>
+                                              <span className={`font-mono font-bold text-[11px] px-2 py-1 rounded border border-border ${stats.dc === "Zero" ? 'text-green-600 bg-green-50' : 'text-amber-600 bg-amber-50'}`}>{stats.dc}</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                   </div>
+                                </div>
+
+                                {/* RIGHT: Chart */}
+                                <div className="glass-panel rounded-[22px] p-6 shadow-[0_12px_30px_rgba(16,24,40,0.08)] relative overflow-hidden flex flex-col min-h-[400px]">
+                                   <div className="absolute inset-[-2px] opacity-80 z-0 pointer-events-none bg-[radial-gradient(520px_240px_at_20%_70%,rgba(63,111,255,0.14),transparent_60%)]"></div>
+
+                                   <div className="relative z-10 flex flex-col flex-grow">
+                                      <div className="flex justify-between items-center mb-6">
+                                        <div className="flex items-center gap-3">
+                                          <div className="w-10 h-10 rounded-xl grid place-items-center bg-gradient-to-br from-brand/15 to-brand2/15 border border-border font-black text-lg">
+                                            <Activity className="w-5 h-5 text-brand" />
+                                          </div>
+                                          <div>
+                                            <h3 className="m-0 text-lg font-bold text-text">Oscilloscope</h3>
+                                            <p className="m-0 text-xs text-muted font-semibold">Signal Output</p>
+                                          </div>
+                                        </div>
+                                        <div className="hidden sm:flex gap-2">
+                                           <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 border border-border text-[11px] font-bold text-muted">
+                                             <div className="w-2 h-2 rounded-full bg-brand2"></div> Output
+                                           </span>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex-grow w-full relative min-h-[300px] bg-white/40 rounded-xl border border-border p-2">
+                                        <canvas ref={chartRef}></canvas>
+                                      </div>
+                                   </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        };
+
+        // Render
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
 </body>
 </html>
