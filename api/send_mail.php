@@ -35,7 +35,7 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 }
 
 // Prepare email
-$to = "name@example.com";
+$to = "maeacademy2026@gmail.com";
 $email_subject = "New Contact Message from {$name}";
 
 $email_body = "Name: {$name}\n";
