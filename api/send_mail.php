@@ -35,7 +35,11 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 }
 
 // Prepare email
+<<<<<<< HEAD
 $to = "name@example.com";
+=======
+$to = "maeacademy2026@gmail.com";
+>>>>>>> 4f7e91afe2b1fe9a35de04dbe3b4df8176d5a1eb
 $email_subject = "New Contact Message from {$name}";
 
 $email_body = "Name: {$name}\n";
