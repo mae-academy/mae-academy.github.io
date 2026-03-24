@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MAE Academy — Assembler</title>
+
+  <link rel="icon" type="image/svg+xml" href="../../assets/favicon-16.svg">
+
+  <link rel="stylesheet" href="../../css/global.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div id="navbar"></div>
+  <script>
+    fetch('../components/navbar.html')
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById('navbar').innerHTML = data;
+        document.getElementById("pageTitle").textContent = "Assembler Simulator";
+      });
+  </script>
+
+  <main>
+    <div class="container">
+      <div class="headRow reveal">
+        <div>
+          <h2>Assembler</h2>
+          <div class="sub">16-bit Assembly Emulator (MASM-like subset) • Supports OFFSET, ORG, DB/DW/DD, strings, AL/AH.., TEST, LOOP, BYTE/WORD/DWORD PTR</div>
+        </div>
+
+        <div class="toolbar">
+          <button class="btn primary" id="runBtn" title="Ctrl+Enter" type="button">Run</button>
+          <button class="btn good" id="stepBtn" title="F10" type="button">Step</button>
+          <button class="btn bad" id="resetBtn" title="Ctrl+R" type="button">Reset</button>
+          <button class="btn" id="assembleBtn" type="button">Assemble</button>
+
+          <select id="exampleSel" title="Load example">
+            <option value="">Load example…</option>
+            <option value="case">Toggle Case (your style)</option>
+            <option value="data">DB/DW/DD + PTR demo</option>
+          </select>
+
+          <select id="baseSel" title="Display base">
+            <option value="hex">HEX</option>
+            <option value="dec">DEC</option>
+          </select>
+
+          <span class="pill" id="statusPill">Idle</span>
+        </div>
+      </div>
+
+      <div class="simContainer reveal">
+        <div class="app">
+          <section class="panel">
+            <div class="hd">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:14px; font-weight:1000;">Code Editor</span>
+              </div>
+              <div class="pill">Comments: <code>;</code> • Click line numbers to toggle breakpoints</div>
+            </div>
+
+            <div class="bd">
+              <div class="editorWrap">
+                <div class="gutter" id="gutter"></div>
+                <textarea id="code" spellcheck="false"></textarea>
+              </div>
+
+              <div class="hint">
+                <b>Numbers:</b> <span class="pill"><code>123</code></span> <span class="pill"><code>0x7B</code></span> <span class="pill"><code>7Bh</code></span> &nbsp;•&nbsp;
+                <b>Data:</b> <span class="pill"><code>DB</code></span> <span class="pill"><code>DW</code></span> <span class="pill"><code>DD</code></span> (supports <code>"text"</code> and <code>'A'</code>) &nbsp;•&nbsp;
+                <b>Memory:</b> <span class="pill"><code>[SI]</code></span> <span class="pill"><code>[DI+2]</code></span> <span class="pill"><code>[0x200]</code></span> &nbsp;•&nbsp;
+                <b>Size:</b> <span class="pill"><code>BYTE PTR</code></span> <span class="pill"><code>WORD PTR</code></span> <span class="pill"><code>DWORD PTR</code></span> &nbsp;•&nbsp;
+                <b>Addr:</b> <span class="pill"><code>OFFSET label</code></span>
+              </div>
+            </div>
+          </section>
+
+          <div class="rightGrid">
+            <section class="panel">
+              <div class="hd">
+                <span>CPU State</span>
+                <span class="pill">Registers: 16-bit + 8-bit views</span>
+              </div>
+              <div class="bd">
+                <div class="grid2" id="regsGrid"></div>
+                <div style="height:10px"></div>
+                <div class="flags" id="flagsRow"></div>
+                <div style="height:10px"></div>
+                <div class="kv"><span class="k">Cycles</span><span class="v" id="cycles">0</span></div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="hd">
+                <span>Inspector</span>
+                <div class="tabs">
+                  <div class="tab active" data-tab="memory">Memory</div>
+                  <div class="tab" data-tab="output">Output</div>
+                </div>
+              </div>
+              <div class="bd">
+                <div class="tabContent active" id="tab-memory">
+                  <div class="memBar">
+                    <span class="pill">View from</span>
+                    <input id="memStart" value="0x0100" />
+                    <button class="btn" id="memRefresh" type="button">Refresh</button>
+                    <span class="pill">64KB RAM</span>
+                  </div>
+                  <div class="memDump" id="memDump"></div>
+                </div>
+
+                <div class="tabContent" id="tab-output">
+                  <div class="out" id="out"></div>
+                  <div class="hint">Assemble checks syntax/labels/data. Run executes with safety step limit.</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="hd">
+                <span>Practical Notes</span>
+                <span class="pill">ORG affects data origin here</span>
+              </div>
+              <div class="bd">
+                <div class="hint" style="margin:0">
+                  • <code>ORG 100h</code> sets the <b>data pointer</b> (so <code>STR: DB "ab"</code> becomes at 0100h).<br>
+                  • You can use <code>MOV SI, OFFSET STR</code> (supported).<br>
+                  • Default memory read size is BYTE unless you specify <code>WORD PTR</code>/<code>DWORD PTR</code>.
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer"></div>
+  <script>
+    fetch('../components/footer.html')
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById('footer').innerHTML = data;
+        const y = document.getElementById('year');
+        if (y) y.textContent = new Date().getFullYear();
+      });
+  </script>
+
+  <script src="../../js/global.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
