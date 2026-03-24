@@ -1,535 +1,17 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MAE Academy</title>
 
-  <link rel="icon" type="image/svg+xml" href="favicon-16.svg">
-  <meta name="description" content="MAE Academy: Learn, Build, Simulate — academic tracks and practical simulations with a modern unique landing page." />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon-16.svg">
+  <meta name="description"
+    content="MAE Academy: Learn, Build, Simulate — academic tracks and practical simulations with a modern unique landing page." />
 
-  <style>
-    :root{
-      --bg:#eaf2ff;
-      --bg2:#f8fbff;
-      --card:#ffffff;
-      --text:#09102a;
-      --muted:#4c5d88;
-      --brand:#08b58d;
-      --brand2:#3f6fff;
-      --warn:#ffb020;
-      --border: rgba(9,16,42,.14);
-      --shadow: 0 22px 60px rgba(16,24,40,.12);
-      --radius: 22px;
-      --ring: 0 0 0 10px rgba(63,111,255,.10);
-    }
-
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; /* fixed: "Apple Gothic" is uncommon */
-      color:var(--text);
-      transition: opacity 0.5s ease;
-      opacity: 0;
-      background:
-        radial-gradient(900px 520px at 15% -10%, rgba(63,111,255,.20), transparent 55%),
-        radial-gradient(900px 520px at 86% 0%, rgba(8,181,141,.18), transparent 55%),
-        radial-gradient(900px 520px at 55% 110%, rgba(255,176,32,.12), transparent 55%),
-        linear-gradient(180deg, var(--bg), var(--bg2));
-      overflow-x:hidden;
-    }
-    a{color:inherit;text-decoration:none}
-    .container{width:min(1200px, 92%);margin-inline:auto}
-    section{padding: 78px 0}
-
-    /* Header */
-    header{
-      position:sticky; top:0; z-index:50;
-      background: rgba(234,242,255,.85);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--border);
-    }
-    .nav{
-      display:flex; align-items:center; justify-content:space-between;
-      padding: 14px 0;
-      gap: 14px;
-    }
-    .brand{
-      display:flex; align-items:center; gap:12px;
-      min-width: 220px;
-    }
-    .logoMark{
-      width:44px;height:44px;border-radius:14px;
-      background: conic-gradient(from 220deg, var(--brand), var(--brand2), var(--brand));
-      position:relative;
-      box-shadow: 0 14px 30px rgba(63,111,255,.18);
-      overflow:hidden;
-      display:grid;
-      place-items:center;
-    }
-    .logoSvg{
-      width:100%;
-      height:100%;
-      object-fit:contain;
-      filter: brightness(0) invert(1);
-      position:relative;
-      z-index:2;
-    }
-    .logoMark::after{
-      content:""; position:absolute; inset:-60%;
-      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.75), transparent 55%);
-      animation: shimmer 5.6s ease-in-out infinite;
-      pointer-events:none; /* small fix: don't capture clicks */
-    }
-    @keyframes shimmer{
-      0%,100%{transform:translate(12%,12%) rotate(0deg)}
-      50%{transform:translate(-12%,-12%) rotate(25deg)}
-    }
-    .brand h1{margin:0;font-size:15px;line-height:1.2}
-    .brand p{margin:0;font-size:12px;color:var(--muted)}
-    .links{
-      display:flex; gap: 10px; align-items:center;
-      padding: 6px;
-      border-radius: 999px;
-      border: 1px solid rgba(9,16,42,.10);
-      background: rgba(255,255,255,.55);
-    }
-    .links a{
-      padding: 10px 12px;
-      border-radius: 999px;
-      color: var(--muted);
-      font-weight: 700;
-      font-size: 13px;
-      transition: all .2s ease;
-    }
-    .links a:hover{background: rgba(9,16,42,.05); color: var(--text)}
-    .links a.active{
-      color: var(--text);
-      background: linear-gradient(135deg, rgba(8,181,141,.15), rgba(63,111,255,.15));
-      border: 1px solid rgba(9,16,42,.10);
-    }
-    .actions{display:flex; gap:10px; align-items:center}
-    .btn{
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.7);
-      color: var(--text);
-      padding: 12px 14px;
-      border-radius: 16px;
-      cursor:pointer;
-      font-weight: 900;
-      transition: transform .2s ease, box-shadow .2s ease;
-      display:inline-flex; align-items:center; gap:8px;
-      user-select:none;
-      white-space:nowrap;
-    }
-    .btn:hover{transform: translateY(-1px); box-shadow: var(--shadow)}
-    .btn.primary{
-      border: none;
-      background: linear-gradient(135deg, rgba(8,181,141,.95), rgba(63,111,255,.90));
-      color: #06101a;
-    }
-    .btn.ghost{background: transparent}
-    .menuhint{display:none}
-    @media (max-width: 980px){
-      .links{display:none}
-      .menuhint{display:inline-flex}
-    }
-
-    /* Hero */
-    .hero{padding: 92px 0 36px}
-    .heroGrid{
-      display:grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap: 26px;
-      align-items:center;
-    }
-    .pill{
-      display:inline-flex; align-items:center; gap:10px;
-      border: 1px solid rgba(9,16,42,.12);
-      background: rgba(255,255,255,.65);
-      padding: 8px 12px;
-      border-radius: 999px;
-      color: var(--muted);
-      font-weight: 700;
-      font-size: 13px;
-      width: fit-content;
-    }
-    .spark{
-      width:10px;height:10px;border-radius:50%;
-      background: linear-gradient(135deg, var(--brand), var(--brand2));
-      box-shadow: 0 0 0 6px rgba(63,111,255,.12);
-      animation: pulse 2.4s ease-in-out infinite;
-    }
-    @keyframes pulse{
-      0%,100%{transform:scale(1)}
-      50%{transform:scale(1.35)}
-    }
-    .headline{
-      margin: 16px 0 10px;
-      letter-spacing: -1px;
-      line-height: 1.0;
-    }
-    .headline .l1{display:block; font-size: 56px; font-weight: 700; color: rgba(9,16,42,.85)}
-    .headline .l2{display:block; font-size: 70px; font-weight: 900}
-    .sub{
-      margin: 18px 0 22px;
-      color: var(--muted);
-      line-height: 1.9;
-      font-size: 16px;
-      font-weight: 600;
-      max-width: 66ch;
-    }
-    .heroActions{
-      display:flex; gap:12px; flex-wrap:wrap; align-items:center;
-    }
-    .bigbtn{
-      width: 420px;
-      max-width: 92vw;
-      padding: 16px 18px;
-      border-radius: 18px;
-      border: 2.5px solid rgba(9,16,42,.22);
-      background: #fff;
-      font-size: 18px;
-      font-weight: 900;
-      cursor:pointer;
-      box-shadow: 12px 12px 0 rgba(9,16,42,.06);
-      transition: transform .2s ease, box-shadow .2s ease;
-      display:flex; align-items:center; justify-content:center; gap:10px;
-    }
-    .bigbtn:hover{transform: translateY(-2px)}
-    .bigbtn.primary{
-      border: none;
-      background: linear-gradient(135deg, rgba(8,181,141,.95), rgba(63,111,255,.90));
-      color: #06101a;
-      box-shadow: 12px 12px 0 rgba(9,16,42,.09);
-    }
-
-    /* Right card */
-    .heroCard{
-      background:#fff;
-      border-radius: 30px;
-      border: 2.5px solid rgba(9,16,42,.22);
-      box-shadow: 16px 16px 0 rgba(9,16,42,.06);
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
-      min-height: 580px;
-      position:relative;
-      isolation:isolate;
-    }
-    .heroCard::before{
-      content:"";
-      position:absolute; inset:-2px;
-      background:
-        radial-gradient(500px 220px at 70% 10%, rgba(8,181,141,.14), transparent 60%),
-        radial-gradient(520px 240px at 20% 60%, rgba(63,111,255,.14), transparent 60%);
-      z-index:-1;
-    }
-    .cardTop{
-      height:110px;
-      border-bottom: 2.5px solid rgba(9,16,42,.22);
-      background: rgba(255,255,255,.6);
-    }
-    .cardMid{
-      flex:1;
-      display:flex; align-items:center; justify-content:center;
-      padding: 26px;
-    }
-    .cardMid img{
-      width: 86%;
-      height: 86%;
-      object-fit: contain;
-      filter: drop-shadow(0 18px 18px rgba(16,24,40,.12));
-    }
-    .cardBottom{
-      height:120px;
-      border-top: 2.5px solid rgba(9,16,42,.22);
-      display:flex; align-items:center; justify-content:center;
-      padding: 12px;
-      font-weight: 900;
-      font-size: 26px;
-      text-align:center;
-      letter-spacing: .4px;
-      background: rgba(255,255,255,.75);
-    }
-
-    /* Section header */
-    .sectionHead{
-      display:flex; align-items:flex-end; justify-content:space-between;
-      gap: 16px;
-      margin-bottom: 18px;
-    }
-    .sectionHead h2{
-      margin:0;
-      font-size: 34px;
-      letter-spacing:-.6px;
-    }
-    .sectionHead p{
-      margin: 0;
-      color: var(--muted);
-      max-width: 60ch;
-      line-height: 1.8;
-      font-weight: 600;
-    }
-
-    /* Layout helpers */
-    .grid3{display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px}
-    .grid2{display:grid; grid-template-columns: repeat(2, 1fr); gap: 16px}
-    @media (max-width: 980px){
-      .heroGrid{grid-template-columns:1fr}
-      .headline .l1{font-size:44px}
-      .headline .l2{font-size:52px}
-      .grid3,.grid2{grid-template-columns:1fr}
-    }
-
-    /* Cards */
-    .card{
-      background: rgba(255,255,255,.78);
-      border: 1px solid rgba(9,16,42,.12);
-      border-radius: var(--radius);
-      box-shadow: 0 12px 30px rgba(16,24,40,.08);
-      padding: 16px;
-      position:relative;
-      overflow:hidden;
-      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
-    }
-    .card:hover{
-      transform: translateY(-3px);
-      box-shadow: var(--shadow);
-      border-color: rgba(63,111,255,.25);
-    }
-    .icon{
-      width:44px;height:44px;border-radius:16px;
-      display:grid;place-items:center;
-      background: linear-gradient(135deg, rgba(8,181,141,.14), rgba(63,111,255,.14));
-      border: 1px solid rgba(9,16,42,.12);
-      margin-bottom: 10px;
-      font-weight: 900;
-    }
-    .card h3{margin:0 0 8px; font-size: 16px}
-    .card p{margin:0; color:var(--muted); line-height:1.8; font-weight:600; font-size: 14px}
-
-    /* Stats row */
-    .statsRow{
-      display:grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-top: 18px;
-    }
-    @media (max-width: 980px){ .statsRow{grid-template-columns: repeat(2, 1fr)} }
-    .stat{
-      padding: 14px;
-      border-radius: 18px;
-      border: 1px solid rgba(9,16,42,.12);
-      background: rgba(255,255,255,.78);
-      box-shadow: 0 10px 20px rgba(16,24,40,.06);
-      position:relative;
-      overflow:hidden;
-    }
-    .stat .k{font-size: 28px; font-weight: 900; letter-spacing:-.2px}
-    .stat .t{margin-top:6px; color: var(--muted); font-weight:700; font-size: 13px}
-    .stat::after{
-      content:""; position:absolute; inset:-60%;
-      background: radial-gradient(circle at 25% 25%, rgba(255,255,255,.75), transparent 55%);
-      transform: translateX(30%);
-      opacity:.6;
-      pointer-events:none;
-    }
-
-    /* Track chips + tags */
-    .meta{display:flex; gap:8px; flex-wrap:wrap; margin-top: 10px}
-    .tag{
-      font-size: 12px;
-      font-weight: 800;
-      color: rgba(9,16,42,.75);
-      border: 1px solid rgba(9,16,42,.12);
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.7);
-    }
-
-    /* Roadmap */
-    .roadmap{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 12px;
-    }
-    @media (max-width: 980px){ .roadmap{grid-template-columns:1fr} }
-    .step{
-      padding: 16px;
-      border-radius: var(--radius);
-      border: 1px solid rgba(9,16,42,.12);
-      background: rgba(255,255,255,.78);
-      position:relative;
-    }
-    .step b{display:inline-flex; align-items:center; gap:10px}
-    .step .n{
-      width:28px;height:28px;border-radius:12px;
-      display:grid; place-items:center;
-      background: linear-gradient(135deg, rgba(8,181,141,.18), rgba(63,111,255,.18));
-      border: 1px solid rgba(9,16,42,.12);
-      font-weight: 900;
-    }
-    .step p{margin:10px 0 0; color: var(--muted); line-height:1.8; font-weight:600}
-
-    /* Showcase */
-    .showcase{
-      display:grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap: 16px;
-      margin-top: 12px;
-    }
-    @media (max-width: 980px){ .showcase{grid-template-columns:1fr} }
-    .board{
-      padding: 16px;
-      border-radius: var(--radius);
-      border: 1px solid rgba(9,16,42,.12);
-      background: rgba(255,255,255,.78);
-      box-shadow: 0 12px 30px rgba(16,24,40,.08);
-      position:relative;
-      overflow:hidden;
-    }
-    .board .miniRow{display:flex; gap:10px; flex-wrap:wrap; margin: 12px 0 0}
-    .chip{
-      border: 1px dashed rgba(9,16,42,.20);
-      background: rgba(255,255,255,.7);
-      padding: 10px 12px;
-      border-radius: 16px;
-      font-weight: 900;
-      font-size: 12px;
-      color: rgba(9,16,42,.78);
-    }
-    .board .bar{
-      height: 10px;
-      border-radius: 999px;
-      background: rgba(9,16,42,.08);
-      overflow:hidden;
-      margin-top: 12px;
-    }
-    .board .bar > span{
-      display:block;
-      height:100%;
-      width: 72%;
-      background: linear-gradient(90deg, rgba(8,181,141,.9), rgba(63,111,255,.9));
-    }
-
-    /* Slider */
-    .slider{
-      border: 1px solid rgba(9,16,42,.12);
-      border-radius: var(--radius);
-      background: rgba(255,255,255,.78);
-      overflow:hidden;
-      box-shadow: 0 12px 30px rgba(16,24,40,.08);
-    }
-    .slides{
-      display:flex;
-      transition: transform .45s cubic-bezier(.2,.9,.2,1);
-    }
-    .slide{
-      min-width:100%;
-      padding: 18px;
-      display:grid;
-      gap: 10px;
-    }
-    .quote{font-weight:700; color: rgba(9,16,42,.92); line-height:1.8}
-    .who{color: var(--muted); font-weight:700; font-size: 13px}
-    .sliderControls{
-      display:flex; justify-content:space-between; align-items:center;
-      padding: 12px 14px;
-      border-top: 1px solid rgba(9,16,42,.10);
-      background: rgba(255,255,255,.55);
-    }
-    .dots{display:flex; gap:8px}
-    .dotbtn{
-      width:10px;height:10px;border-radius:999px;
-      border: 1px solid rgba(9,16,42,.18);
-      background: rgba(9,16,42,.10);
-      cursor:pointer;
-      transition: transform .2s ease, background .2s ease;
-    }
-    .dotbtn.active{
-      background: linear-gradient(135deg, var(--brand), var(--brand2));
-      transform: scale(1.2);
-      border-color: transparent;
-    }
-
-    /* FAQ */
-    .faqItem{
-      border: 1px solid rgba(9,16,42,.12);
-      background: rgba(255,255,255,.78);
-      border-radius: var(--radius);
-      padding: 14px;
-    }
-    .faqQ{
-      display:flex; justify-content:space-between; align-items:center;
-      gap: 12px;
-      cursor:pointer;
-      font-weight: 900;
-    }
-    .faqA{
-      max-height: 0;
-      overflow:hidden;
-      transition: max-height .25s ease;
-      color: var(--muted);
-      line-height: 1.8;
-      font-weight: 650;
-    }
-    .faqItem.open .faqA{max-height: 260px; margin-top: 10px}
-
-    /* Contact */
-    .contactGrid{
-      display:grid;
-      grid-template-columns: .9fr 1.1fr;
-      gap: 16px;
-    }
-    @media (max-width: 980px){ .contactGrid{grid-template-columns:1fr} }
-    .input{
-      width:100%;
-      padding: 12px 12px;
-      border-radius: 16px;
-      border: 1px solid rgba(9,16,42,.15);
-      outline:none;
-      font-weight: 700;
-      background: rgba(255,255,255,.82);
-    }
-    textarea.input{resize: vertical; min-height: 120px}
-    .formRow{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-    @media (max-width: 980px){ .formRow{grid-template-columns:1fr} }
-
-    /* Reveal on scroll */
-    .reveal{
-      opacity: 0;
-      transform: translateY(14px) scale(.99);
-      transition: opacity .7s ease, transform .7s ease;
-    }
-    .reveal.isVisible{
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
-    /* Reduced motion */
-    @media (prefers-reduced-motion: reduce){
-      *{animation:none !important; transition:none !important; scroll-behavior:auto !important}
-      .reveal{opacity:1; transform:none}
-    }
-
-    footer{
-      padding: 36px 0 50px;
-      border-top: 1px solid rgba(9,16,42,.12);
-      color: var(--muted);
-      background: rgba(255,255,255,.35);
-    }
-    .foot{
-      display:flex; justify-content:space-between; align-items:center; gap:12px;
-      flex-wrap:wrap;
-    }
-  </style>
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -626,7 +108,8 @@
         <div class="sectionHead reveal">
           <div>
             <h2>Why MAE Academy?</h2>
-            <p>Because learning sticks when you can test it. This page is designed to guide users from theory → practice → results.</p>
+            <p>Because learning sticks when you can test it. This page is designed to guide users from theory → practice
+              → results.</p>
           </div>
         </div>
 
@@ -798,11 +281,13 @@
           <div class="slider reveal" aria-label="Testimonials slider">
             <div class="slides" id="slides">
               <div class="slide">
-                <div class="quote">“The simulations made the concepts click — I understood overshoot and settling time in minutes.”</div>
+                <div class="quote">“The simulations made the concepts click — I understood overshoot and settling time
+                  in minutes.”</div>
                 <div class="who">— Student, Control Systems</div>
               </div>
               <div class="slide">
-                <div class="quote">“Waveforms and firing angle control felt confusing, but the lab view made it visual.”</div>
+                <div class="quote">“Waveforms and firing angle control felt confusing, but the lab view made it visual.”
+                </div>
                 <div class="who">— Student, Power Electronics</div>
               </div>
               <div class="slide">
@@ -834,19 +319,23 @@
         <div class="grid2">
           <div class="faqItem reveal">
             <div class="faqQ">Do simulations work on mobile? <span>＋</span></div>
-            <div class="faqA">Yes, but for best chart interaction and controls, desktop gives the smoothest experience.</div>
+            <div class="faqA">Yes, but for best chart interaction and controls, desktop gives the smoothest experience.
+            </div>
           </div>
           <div class="faqItem reveal">
             <div class="faqQ">Can I add more simulators later? <span>＋</span></div>
-            <div class="faqA">Absolutely. Add a new folder under <b>simulations/</b> and link it from the Sim Hub cards.</div>
+            <div class="faqA">Absolutely. Add a new folder under <b>simulations/</b> and link it from the Sim Hub cards.
+            </div>
           </div>
           <div class="faqItem reveal">
             <div class="faqQ">Can this become multiple pages? <span>＋</span></div>
-            <div class="faqA">Yes: Home (this page), Courses page, and a Simulations page. I can split it into files when you want.</div>
+            <div class="faqA">Yes: Home (this page), Courses page, and a Simulations page. I can split it into files
+              when you want.</div>
           </div>
           <div class="faqItem reveal">
             <div class="faqQ">Can we add login/dashboard? <span>＋</span></div>
-            <div class="faqA">Yes. We can start with a simple “Student Dashboard” UI and later connect it to real auth.</div>
+            <div class="faqA">Yes. We can start with a simple “Student Dashboard” UI and later connect it to real auth.
+            </div>
           </div>
         </div>
       </div>
@@ -867,8 +356,8 @@
             <div class="icon">📍</div>
             <h3>MAE Academy</h3>
             <p>
-              Email: info@mae-academy.example<br/>
-              Location: Amman, Jordan<br/>
+              Email: info@mae-academy.example<br />
+              Location: Amman, Jordan<br />
               Hours: 10:00 — 18:00
             </p>
             <div class="meta">
@@ -909,172 +398,8 @@
     </div>
   </footer>
 
-  <script>
-    // ---- Helpers ----
-    const prefersReduce = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    // Mobile menu hint: jump to sections quickly
-    const jumpBtn = document.getElementById("jumpMenu");
-    if (jumpBtn) {
-      jumpBtn.addEventListener("click", () => {
-        const target = document.querySelector("#tracks");
-        if (target) target.scrollIntoView({ behavior: "smooth" });
-      });
-    }
-
-    // Hero buttons
-    const btnCourses = document.getElementById("btnCourses");
-    if (btnCourses) {
-      btnCourses.addEventListener("click", () => {
-        const target = document.querySelector("#tracks");
-        if (target) target.scrollIntoView({ behavior: "smooth" });
-      });
-    }
-
-    // Reveal on scroll (safe fallback if IntersectionObserver not supported)
-    const revealEls = document.querySelectorAll(".reveal");
-    if ("IntersectionObserver" in window) {
-      const io = new IntersectionObserver((entries, obs) => {
-        for (const e of entries) {
-          if (e.isIntersecting) {
-            e.target.classList.add("isVisible");
-            obs.unobserve(e.target);
-          }
-        }
-      }, { threshold: 0.14 });
-      revealEls.forEach(el => io.observe(el));
-    } else {
-      revealEls.forEach(el => el.classList.add("isVisible"));
-    }
-
-    // Animated counters
-    const counters = document.querySelectorAll(".count");
-    let started = false;
-
-    function animateCount(el, target, duration = 1100) {
-      const start = performance.now();
-      const from = 0;
-
-      function frame(now) {
-        const p = Math.min(1, (now - start) / duration);
-        const eased = 1 - Math.pow(1 - p, 3);
-        const val = Math.floor(from + (target - from) * eased);
-        el.textContent = val.toLocaleString("en");
-        if (p < 1) requestAnimationFrame(frame);
-      }
-      requestAnimationFrame(frame);
-    }
-
-    const hero = document.querySelector(".hero");
-    if (hero && "IntersectionObserver" in window) {
-      const io2 = new IntersectionObserver((entries, obs) => {
-        for (const e of entries) {
-          if (e.isIntersecting && !started) {
-            started = true;
-            counters.forEach(c => animateCount(c, Number(c.dataset.target || 0)));
-            obs.disconnect();
-          }
-        }
-      }, { threshold: 0.35 });
-      io2.observe(hero);
-    } else {
-      // fallback
-      counters.forEach(c => animateCount(c, Number(c.dataset.target || 0)));
-    }
-
-    // Testimonials slider (add null-guards)
-    const slides = document.getElementById("slides");
-    const dotsWrap = document.getElementById("dots");
-    const prevBtn = document.getElementById("prev");
-    const nextBtn = document.getElementById("next");
-
-    if (slides && dotsWrap && prevBtn && nextBtn) {
-      const total = slides.children.length;
-      let idx = 0;
-
-      function renderDots() {
-        dotsWrap.innerHTML = "";
-        for (let i = 0; i < total; i++) {
-          const b = document.createElement("button");
-          b.type = "button";
-          b.className = "dotbtn" + (i === idx ? " active" : "");
-          b.addEventListener("click", () => go(i));
-          dotsWrap.appendChild(b);
-        }
-      }
-
-      function go(i) {
-        idx = (i + total) % total;
-        slides.style.transform = `translateX(-${idx * 100}%)`;
-        renderDots();
-      }
-
-      prevBtn.addEventListener("click", () => go(idx - 1));
-      nextBtn.addEventListener("click", () => go(idx + 1));
-      go(0);
-
-      // Auto advance (don’t animate if reduced motion)
-      setInterval(() => {
-        if (!prefersReduce()) go(idx + 1);
-      }, 6500);
-    }
-
-    // FAQ accordion (guard)
-    document.querySelectorAll(".faqItem").forEach(item => {
-      const q = item.querySelector(".faqQ");
-      if (!q) return;
-      q.addEventListener("click", () => item.classList.toggle("open"));
-    });
-
-    // Demo form submit (guard)
-    const contactForm = document.getElementById("contactForm");
-    if (contactForm) {
-      contactForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const msg = document.getElementById("formMsg");
-        if (msg) {
-          msg.textContent = "Received ✅ We'll get back to you soon.";
-          setTimeout(() => (msg.textContent = ""), 4500);
-        }
-        e.target.reset();
-      });
-    }
-
-    // Page transition (SINGLE implementation — removed duplicate script)
-    function enablePageTransitions() {
-      // Show page
-      document.body.style.opacity = "1";
-
-      // Intercept normal links only
-      document.addEventListener("click", (e) => {
-        const link = e.target.closest("a");
-        if (!link) return;
-
-        const href = link.getAttribute("href") || "";
-        // allow in-page anchors, new tabs, downloads, and modified-clicks
-        const isHashOnly = href.startsWith("#");
-        const isMailOrTel = href.startsWith("mailto:") || href.startsWith("tel:");
-        const modified = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0;
-
-        if (modified || isHashOnly || isMailOrTel || link.target || link.hasAttribute("download")) return;
-
-        e.preventDefault();
-        document.body.style.opacity = "0";
-        setTimeout(() => (window.location.href = link.href), 250);
-      });
-
-      // If user presses back/forward, ensure opacity is correct
-      window.addEventListener("pageshow", () => {
-        document.body.style.opacity = "1";
-      });
-    }
-
-    // Run after load
-    window.addEventListener("load", enablePageTransitions);
-
-    // Year (guard)
-    const yearEl = document.getElementById("year");
-    if (yearEl) yearEl.textContent = new Date().getFullYear();
-  </script>
+  <script src="js/global.js"></script>
+  <script src="script.js"></script>
 </body>
+
 </html>
