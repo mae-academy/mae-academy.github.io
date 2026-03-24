@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MAE Academy — Simulations</title>
+  <meta name="description" content="MAE Academy simulations hub: Control Systems, Power Electronics, and more." />
+
+
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon-16.svg">
+
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <!-- ✅ HEADER EXISTS HERE -->
+  <header>
+    <div class="container nav">
+      <a class="brand" href="../" aria-label="Back to Home">
+        <div class="logoMark" aria-hidden="true">
+          <img class="logoSvg" src="../assets/mae.svg" alt="">
+        </div>
+        <div>
+          <h1>MAE Academy</h1>
+          <p>Simulations Hub</p>
+        </div>
+      </a>
+
+      <div class="actions">
+        <button class="btn" type="button" onclick="location.href='../'">← Back to Home</button>
+        <a class="btn primary" href="../#contact">Start ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="pill">
+        <span class="spark" aria-hidden="true"></span>
+        <span>Choose a program and launch the simulator</span>
+      </div>
+
+      <div class="head">
+        <div>
+          <h2 class="title">Simulations</h2>
+          <p class="sub">Pick a simulator below. Add more cards later by duplicating one and changing its link.</p>
+        </div>
+        <a class="btn" href="../">Home</a>
+      </div>
+
+      <div class="grid">
+        <!-- Control -->
+        <article class="card">
+          <div class="cardTop">
+            <div class="icon">🎮</div>
+            <div class="badge">Control Systems</div>
+          </div>
+          <h3>Control Systems</h3>
+          <p class="desc">Time response • Root locus • PID tuning
+          </p>
+          <div class="meta">
+            <span class="tag">PID</span>
+            <span class="tag">Response</span>
+            <span class="tag">Tuning</span>
+          </div>
+          <button class="openBtn" type="button" onclick="location.href='control-systems/'">Open ↗</button>
+        </article>
+
+        <!-- Power Electronics -->
+        <article class="card">
+          <div class="cardTop">
+            <div class="icon">⚡️</div>
+            <div class="badge">Power Electronics
+            </div>
+          </div>
+          <h3>Power Electronics</h3>
+          <p class="desc">Rectifiers • Converters • Waveforms
+          </p>
+          <div class="meta">
+            <span class="tag">Angle</span>
+            <span class="tag">Waveforms</span>
+            <span class="tag">Loads</span>
+          </div>
+          <button class="openBtn" type="button" onclick="location.href='power-electronics/'">Open ↗</button>
+        </article>
+
+        <!-- Assembler -->
+        <article class="card">
+          <div class="cardTop">
+            <div class="icon">🧩</div>
+            <div class="badge">Assembly</div>
+          </div>
+          <h3>Assembler Simulator</h3>
+          <p class="desc">8086 basics • instructions • memory
+          </p>
+          <div class="meta">
+            <span class="tag">emu8086</span>
+            <span class="tag">ORG 100h</span>
+            <span class="tag">DB / OFFSET</span>
+          </div>
+          <button class="openBtn" type="button" onclick="location.href='assembler/'">Open ↗</button>
+        </article>
+
+        <!-- Convolution -->
+        <article class="card">
+          <div class="cardTop">
+            <div class="icon">📈</div>
+            <div class="badge">Signals</div>
+          </div>
+          <h3>Convolution Simulator</h3>
+          <p class="desc">Continuous & discrete convolution
+          </p>
+          <div class="meta">
+            <span class="tag">x(t)</span>
+            <span class="tag">y(t)</span>
+            <span class="tag">∗</span>
+          </div>
+          <button class="openBtn" type="button" onclick="location.href='signals-convolution/'">Open ↗</button>
+        </article>
+
+        <!-- Communications -->
+        <article class="card">
+          <div class="cardTop">
+            <div class="icon">📶</div>
+            <div class="badge">Comms</div>
+          </div>
+          <h3>Digital Transmission
+          </h3>
+          <p class="desc">Line coding</p>
+          <div class="meta">
+            <span class="tag">unipolar</span>
+            <span class="tag">polar</span>
+            <span class="tag">bipolar</span>
+          </div>
+          <button class="openBtn" type="button" onclick="location.href='communications/'">Open ↗</button>
+        </article>
+
+        <!-- Logic -->
+        <article class="card">
+          <div class="cardTop">
+            <div class="icon">🧮</div>
+            <div class="badge">Logic</div>
+          </div>
+          <h3>Logic Design</h3>
+          <p class="desc">Truth tables, decoders, encoders, mux/demux with interactive checks.</p>
+          <div class="meta">
+            <span class="tag">Gates</span>
+            <span class="tag">MUX</span>
+            <span class="tag">DEMUX</span>
+          </div>
+          <button class="openBtn" type="button" onclick="location.href='logic/'">Open ↗</button>
+        </article>
+
+
+        <!-- Linear -->
+        <article class="card">
+          <div class="cardTop">
+            <div class="icon">📏</div>
+            <div class="badge">Linear Algebra</div>
+          </div>
+          <h3>Linear Algebra</h3>
+          <p class="desc">Solve systems • matrix operations • vector spaces • eigen • linear transformations</p>
+          <div class="meta">
+            <span class="tag">equations</span>
+            <span class="tag">matrices</span>
+            <span class="tag">vectors</span>
+          </div>
+          <button class="openBtn" type="button" onclick="location.href='linear-algebra/'">Open ↗</button>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container foot">
+      <div>© <span id="year"></span> MAE Academy — All rights reserved</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <a class="btn" href="../">Home</a>
+        <a class="btn" href="../#simhub">Sim Hub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../js/global.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
