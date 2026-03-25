@@ -502,20 +502,19 @@ document.addEventListener("DOMContentLoaded", () => {
           }
 
           let rest = raw;
-          // Match either "LABEL:" or "LABEL DB/DW/DD"
-          const colonLabelMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*):/i);
           let labelName = null;
           
+          // Check for LABEL: format
+          const colonLabelMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*):/i);
           if(colonLabelMatch){
-            // Traditional label with colon
             labelName = colonLabelMatch[1].toUpperCase();
             rest = rest.slice(colonLabelMatch[0].length).trim();
           } else {
-            // Check for label without colon (followed by DB/DW/DD)
+            // Check for LABEL DB/DW/DD format (no colon)
             const noColonMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*)\s+(DB|DW|DD)\s/i);
             if(noColonMatch){
               labelName = noColonMatch[1].toUpperCase();
-              // Don't skip anything - rest remains the same so we process the directive
+              rest = rest.slice(noColonMatch[1].length).trim();
             }
           }
 
@@ -570,17 +569,16 @@ document.addEventListener("DOMContentLoaded", () => {
           }
 
           let rest = raw;
-          // Match either "LABEL:" or "LABEL DB/DW/DD"
+          
+          // Check for LABEL: format
           const colonLabelMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*):/i);
           if(colonLabelMatch){
-            // Traditional label with colon
             rest = rest.slice(colonLabelMatch[0].length).trim();
             if(!rest) continue;
           } else {
-            // Check for label without colon (followed by DB/DW/DD)
+            // Check for LABEL DB/DW/DD format (no colon)
             const noColonMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*)\s+(DB|DW|DD)\s/i);
             if(noColonMatch){
-              // Skip the identifier and whitespace, keep DB/DW/DD and args
               rest = rest.slice(noColonMatch[1].length).trim();
             }
           }
