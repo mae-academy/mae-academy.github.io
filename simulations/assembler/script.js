@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
     // =========================
-    // Assembler / Emulator
+    // Assembler / Emulator (MASM Fixes Applied)
     // =========================
     (() => {
       const el = (id) => document.getElementById(id);
@@ -48,6 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
       function parseNumber(tok){
         const t = tok.trim();
         if(!t) return null;
+        if(/^'.{1}'$/.test(t)) return t.charCodeAt(1); // Parse single char 'a'
         if(/^0x[0-9a-f]+$/i.test(t)) return parseInt(t,16);
         if(/^[0-9a-f]+h$/i.test(t)) return parseInt(t.slice(0,-1),16);
         if(/^[+-]?\d+$/.test(t)) return parseInt(t,10);
@@ -367,20 +368,20 @@ document.addEventListener("DOMContentLoaded", () => {
         if(labelMemMatch) {
           const parsed = parseMemInside(labelMemMatch[1] + "[" + labelMemMatch[2] + "]");
           if(!parsed.ok) return { type:"bad", error: parsed.error };
-          return { type:"mem", baseReg: parsed.baseReg, offset: parsed.offset, label: parsed.label, size: size ?? 8 };
+          return { type:"mem", baseReg: parsed.baseReg, offset: parsed.offset, label: parsed.label, size: size || null };
         }
 
         // [ ... ]
         if(up.startsWith("[") && up.endsWith("]")){
           const parsed = parseMemInside(up.slice(1,-1));
           if(!parsed.ok) return { type:"bad", error: parsed.error };
-          return { type:"mem", baseReg: parsed.baseReg, offset: parsed.offset, size: size ?? 8 };
+          return { type:"mem", baseReg: parsed.baseReg, offset: parsed.offset, size: size || null };
         }
 
         const num = parseNumber(up);
         if(num !== null) return { type:"imm", value: num >>> 0, size:16 };
 
-        if(/^[A-Z_.$][A-Z0-9_.$]*$/i.test(up)) return { type:"label", name: up.toUpperCase(), size:16 };
+        if(/^[A-Z_.$][A-Z0-9_.$]*$/i.test(up)) return { type:"label", name: up.toUpperCase(), size: size || null };
 
         return { type:"bad", error:`Unknown operand: ${raw}` };
       }
@@ -388,30 +389,39 @@ document.addEventListener("DOMContentLoaded", () => {
       function addrOfMem(op){
         const regBase = op.baseReg ? getReg16(op.baseReg) : 0;
         const off = op.offset ?? 0;
-        const labelBase = op.label ? (labels.get(op.label) ?? 0) : 0; // FIXED: label base now used
+        const labelBase = op.label ? (labels.get(op.label) ?? 0) : 0;
         return clamp16(labelBase + regBase + off);
       }
 
-      function evalOperand(op){
+      // Infer operation width safely (for MASM sizing logic)
+      function getEffectiveWidth(a0, a1) {
+        if (a0 && a0.size) return a0.size;
+        if (a1 && a1.size) return a1.size;
+        return 16; // default 16
+      }
+
+      function evalOperand(op, impliedSize){
         if(op.type === "imm") return op.value >>> 0;
         if(op.type === "reg16") return getReg16(op.name);
         if(op.type === "reg8")  return getReg8(op.name);
         if(op.type === "mem"){
           const a = addrOfMem(op);
-          if(op.size === 32) return read32(a);
-          if(op.size === 16) return read16(a);
+          const sz = op.size || impliedSize || 16;
+          if(sz === 32) return read32(a);
+          if(sz === 16) return read16(a);
           return read8(a);
         }
         throw new Error("Bad operand");
       }
 
-      function writeOperand(op, value){
+      function writeOperand(op, value, impliedSize){
         if(op.type === "reg16"){ setReg16(op.name, value); return; }
         if(op.type === "reg8"){ setReg8(op.name, value); return; }
         if(op.type === "mem"){
           const a = addrOfMem(op);
-          if(op.size === 32){ write32(a, value); return; }
-          if(op.size === 16){ write16(a, value); return; }
+          const sz = op.size || impliedSize || 16;
+          if(sz === 32){ write32(a, value); return; }
+          if(sz === 16){ write16(a, value); return; }
           write8(a, value);
           return;
         }
@@ -488,7 +498,6 @@ document.addEventListener("DOMContentLoaded", () => {
           let raw = stripComment(lines[i]);
           if(!raw) continue;
 
-          // ORG can appear anywhere (FIXED)
           const orgM = raw.toUpperCase().match(/^ORG\s+(.+)$/);
           if(orgM){
             const n = parseNumber(orgM[1].trim());
@@ -537,9 +546,10 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
 
-        // PASS 2: emit data + program (FIXED: ORG applied per-line, not once)
+        // PASS 2: emit data + program
         ip = 0;
         dataPtr = dataPtrDefault;
+        const controlFlowOps = ["JMP", "JZ", "JE", "JNZ", "JNE", "LOOP", "CALL"];
 
         for(let i=0;i<lines.length;i++){
           const ln = i+1;
@@ -549,13 +559,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           const orgM = raw.toUpperCase().match(/^ORG\s+(.+)$/);
           if(orgM){
-            const n = parseNumber(orgM[1].trim());
-            if(n === null){
-              logLine(`Line ${ln}: ORG needs numeric value`, "err");
-              setStatus("Assemble error","err");
-              return false;
-            }
-            dataPtr = clamp16(n);
+            dataPtr = clamp16(parseNumber(orgM[1].trim()));
             continue;
           }
 
@@ -606,7 +610,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 setStatus("Assemble error","err");
                 return false;
               }
-              args[k] = { type:"imm", value: val >>> 0, size:16 };
+              // MASM FIX: Control flow uses label index directly.
+              // Standard instructions treat bare labels as memory variables.
+              if(controlFlowOps.includes(op)) {
+                args[k] = { type:"imm", value: val >>> 0, size: a.size || 16 };
+              } else {
+                args[k] = { type:"mem", baseReg: null, offset: val, label: null, size: a.size || null };
+              }
             }
             if(a.type === "offset"){
               const val = labels.get(a.name);
@@ -644,12 +654,6 @@ document.addEventListener("DOMContentLoaded", () => {
         refreshMemory();
       }
 
-      function widthOfDest(op){
-        if(op.size) return op.size;
-        if(op.type === "reg8") return 8;
-        return 16;
-      }
-
       function stepOnce(){
         if(cpu.regs.IP < 0 || cpu.regs.IP >= program.length){
           logLine("Reached end of program (halt).", "warn");
@@ -675,88 +679,99 @@ document.addEventListener("DOMContentLoaded", () => {
 
             case "MOV":{
               if(inst.args.length !== 2) throw new Error("MOV needs 2 operands");
+              const w = getEffectiveWidth(a0, a1);
+              let v = evalOperand(a1, w);
 
-              const destW = widthOfDest(a0);
-              let v = evalOperand(a1);
-
-              // If moving into smaller destination, mask properly
-              if(destW === 8) v &= 0xFF;
-              else if(destW === 16) v &= 0xFFFF;
+              if(w === 8) v &= 0xFF;
+              else if(w === 16) v &= 0xFFFF;
               else v = v >>> 0;
 
-              writeOperand(a0, v);
-
-              // MOV doesn't define OF/CF in 8086; keep as 0 here (your choice)
+              writeOperand(a0, v, w);
               cpu.flags.CF=0; cpu.flags.OF=0;
-              setZS(destW, v);
+              setZS(w, v);
 
               cpu.regs.IP = nextIP; cpu.cycles++;
               break;
             }
 
-            case "ADD":{
-              if(inst.args.length !== 2) throw new Error("ADD needs 2 operands");
-              const w = widthOfDest(a0);
-              const left = evalOperand(a0);
-              const right = evalOperand(a1);
-              const res = addN(left, right, w);
-              writeOperand(a0, res);
+            case "ADD":
+            case "SUB":
+            case "CMP":
+            case "AND":
+            case "XOR":
+            case "TEST": {
+              if(inst.args.length !== 2) throw new Error(op + " needs 2 operands");
+              const w = getEffectiveWidth(a0, a1);
+              const left = evalOperand(a0, w);
+              const right = evalOperand(a1, w);
+              let res;
+
+              if(op === "ADD") res = addN(left, right, w);
+              else if(op === "SUB" || op === "CMP") res = subN(left, right, w);
+              else if(op === "AND") {
+                res = (left & right) >>> 0;
+                cpu.flags.CF=0; cpu.flags.OF=0; setZS(w, res);
+              } else if(op === "XOR") {
+                res = (left ^ right) >>> 0;
+                cpu.flags.CF=0; cpu.flags.OF=0; setZS(w, res);
+              } else if(op === "TEST") {
+                res = (left & right) >>> 0;
+                cpu.flags.CF=0; cpu.flags.OF=0; setZS(w, res);
+              }
+
+              if(op !== "CMP" && op !== "TEST") {
+                writeOperand(a0, res, w);
+              }
               cpu.regs.IP = nextIP; cpu.cycles++;
               break;
             }
 
-            case "SUB":{
-              if(inst.args.length !== 2) throw new Error("SUB needs 2 operands");
-              const w = widthOfDest(a0);
-              const left = evalOperand(a0);
-              const right = evalOperand(a1);
-              const res = subN(left, right, w);
-              writeOperand(a0, res);
-              cpu.regs.IP = nextIP; cpu.cycles++;
-              break;
-            }
-
-            case "INC":{
-              if(inst.args.length !== 1) throw new Error("INC needs 1 operand");
-              const w = widthOfDest(a0);
-              const v = evalOperand(a0);
+            case "INC":
+            case "DEC": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              const w = getEffectiveWidth(a0, null);
+              const v = evalOperand(a0, w);
               const oldCF = cpu.flags.CF;
-              const res = addN(v, 1, w);
-              cpu.flags.CF = oldCF; // INC doesn't change CF
-              writeOperand(a0, res);
+              const res = op === "INC" ? addN(v, 1, w) : subN(v, 1, w);
+              cpu.flags.CF = oldCF; // INC/DEC do not change CF
+              writeOperand(a0, res, w);
               cpu.regs.IP = nextIP; cpu.cycles++;
               break;
             }
 
-            case "AND":{
-              if(inst.args.length !== 2) throw new Error("AND needs 2 operands");
-              const w = widthOfDest(a0);
-              const res = (evalOperand(a0) & evalOperand(a1)) >>> 0;
-              cpu.flags.CF=0; cpu.flags.OF=0;
-              setZS(w,res);
-              writeOperand(a0,res);
+            case "PUSH": {
+              if(inst.args.length !== 1) throw new Error("PUSH needs 1 operand");
+              const v = evalOperand(a0, 16) & 0xFFFF;
+              cpu.regs.SP = (cpu.regs.SP - 2) & 0xFFFF;
+              write16(cpu.regs.SP, v);
               cpu.regs.IP = nextIP; cpu.cycles++;
               break;
             }
 
-            case "XOR":{
-              if(inst.args.length !== 2) throw new Error("XOR needs 2 operands");
-              const w = widthOfDest(a0);
-              const res = (evalOperand(a0) ^ evalOperand(a1)) >>> 0;
-              cpu.flags.CF=0; cpu.flags.OF=0;
-              setZS(w,res);
-              writeOperand(a0,res);
+            case "POP": {
+              if(inst.args.length !== 1) throw new Error("POP needs 1 operand");
+              const v = read16(cpu.regs.SP);
+              cpu.regs.SP = (cpu.regs.SP + 2) & 0xFFFF;
+              writeOperand(a0, v, 16);
               cpu.regs.IP = nextIP; cpu.cycles++;
               break;
             }
 
-            case "TEST":{
-              if(inst.args.length !== 2) throw new Error("TEST needs 2 operands");
-              const w = widthOfDest(a0);
-              const res = (evalOperand(a0) & evalOperand(a1)) >>> 0;
-              cpu.flags.CF=0; cpu.flags.OF=0;
-              setZS(w,res);
-              cpu.regs.IP = nextIP; cpu.cycles++;
+            case "CALL": {
+              if(inst.args.length !== 1) throw new Error("CALL needs 1 operand");
+              const target = evalOperand(a0);
+              cpu.regs.SP = (cpu.regs.SP - 2) & 0xFFFF;
+              write16(cpu.regs.SP, nextIP);
+              cpu.regs.IP = clamp16(target);
+              cpu.cycles++;
+              break;
+            }
+
+            case "RET": {
+              const retIP = read16(cpu.regs.SP);
+              cpu.regs.SP = (cpu.regs.SP + 2) & 0xFFFF;
+              cpu.regs.IP = retIP;
+              cpu.cycles++;
               break;
             }
 
@@ -768,16 +783,18 @@ document.addEventListener("DOMContentLoaded", () => {
               break;
             }
 
-            case "JZ":{
-              if(inst.args.length !== 1) throw new Error("JZ needs 1 operand");
+            case "JZ":
+            case "JE": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
               const target = evalOperand(a0);
               cpu.regs.IP = cpu.flags.ZF ? clamp16(target) : nextIP;
               cpu.cycles++;
               break;
             }
 
-            case "JNZ":{
-              if(inst.args.length !== 1) throw new Error("JNZ needs 1 operand");
+            case "JNZ":
+            case "JNE": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
               const target = evalOperand(a0);
               cpu.regs.IP = !cpu.flags.ZF ? clamp16(target) : nextIP;
               cpu.cycles++;
@@ -962,8 +979,12 @@ MOV AX, WORD PTR [SI]
 ADD AX, 1
 MOV WORD PTR [SI], AX
 
-; read dword (low word only shown in AX demo)
-MOV AX, WORD PTR [SI+2] ; low word of DD at D1 if you point SI there
+; direct variable access (MASM style)
+MOV BX, W1  ; Reads the memory at W1 into BX
+CMP BX, 1235h
+JE DONE
+
+DONE:
 HLT
 `
         };
@@ -992,9 +1013,9 @@ ORG 100h
 MOV SI, OFFSET STR
 MOV CX, 2
 
-L:  MOV AL, BYTE PTR [SI]
+L:  MOV AL, [SI]  ; Size inferred from AL!
     XOR AL, 20h
-    MOV BYTE PTR [SI], AL
+    MOV [SI], AL
     INC SI
     LOOP L
 HLT
