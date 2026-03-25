@@ -511,11 +511,21 @@ document.addEventListener("DOMContentLoaded", () => {
           }
 
           let rest = raw;
-          const labelMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*):/i);
           let labelName = null;
+
+          // 1. Check for standard code label with colon (e.g., L1:)
+          const labelMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*):/i);
           if(labelMatch){
             labelName = labelMatch[1].toUpperCase();
             rest = rest.slice(labelMatch[0].length).trim();
+          } else {
+            // 2. Check for MASM data variable without colon (e.g., STR DB "ab")
+            const dataLabelMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*)\s+(DB|DW|DD)\b/i);
+            if(dataLabelMatch){
+              labelName = dataLabelMatch[1].toUpperCase();
+              // Slice off just the label name so 'DB ...' stays in 'rest'
+              rest = rest.slice(dataLabelMatch[1].length).trim(); 
+            }
           }
 
           const upRest = rest.toUpperCase();
@@ -564,11 +574,18 @@ document.addEventListener("DOMContentLoaded", () => {
           }
 
           let rest = raw;
+          
+          // Slice labels off again for pass 2
           const labelMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*):/i);
           if(labelMatch){
             rest = rest.slice(labelMatch[0].length).trim();
-            if(!rest) continue;
+          } else {
+            const dataLabelMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*)\s+(DB|DW|DD)\b/i);
+            if(dataLabelMatch){
+              rest = rest.slice(dataLabelMatch[1].length).trim();
+            }
           }
+          if(!rest) continue;
 
           const upRest = rest.toUpperCase();
           if(upRest.startsWith("DB ") || upRest.startsWith("DW ") || upRest.startsWith("DD ")){
@@ -611,7 +628,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 return false;
               }
               // MASM FIX: Control flow uses label index directly.
-              // Standard instructions treat bare labels as memory variables.
               if(controlFlowOps.includes(op)) {
                 args[k] = { type:"imm", value: val >>> 0, size: a.size || 16 };
               } else {
