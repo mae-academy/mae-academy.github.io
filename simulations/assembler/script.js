@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function fmt(n, width=4){
-      const base = baseSel.value;
+      const base = baseSel && baseSel.value;
       if(base === "dec") return String(n >>> 0);
       const hex = (n >>> 0).toString(16).toUpperCase().padStart(width,"0");
       return "0x" + hex;
@@ -88,11 +88,12 @@ document.addEventListener("DOMContentLoaded", () => {
     let breakpoints = new Set();
 
     // ---- Editor gutter ----
-    function getLines(){ return codeEl.value.replace(/\r\n/g,"\n").split("\n"); }
+    function getLines(){ return (codeEl ? codeEl.value : "").replace(/\r\n/g,"\n").split("\n"); }
 
     function refreshGutter(){
       const lines = getLines();
       const activeLine = ipToLine.get(cpu.regs.IP) ?? null;
+      if(!gutterEl) return;
       gutterEl.innerHTML = "";
       for(let i=0;i<lines.length;i++){
         const ln = i+1;
@@ -105,19 +106,21 @@ document.addEventListener("DOMContentLoaded", () => {
         div.appendChild(bp); div.appendChild(num);
         div.addEventListener("click", () => {
           if(breakpoints.has(ln)) breakpoints.delete(ln); else breakpoints.add(ln);
-          localStorage.setItem(LS_BPS, JSON.stringify([...breakpoints]));
+          try{ localStorage.setItem(LS_BPS, JSON.stringify([...breakpoints])); }catch{}
           refreshGutter();
         });
         gutterEl.appendChild(div);
       }
     }
 
-    codeEl.addEventListener("input", () => {
-      localStorage.setItem(LS_CODE, codeEl.value);
-      program = [];
-      refreshGutter();
-    });
-    codeEl.addEventListener("scroll", () => { gutterEl.scrollTop = codeEl.scrollTop; });
+    if(codeEl){
+      codeEl.addEventListener("input", () => {
+        try{ localStorage.setItem(LS_CODE, codeEl.value); }catch{}
+        program = [];
+        refreshGutter();
+      });
+      codeEl.addEventListener("scroll", () => { if(gutterEl) gutterEl.scrollTop = codeEl.scrollTop; });
+    }
 
     function loadBreakpoints(){
       try{
@@ -171,22 +174,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function getReg8(name){
       const map = {
-        AL:["AX",0], AH:["AX",8],
-        BL:["BX",0], BH:["BX",8],
-        CL:["CX",0], CH:["CX",8],
-        DL:["DX",0], DH:["DX",8],
+        "AL":["AX",0], "AH":["AX",8],
+        "BL":["BX",0], "BH":["BX",8],
+        "CL":["CX",0], "CH":["CX",8],
+        "DL":["DX",0], "DH":["DX",8],
       };
-      const [r,shift] = map[name];
+      const entry = map[name];
+      if(!entry) throw new Error(`Bad 8-bit register ${name}`);
+      const [r,shift] = entry;
       return (getReg16(r) >> shift) & 0xFF;
     }
     function setReg8(name,val){
       const map = {
-        AL:["AX",0], AH:["AX",8],
-        BL:["BX",0], BH:["BX",8],
-        CL:["CX",0], CH:["CX",8],
-        DL:["DX",0], DH:["DX",8],
+        "AL":["AX",0], "AH":["AX",8],
+        "BL":["BX",0], "BH":["BX",8],
+        "CL":["CX",0], "CH":["CX",8],
+        "DL":["DX",0], "DH":["DX",8],
       };
-      const [r,shift] = map[name];
+      const entry = map[name];
+      if(!entry) throw new Error(`Bad 8-bit register ${name}`);
+      const [r,shift] = entry;
       const v = clamp8(val);
       const cur = getReg16(r);
       const mask = ~(0xFF << shift) & 0xFFFF;
@@ -666,14 +673,14 @@ $/i);
       cpu.flags.ZF=0; cpu.flags.SF=0; cpu.flags.CF=0; cpu.flags.OF=0;
       cpu.cycles=0;
       if(!keepMemory) mem.fill(0);
-      updateUI();
+      if(typeof updateUI === "function") updateUI();
       refreshGutter();
       refreshMemory();
     }
 
     function widthOfDest(op){
-      if(op.size) return op.size;
-      if(op.type === "reg8") return 8;
+      if(op && op.size) return op.size;
+      if(op && op.type === "reg8") return 8;
       return 16;
     }
 
@@ -704,7 +711,8 @@ $/i);
             cpu.cycles++;
             logLine(`HLT at line ${inst.line}`, "ok");
             setStatus("HLT (stopped)","ok");
-            updateUI(); refreshMemory(); refreshGutter();
+            if(typeof updateUI === "function") updateUI();
+            refreshMemory(); refreshGutter();
             return false;
 
           case "MOV":{
@@ -966,15 +974,17 @@ $/i);
         return false;
       }
 
-      updateUI(); refreshMemory(); refreshGutter();
+      if(typeof updateUI === "function") updateUI();
+      refreshMemory(); refreshGutter();
       return true;
     }
 
     // ---- UI / memory display helpers ----
     function refreshMemory(){
-      const start = parseInt(memStartEl.value || "0") || 0;
+      const start = parseInt((memStartEl && memStartEl.value) || "0") || 0;
       const rows = 16;
       const cols = 16;
+      if(!memDumpEl) return;
       memDumpEl.innerHTML = "";
       for(let r=0;r<rows;r++){
         const addr = (start + r*cols) & 0xFFFF;
@@ -996,7 +1006,7 @@ $/i);
     }
 
     function updateUI(){
-      // regs
+      if(!regsGrid || !flagsRow) return;
       regsGrid.innerHTML = "";
       for(const r of ["AX","BX","CX","DX","SI","DI","BP","SP","IP"]){
         const div = document.createElement("div");
@@ -1004,7 +1014,6 @@ $/i);
         div.innerHTML = `<div class="regName">${r}</div><div class="regVal">${fmt(cpu.regs[r],4)}</div>`;
         regsGrid.appendChild(div);
       }
-      // flags
       flagsRow.innerHTML = "";
       for(const f of ["ZF","SF","CF","OF"]){
         const d = document.createElement("div");
@@ -1012,7 +1021,7 @@ $/i);
         d.textContent = `${f}=${cpu.flags[f]}`;
         flagsRow.appendChild(d);
       }
-      cyclesEl.textContent = String(cpu.cycles);
+      if(cyclesEl) cyclesEl.textContent = String(cpu.cycles);
     }
 
     // ---- Controls ----
@@ -1036,8 +1045,10 @@ $/i);
     // ---- Initialization ----
     function init(){
       loadBreakpoints();
-      const saved = localStorage.getItem(LS_CODE);
-      if(saved) codeEl.value = saved;
+      try{
+        const saved = localStorage.getItem(LS_CODE);
+        if(saved && codeEl) codeEl.value = saved;
+      }catch{}
       refreshGutter();
       resetCPU(false);
       assemble();
