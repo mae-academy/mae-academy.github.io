@@ -465,7 +465,12 @@ document.addEventListener("DOMContentLoaded", () => {
             else pushDword(ch);
             continue;
           }
-
+          if(it === "?") {
+            if(directive === "DB") bytes.push(0);
+            else if(directive === "DW") pushWord(0);
+            else pushDword(0);
+            continue;
+          }
           const n = parseNumber(it.toUpperCase());
           if(n === null) return { ok:false, error:`${directive} value must be number/string (got "${it}")` };
 
