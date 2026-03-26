@@ -57,7 +57,7 @@
       gap: 16px; padding: 18px 0 12px; flex-wrap:wrap;
     }
     .hero-left{ flex: 1 1 520px; min-width: 260px; }
-    .hero h2{ margin:0; font-size: 28px; font-weight: 900; letter-spacing: -.6px; }
+    .hero h2{ margin:0; font-size: 44px; font-weight: 900; letter-spacing: -.6px; }
     .hero p{ margin: 8px 0 0 0; color: var(--muted); font-weight: 700; line-height: 1.55; max-width: 70ch; }
     .hero-right{ flex: 0 0 auto; display:flex; gap: 10px; align-items:center; justify-content:flex-end; flex-wrap:wrap; min-width: 240px; }
 
