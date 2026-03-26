@@ -5,8 +5,8 @@
     let sPlaneChart = null;
 
     let sys = { order: 2, tau: 1.0, wn: 5.0, zeta: 0.5, p3: 10.0 };
-    let pid = { sp: 50, kp: 5.0, ki: 1.0, kd: 2.0 };
-    let design = { wn: 6.0, zeta: 0.7 };
+    let pid = { sp: 50, kp: 1.0, ki: 0.0, kd: 0.0 };
+    let design = { wn: 5.0, zeta: 0.5 };
 
     let state = { pv: 0, vel: 0, acc: 0, integ: 0, lastErr: 0 };
 
