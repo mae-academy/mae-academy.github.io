@@ -45,12 +45,21 @@ document.addEventListener("DOMContentLoaded", () => {
       function clamp8(x){ return ((x % 0x100) + 0x100) & 0xFF; }
       function clamp32(x){ return (x >>> 0); }
 
+      // UPDATED: Now supports Binary (0b1010 or 1010b), Hex, Dec, and Chars
       function parseNumber(tok){
         const t = tok.trim();
         if(!t) return null;
         if(/^'.{1}'$/.test(t)) return t.charCodeAt(1); // Support single char 'a'
+        
+        // Hexadecimal
         if(/^0x[0-9a-f]+$/i.test(t)) return parseInt(t,16);
         if(/^[0-9a-f]+h$/i.test(t)) return parseInt(t.slice(0,-1),16);
+        
+        // Binary Numbers (0b1010 or 1010b)
+        if(/^0b[01]+$/i.test(t)) return parseInt(t.slice(2), 2);
+        if(/^[01]+b$/i.test(t)) return parseInt(t.slice(0,-1), 2);
+        
+        // Decimal
         if(/^[+-]?\d+$/.test(t)) return parseInt(t,10);
         return null;
       }
@@ -133,6 +142,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return (idx>=0 ? line.slice(0,idx) : line).trim();
       }
 
+      // UPDATED: Added tracking for ( and ) to support DUP syntax
       function tokenizeCommaAware(s){
         const parts = [];
         let cur = "";
@@ -153,8 +163,8 @@ document.addEventListener("DOMContentLoaded", () => {
             continue;
           }
 
-          if(ch === "[") depth++;
-          if(ch === "]") depth--;
+          if(ch === "[" || ch === "(") depth++;
+          if(ch === "]" || ch === ")") depth--;
 
           if(ch === "," && depth === 0){
             parts.push(cur.trim()); cur="";
@@ -393,11 +403,10 @@ document.addEventListener("DOMContentLoaded", () => {
         return clamp16(labelBase + regBase + off);
       }
 
-      // Infer operation width safely
       function getEffectiveWidth(a0, a1) {
         if (a0 && a0.size) return a0.size;
         if (a1 && a1.size) return a1.size;
-        return 16; // default 16
+        return 16; 
       }
 
       function evalOperand(op, impliedSize){
@@ -428,7 +437,7 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("Destination must be reg or mem");
       }
 
-      // ---- DB/DW/DD parsing ----
+      // UPDATED: Now supports the DUP operator e.g., 5 DUP (0)
       function parseDataItems(argStr, directive){
         const items = tokenizeCommaAware(argStr);
         if(items.length === 0) return { ok:false, error:`${directive} needs values` };
@@ -440,9 +449,9 @@ document.addEventListener("DOMContentLoaded", () => {
           bytes.push(v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF);
         };
 
-        for(const itRaw of items){
-          const it = itRaw.trim();
-          if(!it) continue;
+        const processSingleValue = (valStr) => {
+          const it = valStr.trim();
+          if(!it) return true; 
 
           const strMatch = it.match(/^"(.*)"$/);
           if(strMatch){
@@ -453,7 +462,7 @@ document.addEventListener("DOMContentLoaded", () => {
               else if(directive === "DW") pushWord(ch);
               else pushDword(ch);
             }
-            continue;
+            return true;
           }
 
           const chrMatch = it.match(/^'(.*)'$/);
@@ -463,20 +472,50 @@ document.addEventListener("DOMContentLoaded", () => {
             if(directive === "DB") bytes.push(ch);
             else if(directive === "DW") pushWord(ch);
             else pushDword(ch);
-            continue;
+            return true;
           }
+          
           if(it === "?") {
             if(directive === "DB") bytes.push(0);
             else if(directive === "DW") pushWord(0);
             else pushDword(0);
-            continue;
+            return true;
           }
+          
           const n = parseNumber(it.toUpperCase());
-          if(n === null) return { ok:false, error:`${directive} value must be number/string (got "${it}")` };
+          if(n === null) return false;
 
           if(directive === "DB") bytes.push(n & 0xFF);
           else if(directive === "DW") pushWord(n & 0xFFFF);
           else pushDword(n >>> 0);
+          return true;
+        };
+
+        for(const itRaw of items){
+          const it = itRaw.trim();
+          if(!it) continue;
+
+          const dupMatch = it.match(/^(.+?)\s+DUP\s*\((.+)\)$/i);
+          if(dupMatch){
+            const countStr = dupMatch[1];
+            const valStr = dupMatch[2];
+            const count = parseNumber(countStr.toUpperCase());
+            
+            if(count === null || count < 0){
+              return { ok:false, error:`Invalid DUP count: "${countStr}"` };
+            }
+            
+            for(let c = 0; c < count; c++){
+              if(!processSingleValue(valStr)){
+                return { ok:false, error:`Invalid DUP value: "${valStr}"` };
+              }
+            }
+            continue;
+          }
+
+          if(!processSingleValue(it)){
+             return { ok:false, error:`${directive} value must be number/string (got "${it}")` };
+          }
         }
 
         return { ok:true, bytes };
@@ -518,17 +557,15 @@ document.addEventListener("DOMContentLoaded", () => {
           let rest = raw;
           let labelName = null;
 
-          // Check for LABEL: format
           const colonLabelMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*):/i);
           if(colonLabelMatch){
             labelName = colonLabelMatch[1].toUpperCase();
             rest = rest.slice(colonLabelMatch[0].length).trim();
           } else {
-            // Check for LABEL DB/DW/DD format (no colon)
             const noColonMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*)\s+(DB|DW|DD)\b/i);
             if(noColonMatch){
               labelName = noColonMatch[1].toUpperCase();
-              rest = rest.slice(noColonMatch[1].length).trim(); // Keep the DB/DW/DD
+              rest = rest.slice(noColonMatch[1].length).trim();
             }
           }
 
@@ -547,7 +584,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if(!rest) continue;
 
           if(isData){
-            const dir = upRest.slice(0,2); // DB/DW/DD -> "DB","DW","DD"
+            const dir = upRest.slice(0,2);
             const parsed = parseDataItems(rest.slice(2).trim(), dir);
             if(!parsed.ok){
               logLine(`Line ${ln}: ${parsed.error}`, "err");
@@ -585,13 +622,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
           let rest = raw;
 
-          // Check for LABEL: format
           const colonLabelMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*):/i);
           if(colonLabelMatch){
             rest = rest.slice(colonLabelMatch[0].length).trim();
             if(!rest) continue;
           } else {
-            // Check for LABEL DB/DW/DD format (no colon)
             const noColonMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*)\s+(DB|DW|DD)\b/i);
             if(noColonMatch){
               rest = rest.slice(noColonMatch[1].length).trim();
@@ -628,7 +663,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           }
 
-          // resolve labels + OFFSET
           for(let k=0;k<args.length;k++){
             const a = args[k];
             if(a.type === "label"){
@@ -638,7 +672,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 setStatus("Assemble error","err");
                 return false;
               }
-              // MASM FIX: Distinguish between memory pointers and instruction addresses
               if(controlFlowOps.includes(op)) {
                 args[k] = { type:"imm", value: val >>> 0, size: a.size || 16 };
               } else {
@@ -721,10 +754,12 @@ document.addEventListener("DOMContentLoaded", () => {
               break;
             }
 
+            // UPDATED: Added OR and NOT
             case "ADD":
             case "SUB":
             case "CMP":
             case "AND":
+            case "OR":
             case "XOR":
             case "TEST": {
               if(inst.args.length !== 2) throw new Error(op + " needs 2 operands");
@@ -738,6 +773,9 @@ document.addEventListener("DOMContentLoaded", () => {
               else if(op === "AND") {
                 res = (left & right) >>> 0;
                 cpu.flags.CF=0; cpu.flags.OF=0; setZS(w, res);
+              } else if(op === "OR") {
+                res = (left | right) >>> 0;
+                cpu.flags.CF=0; cpu.flags.OF=0; setZS(w, res);
               } else if(op === "XOR") {
                 res = (left ^ right) >>> 0;
                 cpu.flags.CF=0; cpu.flags.OF=0; setZS(w, res);
@@ -749,6 +787,19 @@ document.addEventListener("DOMContentLoaded", () => {
               if(op !== "CMP" && op !== "TEST") {
                 writeOperand(a0, res, w);
               }
+              cpu.regs.IP = nextIP; cpu.cycles++;
+              break;
+            }
+            
+            case "NOT": {
+              if(inst.args.length !== 1) throw new Error("NOT needs 1 operand");
+              const w = getEffectiveWidth(a0, null);
+              const v = evalOperand(a0, w);
+              let res = (~v) >>> 0;
+              if (w === 8) res &= 0xFF;
+              if (w === 16) res &= 0xFFFF;
+              // Note: In x86, NOT does not affect flags
+              writeOperand(a0, res, w);
               cpu.regs.IP = nextIP; cpu.cycles++;
               break;
             }
@@ -995,19 +1046,20 @@ HLT
 
 STR DB "ab"
 `,
+          // UPDATED: Now shows off Binary and DUP right in the UI example!
           data: `ORG 200h
 W1 DW 1234h
 D1 DD 11223344h
 S1 DB "Hi", 0
+BIN DB 0b1010
+ARR DB 3 DUP (0xFF)
 
 MOV SI, OFFSET W1
-; read/write word
 MOV AX, [SI]
 ADD AX, 1
 MOV [SI], AX
 
-; direct variable access (MASM style)
-MOV BX, W1  ; Reads the memory at W1 into BX
+MOV BX, W1
 CMP BX, 1235h
 JE DONE
 
@@ -1040,7 +1092,7 @@ ORG 100h
 MOV SI, OFFSET STR
 MOV CX, 2
 
-L:  MOV AL, [SI]  ; Size inferred from AL!
+L:  MOV AL, [SI]
     XOR AL, 20h
     MOV [SI], AL
     INC SI
