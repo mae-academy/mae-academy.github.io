@@ -216,7 +216,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      // ADDED carryIn param for ADC functionality
       function addN(a,b,width,carryIn=0){
         cpu.flags.AF = (((a & 0x0F) + (b & 0x0F) + carryIn) > 0x0F) ? 1 : 0;
 
@@ -247,7 +246,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return res;
       }
 
-      // ADDED borrowIn param for SBB functionality
       function subN(a,b,width,borrowIn=0){
         cpu.flags.AF = (((a & 0x0F) - (b & 0x0F) - borrowIn) < 0) ? 1 : 0;
 
@@ -588,6 +586,13 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           }
 
+          // Pre-process REP prefixes in pass 1
+          const parts = rest.trim().split(/\s+/);
+          let op = parts[0].toUpperCase();
+          if (op.startsWith("REP") && parts.length > 1) {
+              op = op + " " + parts[1].toUpperCase();
+          }
+
           const upRest = rest.toUpperCase();
           const isData = upRest.startsWith("DB ") || upRest.startsWith("DW ") || upRest.startsWith("DD ");
 
@@ -658,8 +663,17 @@ document.addEventListener("DOMContentLoaded", () => {
           }
 
           const parts = rest.trim().split(/\s+/);
-          const op = parts[0].toUpperCase();
-          const operandStr = rest.slice(parts[0].length).trim();
+          let op = parts[0].toUpperCase();
+          let operandStr = rest.slice(parts[0].length).trim();
+          
+          // Pre-process REP prefixes in pass 2
+          if (op.startsWith("REP") && parts.length > 1) {
+              const nextOp = parts[1].toUpperCase();
+              op = op + " " + nextOp;
+              const matchNextOp = new RegExp("^" + nextOp, "i");
+              operandStr = operandStr.replace(matchNextOp, "").trim();
+          }
+
           const ops = operandStr ? tokenizeCommaAware(operandStr) : [];
           const args = ops.map(parseOperand);
 
@@ -728,6 +742,109 @@ document.addEventListener("DOMContentLoaded", () => {
         const nextIP = cpu.regs.IP + 1;
 
         try{
+
+          // ==========================================
+          // DYNAMIC ROUTING: REPs and String Operations
+          // ==========================================
+          let baseOp = op;
+          let repPrefix = null;
+
+          if (op.startsWith("REP")) {
+              const parts = op.split(" ");
+              repPrefix = parts[0]; // Matches "REP", "REPE", "REPZ", "REPNE", "REPNZ"
+              baseOp = parts[1];
+          }
+
+          const isStringOp = ["MOVSB", "MOVSW", "LODSB", "LODSW", "STOSB", "STOSW", "CMPSB", "CMPSW", "SCASB", "SCASW"].includes(baseOp);
+
+          if (isStringOp) {
+              const size = baseOp.endsWith("B") ? 1 : 2;
+
+              // Base exit condition for any REP prefix: CX hits 0
+              if (repPrefix && getReg16("CX") === 0) {
+                  cpu.regs.IP = nextIP;
+                  cpu.cycles++;
+                  updateUI(); refreshMemory(); refreshGutter();
+                  return true;
+              }
+
+              // String Execution Block
+              if (baseOp.startsWith("MOVS")) {
+                  const src = clamp20((getReg16("DS") << 4) + getReg16("SI"));
+                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI")); // ES:DI normally
+                  if(size === 1) write8(dst, read8(src));
+                  else write16(dst, read16(src));
+                  
+                  const step = cpu.flags.DF ? -size : size;
+                  setReg16("SI", getReg16("SI") + step);
+                  setReg16("DI", getReg16("DI") + step);
+                  cpu.cycles += 2;
+              } else if (baseOp.startsWith("LODS")) {
+                  const src = clamp20((getReg16("DS") << 4) + getReg16("SI"));
+                  if(size === 1) setReg8("AL", read8(src));
+                  else setReg16("AX", read16(src));
+                  
+                  const step = cpu.flags.DF ? -size : size;
+                  setReg16("SI", getReg16("SI") + step);
+                  cpu.cycles += 1;
+              } else if (baseOp.startsWith("STOS")) {
+                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI")); // ES:DI normally
+                  if(size === 1) write8(dst, getReg8("AL"));
+                  else write16(dst, getReg16("AX"));
+                  
+                  const step = cpu.flags.DF ? -size : size;
+                  setReg16("DI", getReg16("DI") + step);
+                  cpu.cycles += 1;
+              } else if (baseOp.startsWith("CMPS")) {
+                  const src = clamp20((getReg16("DS") << 4) + getReg16("SI"));
+                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI")); // ES:DI normally
+                  const valSrc = size === 1 ? read8(src) : read16(src);
+                  const valDst = size === 1 ? read8(dst) : read16(dst);
+                  subN(valSrc, valDst, size * 8, 0); // Sets CF, OF, ZF, SF, AF, PF
+                  
+                  const step = cpu.flags.DF ? -size : size;
+                  setReg16("SI", getReg16("SI") + step);
+                  setReg16("DI", getReg16("DI") + step);
+                  cpu.cycles += 2;
+              } else if (baseOp.startsWith("SCAS")) {
+                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI")); // ES:DI normally
+                  const valDst = size === 1 ? read8(dst) : read16(dst);
+                  const valAcc = size === 1 ? getReg8("AL") : getReg16("AX");
+                  subN(valAcc, valDst, size * 8, 0); // Sets CF, OF, ZF, SF, AF, PF
+                  
+                  const step = cpu.flags.DF ? -size : size;
+                  setReg16("DI", getReg16("DI") + step);
+                  cpu.cycles += 1;
+              }
+
+              // Loop Evaluation Logic (evaluated after execution updates the flags)
+              if (repPrefix) {
+                  setReg16("CX", getReg16("CX") - 1);
+                  let continueLoop = (getReg16("CX") !== 0);
+
+                  // Conditional Repeat overrides
+                  if (continueLoop && (repPrefix === "REPE" || repPrefix === "REPZ")) {
+                      continueLoop = (cpu.flags.ZF === 1);
+                  } else if (continueLoop && (repPrefix === "REPNE" || repPrefix === "REPNZ")) {
+                      continueLoop = (cpu.flags.ZF === 0);
+                  }
+
+                  if (continueLoop) {
+                      // Do NOT change IP - it forces the CPU to repeat this specific line next cycle
+                  } else {
+                      cpu.regs.IP = nextIP; // Loop broken/finished, proceed.
+                  }
+              } else {
+                  cpu.regs.IP = nextIP; // Non-repeating string instruction, proceed.
+              }
+
+              updateUI(); refreshMemory(); refreshGutter();
+              return true; 
+          }
+
+          // ==========================================
+          // STANDARD INSTRUCTIONS
+          // ==========================================
           switch(op){
             case "HLT":
               cpu.regs.IP = nextIP;
@@ -741,47 +858,6 @@ document.addEventListener("DOMContentLoaded", () => {
             case "STD": cpu.flags.DF = 1; cpu.regs.IP = nextIP; cpu.cycles++; break;
             case "CLI": cpu.flags.IF = 0; cpu.regs.IP = nextIP; cpu.cycles++; break;
             case "STI": cpu.flags.IF = 1; cpu.regs.IP = nextIP; cpu.cycles++; break;
-
-            case "MOVSB":
-            case "MOVSW": {
-              const size = op === "MOVSB" ? 1 : 2;
-              const src = clamp20((getReg16("DS") << 4) + getReg16("SI"));
-              const dst = clamp20((getReg16("DS") << 4) + getReg16("DI"));
-              if(size === 1) write8(dst, read8(src));
-              else write16(dst, read16(src));
-              
-              const step = cpu.flags.DF ? -size : size;
-              setReg16("SI", getReg16("SI") + step);
-              setReg16("DI", getReg16("DI") + step);
-              cpu.regs.IP = nextIP; cpu.cycles += 2;
-              break;
-            }
-
-            case "LODSB":
-            case "LODSW": {
-              const size = op === "LODSB" ? 1 : 2;
-              const src = clamp20((getReg16("DS") << 4) + getReg16("SI"));
-              if(size === 1) setReg8("AL", read8(src));
-              else setReg16("AX", read16(src));
-              
-              const step = cpu.flags.DF ? -size : size;
-              setReg16("SI", getReg16("SI") + step);
-              cpu.regs.IP = nextIP; cpu.cycles += 1;
-              break;
-            }
-
-            case "STOSB":
-            case "STOSW": {
-              const size = op === "STOSB" ? 1 : 2;
-              const dst = clamp20((getReg16("DS") << 4) + getReg16("DI"));
-              if(size === 1) write8(dst, getReg8("AL"));
-              else write16(dst, getReg16("AX"));
-              
-              const step = cpu.flags.DF ? -size : size;
-              setReg16("DI", getReg16("DI") + step);
-              cpu.regs.IP = nextIP; cpu.cycles += 1;
-              break;
-            }
 
             case "MOV":{
               if(inst.args.length !== 2) throw new Error("MOV needs 2 operands");
@@ -803,8 +879,90 @@ document.addEventListener("DOMContentLoaded", () => {
               cpu.regs.IP = nextIP; cpu.cycles++;
               break;
             }
+            
+            case "SHL": case "SAL":
+            case "SHR": case "SAR":
+            case "ROL": case "ROR":
+            case "RCL": case "RCR": {
+              if(inst.args.length !== 2) throw new Error(op + " needs 2 operands");
+              if(a0 && a0.name === "DS") throw new Error(`Cannot perform ${op} on segment register DS`);
 
-            // INJECTED ADC and SBB functionality into the math block
+              const w = getEffectiveWidth(a0, null);
+              let v = evalOperand(a0, w);
+              let count = evalOperand(a1, 8) & 0x1F;
+
+              if (count === 0) {
+                cpu.regs.IP = nextIP; cpu.cycles++;
+                break;
+              }
+
+              const msbMask = (w === 8) ? 0x80 : 0x8000;
+              let cf = cpu.flags.CF;
+              let lastShiftOut = 0;
+              let originalV = v;
+
+              for(let i=0; i<count; i++){
+                if(op === "SHL" || op === "SAL") {
+                  lastShiftOut = (v & msbMask) ? 1 : 0;
+                  v = (v << 1) >>> 0;
+                } else if(op === "SHR") {
+                  lastShiftOut = (v & 1);
+                  v = (v >>> 1);
+                } else if(op === "SAR") {
+                  lastShiftOut = (v & 1);
+                  const isNeg = v & msbMask;
+                  v = (v >>> 1);
+                  if(isNeg) v |= msbMask;
+                } else if(op === "ROL") {
+                  lastShiftOut = (v & msbMask) ? 1 : 0;
+                  v = (v << 1) >>> 0;
+                  if(lastShiftOut) v |= 1;
+                } else if(op === "ROR") {
+                  lastShiftOut = (v & 1);
+                  v = (v >>> 1);
+                  if(lastShiftOut) v |= msbMask;
+                } else if(op === "RCL") {
+                  lastShiftOut = (v & msbMask) ? 1 : 0;
+                  v = (v << 1) >>> 0;
+                  if(cf) v |= 1;
+                  cf = lastShiftOut;
+                } else if(op === "RCR") {
+                  lastShiftOut = (v & 1);
+                  v = (v >>> 1);
+                  if(cf) v |= msbMask;
+                  cf = lastShiftOut;
+                }
+                
+                if(w === 8) v &= 0xFF; else v &= 0xFFFF;
+              }
+
+              cpu.flags.CF = (op === "RCL" || op === "RCR") ? cf : lastShiftOut;
+
+              if (count === 1) {
+                if(op === "SHL" || op === "SAL") {
+                  cpu.flags.OF = ((v & msbMask) ? 1 : 0) ^ cpu.flags.CF;
+                } else if(op === "SHR") {
+                  cpu.flags.OF = (originalV & msbMask) ? 1 : 0;
+                } else if(op === "SAR") {
+                  cpu.flags.OF = 0;
+                } else if(op === "ROL" || op === "RCL") {
+                  cpu.flags.OF = cpu.flags.CF ^ ((v & msbMask) ? 1 : 0);
+                } else if(op === "ROR" || op === "RCR") {
+                  const msb = (v & msbMask) ? 1 : 0;
+                  const msbMinus1 = (v & (msbMask >>> 1)) ? 1 : 0;
+                  cpu.flags.OF = msb ^ msbMinus1;
+                }
+              }
+
+              if(op === "SHL" || op === "SAL" || op === "SHR" || op === "SAR") {
+                setZS(w, v);
+              }
+
+              writeOperand(a0, v, w);
+              cpu.regs.IP = nextIP; cpu.cycles++;
+              break;
+            }
+
             case "ADD":
             case "SUB":
             case "ADC":
@@ -825,21 +983,25 @@ document.addEventListener("DOMContentLoaded", () => {
               let res;
 
               if(op === "ADD") res = addN(left, right, w, 0);
-              else if(op === "ADC") res = addN(left, right, w, cpu.flags.CF); // Factors in CF
+              else if(op === "ADC") res = addN(left, right, w, cpu.flags.CF);
               else if(op === "SUB" || op === "CMP") res = subN(left, right, w, 0);
-              else if(op === "SBB") res = subN(left, right, w, cpu.flags.CF); // Factors in Borrow (CF)
+              else if(op === "SBB") res = subN(left, right, w, cpu.flags.CF);
               else if(op === "AND") {
                 res = (left & right) >>> 0;
-                cpu.flags.CF=0; cpu.flags.OF=0; setZS(w, res);
+                if(w===8) res &= 0xFF; else if(w===16) res &= 0xFFFF;
+                cpu.flags.CF=0; cpu.flags.OF=0; cpu.flags.AF=0; setZS(w, res);
               } else if(op === "OR") {
                 res = (left | right) >>> 0;
-                cpu.flags.CF=0; cpu.flags.OF=0; setZS(w, res);
+                if(w===8) res &= 0xFF; else if(w===16) res &= 0xFFFF;
+                cpu.flags.CF=0; cpu.flags.OF=0; cpu.flags.AF=0; setZS(w, res);
               } else if(op === "XOR") {
                 res = (left ^ right) >>> 0;
-                cpu.flags.CF=0; cpu.flags.OF=0; setZS(w, res);
+                if(w===8) res &= 0xFF; else if(w===16) res &= 0xFFFF;
+                cpu.flags.CF=0; cpu.flags.OF=0; cpu.flags.AF=0; setZS(w, res);
               } else if(op === "TEST") {
                 res = (left & right) >>> 0;
-                cpu.flags.CF=0; cpu.flags.OF=0; setZS(w, res);
+                if(w===8) res &= 0xFF; else if(w===16) res &= 0xFFFF;
+                cpu.flags.CF=0; cpu.flags.OF=0; cpu.flags.AF=0; setZS(w, res);
               }
 
               if(op !== "CMP" && op !== "TEST") writeOperand(a0, res, w);
@@ -847,7 +1009,28 @@ document.addEventListener("DOMContentLoaded", () => {
               break;
             }
 
-            // INJECTED MUL and DIV logic block
+            case "NOT":
+            case "NEG": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              if (a0 && a0.name === "DS") throw new Error(`Cannot perform ${op} on segment register DS`);
+              
+              const w = getEffectiveWidth(a0, null);
+              const v = evalOperand(a0, w);
+              let res;
+
+              if (op === "NOT") {
+                res = (~v) >>> 0;
+                if (w === 8) res &= 0xFF;
+                if (w === 16) res &= 0xFFFF;
+              } else {
+                res = subN(0, v, w, 0); 
+              }
+
+              writeOperand(a0, res, w);
+              cpu.regs.IP = nextIP; cpu.cycles++;
+              break;
+            }
+
             case "MUL":
             case "DIV": {
               if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
@@ -869,7 +1052,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   setReg16("DX", Math.floor(res / 0x10000) & 0xFFFF);
                   cpu.flags.CF = cpu.flags.OF = (res > 0xFFFF) ? 1 : 0;
                 }
-              } else { // DIV
+              } else { 
                 if(v === 0) throw new Error("Divide by zero");
                 if(w === 8) {
                   const dividend = getReg16("AX");
@@ -888,20 +1071,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
               }
               cpu.regs.IP = nextIP; cpu.cycles += 10;
-              break;
-            }
-            
-            case "NOT": {
-              if(inst.args.length !== 1) throw new Error("NOT needs 1 operand");
-              if (a0 && a0.name === "DS") throw new Error(`Cannot perform NOT on segment register DS`);
-              
-              const w = getEffectiveWidth(a0, null);
-              const v = evalOperand(a0, w);
-              let res = (~v) >>> 0;
-              if (w === 8) res &= 0xFF;
-              if (w === 16) res &= 0xFFFF;
-              writeOperand(a0, res, w);
-              cpu.regs.IP = nextIP; cpu.cycles++;
               break;
             }
 
