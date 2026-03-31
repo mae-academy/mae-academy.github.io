@@ -148,7 +148,7 @@
     .editorWrap{
       display:grid;
       grid-template-columns: 52px 1fr;
-      height: 400px;
+      height: 1000px;
       background: var(--panel2);
       border-radius: 16px;
       border: 1px solid rgba(9,16,42,.12);
