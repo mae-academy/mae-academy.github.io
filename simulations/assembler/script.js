@@ -45,21 +45,17 @@ document.addEventListener("DOMContentLoaded", () => {
       function clamp8(x){ return ((x % 0x100) + 0x100) & 0xFF; }
       function clamp32(x){ return (x >>> 0); }
 
-      // UPDATED: Now supports Binary (0b1010 or 1010b), Hex, Dec, and Chars
       function parseNumber(tok){
         const t = tok.trim();
         if(!t) return null;
-        if(/^'.{1}'$/.test(t)) return t.charCodeAt(1); // Support single char 'a'
+        if(/^'.{1}'$/.test(t)) return t.charCodeAt(1); 
         
-        // Hexadecimal
         if(/^0x[0-9a-f]+$/i.test(t)) return parseInt(t,16);
         if(/^[0-9a-f]+h$/i.test(t)) return parseInt(t.slice(0,-1),16);
         
-        // Binary Numbers (0b1010 or 1010b)
         if(/^0b[01]+$/i.test(t)) return parseInt(t.slice(2), 2);
         if(/^[01]+b$/i.test(t)) return parseInt(t.slice(0,-1), 2);
         
-        // Decimal
         if(/^[+-]?\d+$/.test(t)) return parseInt(t,10);
         return null;
       }
@@ -82,19 +78,14 @@ document.addEventListener("DOMContentLoaded", () => {
         cycles:0
       };
 
-      // 64KB RAM
       const mem = new Uint8Array(0x10000);
 
-      // Program + mappings
       let program = [];
       let ipToLine = new Map();
       let lineToIp = new Map();
       let labels = new Map();
 
-      // ORG / data pointer
       const dataPtrDefault = 0x0100;
-
-      // Breakpoints by line number
       let breakpoints = new Set();
 
       // ---- Editor gutter ----
@@ -136,13 +127,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }catch{}
       }
 
-      // ---- Helpers ----
       function stripComment(line){
         const idx = line.indexOf(";");
         return (idx>=0 ? line.slice(0,idx) : line).trim();
       }
 
-      // UPDATED: Added tracking for ( and ) to support DUP syntax
       function tokenizeCommaAware(s){
         const parts = [];
         let cur = "";
@@ -207,7 +196,6 @@ document.addEventListener("DOMContentLoaded", () => {
       function isReg16(n){ return REG16.includes(n); }
       function isReg8(n){ return REG8.includes(n); }
 
-      // ---- Flags math ----
       function setZS(width, value){
         if(width === 8){
           const v = value & 0xFF;
@@ -217,7 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const v = value & 0xFFFF;
           cpu.flags.ZF = (v === 0) ? 1 : 0;
           cpu.flags.SF = ((v & 0x8000) !== 0) ? 1 : 0;
-        }else{ // 32
+        }else{ 
           const v = value >>> 0;
           cpu.flags.ZF = (v === 0) ? 1 : 0;
           cpu.flags.SF = ((v & 0x80000000) !== 0) ? 1 : 0;
@@ -243,7 +231,6 @@ document.addEventListener("DOMContentLoaded", () => {
           setZS(16,res);
           return res;
         }
-        // 32
         const sum = (a >>> 0) + (b >>> 0);
         const res = sum >>> 0;
         cpu.flags.CF = (sum > 0xFFFFFFFF) ? 1 : 0;
@@ -272,7 +259,6 @@ document.addEventListener("DOMContentLoaded", () => {
           setZS(16,res);
           return res;
         }
-        // 32
         const diff = (a >>> 0) - (b >>> 0);
         const res = diff >>> 0;
         cpu.flags.CF = ((a >>> 0) < (b >>> 0)) ? 1 : 0;
@@ -282,7 +268,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return res;
       }
 
-      // ---- Memory (Little Endian) ----
       function read8(addr){ return mem[addr & 0xFFFF] & 0xFF; }
       function write8(addr, v){ mem[addr & 0xFFFF] = clamp8(v); }
       function read16(addr){
@@ -312,12 +297,10 @@ document.addEventListener("DOMContentLoaded", () => {
         write8(a+3, (d >>> 24) & 0xFF);
       }
 
-      // ---- Operand parsing ----
       function parseMemInside(inside){
         let expr = inside.replace(/\s+/g,"");
         expr = expr.replace(/-/g,"+-");
 
-        // label[...]
         const labelMatch = expr.match(/^([A-Z_.$][A-Z0-9_.$]*)\[([A-Z0-9+\-]*)\]$/i);
         if(labelMatch) {
           const label = labelMatch[1];
@@ -338,7 +321,6 @@ document.addEventListener("DOMContentLoaded", () => {
           return { ok:true, baseReg, offset: clamp16(offset), label: label.toUpperCase() };
         }
 
-        // inside without label (like SI+2 or 0x200)
         const chunks = expr.split("+").filter(Boolean);
         let baseReg = null;
         let offset = 0;
@@ -359,7 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if(!t) return { type:"bad", error:"Empty operand" };
         let up = t.toUpperCase().replace(/\s+/g," ").trim();
 
-        let size = null; // 8/16/32
+        let size = null; 
         const ptrMatch = up.match(/^(BYTE|WORD|DWORD)\s+PTR\s+(.+)$/i);
         if(ptrMatch){
           const k = ptrMatch[1].toUpperCase();
@@ -373,7 +355,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if(isReg16(up)) return { type:"reg16", name: up, size:16 };
         if(isReg8(up))  return { type:"reg8",  name: up, size:8 };
 
-        // label[reg+...]
         const labelMemMatch = up.match(/^([A-Z_.$][A-Z0-9_.$]*)\[([A-Z0-9+\- ]*)\]$/i);
         if(labelMemMatch) {
           const parsed = parseMemInside(labelMemMatch[1] + "[" + labelMemMatch[2] + "]");
@@ -381,7 +362,6 @@ document.addEventListener("DOMContentLoaded", () => {
           return { type:"mem", baseReg: parsed.baseReg, offset: parsed.offset, label: parsed.label, size: size || null };
         }
 
-        // [ ... ]
         if(up.startsWith("[") && up.endsWith("]")){
           const parsed = parseMemInside(up.slice(1,-1));
           if(!parsed.ok) return { type:"bad", error: parsed.error };
@@ -437,8 +417,44 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("Destination must be reg or mem");
       }
 
-      // UPDATED: Now supports the DUP operator e.g., 5 DUP (0)
-      function parseDataItems(argStr, directive){
+      // NEW FEATURE: Evaluates complex label math like "X8-X7"
+      function evalDataExpr(expr, pass, labelsMap) {
+        let clean = expr.replace(/^OFFSET\s+/i, "").replace(/\s+/g,"");
+        const tokens = clean.split(/([+-])/).filter(Boolean);
+        if(tokens.length === 0) return null;
+
+        let result = 0;
+        let currentOp = '+';
+
+        for(let i=0; i<tokens.length; i++){
+          const tok = tokens[i];
+          if(tok === '+' || tok === '-'){ currentOp = tok; continue; }
+          
+          let val = 0;
+          const upTok = tok.toUpperCase();
+          
+          if(labelsMap.has(upTok)) {
+            val = labelsMap.get(upTok); 
+          } else {
+            const parsed = parseNumber(tok);
+            if(parsed === null) {
+              if (pass === 1) {
+                 val = 0; // Allocate forward space in Pass 1
+              } else {
+                 return null; // Error in Pass 2
+              }
+            } else {
+              val = parsed;
+            }
+          }
+
+          if(currentOp === '+') result += val;
+          else if(currentOp === '-') result -= val;
+        }
+        return clamp16(result);
+      }
+
+      function parseDataItems(argStr, directive, pass, labelsMap){
         const items = tokenizeCommaAware(argStr);
         if(items.length === 0) return { ok:false, error:`${directive} needs values` };
 
@@ -453,7 +469,8 @@ document.addEventListener("DOMContentLoaded", () => {
           const it = valStr.trim();
           if(!it) return true; 
 
-          const strMatch = it.match(/^"(.*)"$/);
+          // UPGRADE: Unified string handler parses full lengths of 'ABC' and "ABC"
+          const strMatch = it.match(/^["'](.*)["']$/);
           if(strMatch){
             const s = strMatch[1];
             for(let i=0;i<s.length;i++){
@@ -464,16 +481,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             return true;
           }
-
-          const chrMatch = it.match(/^'(.*)'$/);
-          if(chrMatch){
-            const s = chrMatch[1];
-            const ch = (s.length ? s.charCodeAt(0) : 0) & 0xFF;
-            if(directive === "DB") bytes.push(ch);
-            else if(directive === "DW") pushWord(ch);
-            else pushDword(ch);
-            return true;
-          }
           
           if(it === "?") {
             if(directive === "DB") bytes.push(0);
@@ -482,7 +489,8 @@ document.addEventListener("DOMContentLoaded", () => {
             return true;
           }
           
-          const n = parseNumber(it.toUpperCase());
+          // UPGRADE: Uses Expression Evaluator for Label Math & Pointers!
+          let n = evalDataExpr(it, pass, labelsMap);
           if(n === null) return false;
 
           if(directive === "DB") bytes.push(n & 0xFF);
@@ -499,7 +507,9 @@ document.addEventListener("DOMContentLoaded", () => {
           if(dupMatch){
             const countStr = dupMatch[1];
             const valStr = dupMatch[2];
-            const count = parseNumber(countStr.toUpperCase());
+            
+            // Evaluates mathematical lengths in DUP counts
+            const count = evalDataExpr(countStr, pass, labelsMap);
             
             if(count === null || count < 0){
               return { ok:false, error:`Invalid DUP count: "${countStr}"` };
@@ -533,7 +543,7 @@ document.addEventListener("DOMContentLoaded", () => {
         lineToIp = new Map();
         mem.fill(0);
 
-        // PASS 1: resolve labels / sizes
+        // PASS 1
         let ip = 0;
         let dataPtr = dataPtrDefault;
 
@@ -585,7 +595,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
           if(isData){
             const dir = upRest.slice(0,2);
-            const parsed = parseDataItems(rest.slice(2).trim(), dir);
+            // Added Pass=1 and labels context
+            const parsed = parseDataItems(rest.slice(2).trim(), dir, 1, labels);
             if(!parsed.ok){
               logLine(`Line ${ln}: ${parsed.error}`, "err");
               setStatus("Assemble error","err");
@@ -597,7 +608,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
 
-        // PASS 2: emit data + program
+        // PASS 2
         ip = 0;
         dataPtr = dataPtrDefault;
         const controlFlowOps = ["JMP", "JZ", "JE", "JNZ", "JNE", "LOOP", "CALL"];
@@ -636,7 +647,8 @@ document.addEventListener("DOMContentLoaded", () => {
           const upRest = rest.toUpperCase();
           if(upRest.startsWith("DB ") || upRest.startsWith("DW ") || upRest.startsWith("DD ")){
             const dir = upRest.slice(0,2);
-            const parsed = parseDataItems(rest.slice(2).trim(), dir);
+            // Added Pass=2 and labels context
+            const parsed = parseDataItems(rest.slice(2).trim(), dir, 2, labels);
             if(!parsed.ok){
               logLine(`Line ${ln}: ${parsed.error}`, "err");
               setStatus("Assemble error","err");
@@ -754,7 +766,6 @@ document.addEventListener("DOMContentLoaded", () => {
               break;
             }
 
-            // UPDATED: Added OR and NOT
             case "ADD":
             case "SUB":
             case "CMP":
@@ -798,7 +809,6 @@ document.addEventListener("DOMContentLoaded", () => {
               let res = (~v) >>> 0;
               if (w === 8) res &= 0xFF;
               if (w === 16) res &= 0xFFFF;
-              // Note: In x86, NOT does not affect flags
               writeOperand(a0, res, w);
               cpu.regs.IP = nextIP; cpu.cycles++;
               break;
@@ -811,7 +821,7 @@ document.addEventListener("DOMContentLoaded", () => {
               const v = evalOperand(a0, w);
               const oldCF = cpu.flags.CF;
               const res = op === "INC" ? addN(v, 1, w) : subN(v, 1, w);
-              cpu.flags.CF = oldCF; // INC/DEC do not change CF
+              cpu.flags.CF = oldCF;
               writeOperand(a0, res, w);
               cpu.regs.IP = nextIP; cpu.cycles++;
               break;
@@ -1046,7 +1056,6 @@ HLT
 
 STR DB "ab"
 `,
-          // UPDATED: Now shows off Binary and DUP right in the UI example!
           data: `ORG 200h
 W1 DW 1234h
 D1 DD 11223344h
@@ -1086,20 +1095,22 @@ HLT
       function boot(){
         const saved = localStorage.getItem(LS_CODE);
         codeEl.value = saved ?? `; Paste your MASM/TASM-like code here
-; Example: Toggle Case
-
-ORG 100h
-MOV SI, OFFSET STR
-MOV CX, 2
-
-L:  MOV AL, [SI]
-    XOR AL, 20h
-    MOV [SI], AL
-    INC SI
-    LOOP L
+ORG 100H
+X1 DB ?
+X2 DB 'ABC'
+X3 DB 32
+X4 DB 20H
+X5 DB 01011001B
+X6 DB 01, 'JAN'
+X7 DB '32654'
+X8 DB 3 DUP(0)
+Y1 DW 0FFF0H
+Y2 DW 01011001B
+Y3 DW X7
+Y4 DW 3, 4, 17
+Y5 DW 2 DUP(0)
+Y6 DW X8-X7
 HLT
-
-STR DB "ab"
 `;
         loadBreakpoints();
         refreshGutter();
