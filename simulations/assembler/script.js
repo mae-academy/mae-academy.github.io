@@ -48,7 +48,9 @@ document.addEventListener("DOMContentLoaded", () => {
       function parseNumber(tok){
         const t = tok.trim();
         if(!t) return null;
-        if(/^'.{1}'$/.test(t)) return t.charCodeAt(1); // Support single char 'a'
+        // Ignore single quotes here, as they are handled in parseDataItems for multi-char
+        if(/^'.{1}'$/.test(t) && t.length === 3) return t.charCodeAt(1); 
+        
         if(/^0x[0-9a-f]+$/i.test(t)) return parseInt(t,16);
         if(/^[0-9a-f]+h$/i.test(t)) return parseInt(t.slice(0,-1),16);
         
@@ -67,12 +69,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // ---- CPU model ----
-      const REG16 = ["AX","BX","CX","DX","SI","DI","BP","SP","IP","DS","ES"];
+      const REG16 = ["AX","BX","CX","DX","SI","DI","BP","SP","IP"];
       const REG8  = ["AL","AH","BL","BH","CL","CH","DL","DH"];
       const FLAGS = ["ZF","SF","CF","OF"];
 
       const cpu = {
-        regs: { AX:0,BX:0,CX:0,DX:0,SI:0,DI:0,BP:0,SP:0xFFFE,IP:0,DS:0,ES:0 },
+        regs: { AX:0,BX:0,CX:0,DX:0,SI:0,DI:0,BP:0,SP:0xFFFE,IP:0 },
         flags:{ ZF:0,SF:0,CF:0,OF:0 },
         cycles:0
       };
@@ -305,39 +307,34 @@ document.addEventListener("DOMContentLoaded", () => {
           const label = labelMatch[1];
           const regExpr = labelMatch[2];
 
+          let baseReg = null;
           let offset = 0;
-          let regParts = [];
           const chunks = regExpr.split("+").filter(Boolean);
           for(const c of chunks){
             const up = c.toUpperCase();
-            if(isReg16(up)) {
-              regParts.push(up);
-            } else{
+            if(isReg16(up)) baseReg = up;
+            else{
               const n = parseNumber(up);
               if(n === null) return { ok:false, error:`Bad memory expr: ${inside}` };
               offset += n;
             }
           }
-          return { ok:true, baseReg: null, offset: clamp16(offset), label: label.toUpperCase(), regParts: regParts };
+          return { ok:true, baseReg, offset: clamp16(offset), label: label.toUpperCase() };
         }
 
-        // inside without label (like SI+2 or 0x200)
         const chunks = expr.split("+").filter(Boolean);
         let baseReg = null;
         let offset = 0;
-        let regParts = [];
-        const chunks = expr.split("+").filter(Boolean);
         for(const c of chunks){
           const up = c.toUpperCase();
-          if(isReg16(up)) {
-            regParts.push(up);
-          } else{
+          if(isReg16(up)) baseReg = up;
+          else{
             const n = parseNumber(up);
             if(n === null) return { ok:false, error:`Bad memory expr: ${inside}` };
             offset += n;
           }
         }
-        return { ok:true, baseReg: null, offset: clamp16(offset), regParts: regParts };
+        return { ok:true, baseReg, offset: clamp16(offset) };
       }
 
       function parseOperand(raw){
@@ -363,13 +360,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if(labelMemMatch) {
           const parsed = parseMemInside(labelMemMatch[1] + "[" + labelMemMatch[2] + "]");
           if(!parsed.ok) return { type:"bad", error: parsed.error };
-          return { type:"mem", baseReg: parsed.baseReg, offset: parsed.offset, label: parsed.label, regParts: parsed.regParts, size: size || null };
+          return { type:"mem", baseReg: parsed.baseReg, offset: parsed.offset, label: parsed.label, size: size || null };
         }
 
         if(up.startsWith("[") && up.endsWith("]")){
           const parsed = parseMemInside(up.slice(1,-1));
           if(!parsed.ok) return { type:"bad", error: parsed.error };
-          return { type:"mem", baseReg: parsed.baseReg, offset: parsed.offset, regParts: parsed.regParts, size: size || null };
+          return { type:"mem", baseReg: parsed.baseReg, offset: parsed.offset, size: size || null };
         }
 
         const num = parseNumber(up);
@@ -381,26 +378,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       function addrOfMem(op){
-        let totalAddr = 0;
-        
-        // Add all register values
-        if(op.regParts && op.regParts.length > 0){
-          for(const reg of op.regParts){
-            totalAddr += getReg16(reg);
-          }
-        } else if(op.baseReg){
-          totalAddr += getReg16(op.baseReg);
-        }
-        
-        // Add numeric offset
-        totalAddr += (op.offset ?? 0);
-        
-        // Add label base address if specified
-        if(op.label){
-          totalAddr += (labels.get(op.label) ?? 0);
-        }
-        
-        return clamp16(totalAddr);
+        const regBase = op.baseReg ? getReg16(op.baseReg) : 0;
+        const off = op.offset ?? 0;
+        const labelBase = op.label ? (labels.get(op.label) ?? 0) : 0;
+        return clamp16(labelBase + regBase + off);
       }
 
       function getEffectiveWidth(a0, a1) {
@@ -437,8 +418,44 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("Destination must be reg or mem");
       }
 
-      // ---- DB/DW/DD parsing ----
-      function parseDataItems(argStr, directive){
+      // NEW LOGIC: Evaluator for math operations like X8-X7
+      function evalDataExpr(expr, pass, labelsMap) {
+        let clean = expr.replace(/^OFFSET\s+/i, "").replace(/\s+/g,"");
+        const tokens = clean.split(/([+-])/).filter(Boolean);
+        if(tokens.length === 0) return null;
+
+        let result = 0;
+        let currentOp = '+';
+
+        for(let i=0; i<tokens.length; i++){
+          const tok = tokens[i];
+          if(tok === '+' || tok === '-'){ currentOp = tok; continue; }
+          
+          let val = 0;
+          const upTok = tok.toUpperCase();
+          
+          if(labelsMap.has(upTok)) {
+            val = labelsMap.get(upTok); 
+          } else {
+            const parsed = parseNumber(tok);
+            if(parsed === null) {
+              if (pass === 1) {
+                 val = 0; // Allocate forward space in Pass 1
+              } else {
+                 return null; // Error in Pass 2
+              }
+            } else {
+              val = parsed;
+            }
+          }
+
+          if(currentOp === '+') result += val;
+          else if(currentOp === '-') result -= val;
+        }
+        return clamp16(result);
+      }
+
+      function parseDataItems(argStr, directive, pass, labelsMap){
         const items = tokenizeCommaAware(argStr);
         if(items.length === 0) return { ok:false, error:`${directive} needs values` };
 
@@ -449,11 +466,12 @@ document.addEventListener("DOMContentLoaded", () => {
           bytes.push(v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF);
         };
 
-        for(const itRaw of items){
-          const it = itRaw.trim();
-          if(!it) continue;
+        const processSingleValue = (valStr) => {
+          const it = valStr.trim();
+          if(!it) return true; 
 
-          const strMatch = it.match(/^"(.*)"$/);
+          // UPDATED: Now handles both 'ABC' and "ABC" strings safely
+          const strMatch = it.match(/^["'](.*)["']$/);
           if(strMatch){
             const s = strMatch[1];
             for(let i=0;i<s.length;i++){
@@ -471,12 +489,44 @@ document.addEventListener("DOMContentLoaded", () => {
             else pushDword(0);
             return true;
           }
-          const n = parseNumber(it.toUpperCase());
-          if(n === null) return { ok:false, error:`${directive} value must be number/string (got "${it}")` };
+          
+          // UPDATED: Uses evalDataExpr so label math and pointers work!
+          let n = evalDataExpr(it, pass, labelsMap);
+          if(n === null) return false;
 
           if(directive === "DB") bytes.push(n & 0xFF);
           else if(directive === "DW") pushWord(n & 0xFFFF);
           else pushDword(n >>> 0);
+          return true;
+        };
+
+        for(const itRaw of items){
+          const it = itRaw.trim();
+          if(!it) continue;
+
+          const dupMatch = it.match(/^(.+?)\s+DUP\s*\((.+)\)$/i);
+          if(dupMatch){
+            const countStr = dupMatch[1];
+            const valStr = dupMatch[2];
+            
+            // Uses eval for the count as well
+            const count = evalDataExpr(countStr, pass, labelsMap);
+            
+            if(count === null || count < 0){
+              return { ok:false, error:`Invalid DUP count: "${countStr}"` };
+            }
+            
+            for(let c = 0; c < count; c++){
+              if(!processSingleValue(valStr)){
+                return { ok:false, error:`Invalid DUP value: "${valStr}"` };
+              }
+            }
+            continue;
+          }
+
+          if(!processSingleValue(it)){
+             return { ok:false, error:`${directive} value must be number/string (got "${it}")` };
+          }
         }
 
         return { ok:true, bytes };
@@ -545,8 +595,8 @@ document.addEventListener("DOMContentLoaded", () => {
           if(!rest) continue;
 
           if(isData){
-            const dir = upRest.slice(0,2); // DB/DW/DD -> "DB","DW","DD"
-            const parsed = parseDataItems(rest.slice(2).trim(), dir);
+            const dir = upRest.slice(0,2);
+            const parsed = parseDataItems(rest.slice(2).trim(), dir, 1, labels);
             if(!parsed.ok){
               logLine(`Line ${ln}: ${parsed.error}`, "err");
               setStatus("Assemble error","err");
@@ -597,7 +647,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const upRest = rest.toUpperCase();
           if(upRest.startsWith("DB ") || upRest.startsWith("DW ") || upRest.startsWith("DD ")){
             const dir = upRest.slice(0,2);
-            const parsed = parseDataItems(rest.slice(2).trim(), dir);
+            const parsed = parseDataItems(rest.slice(2).trim(), dir, 2, labels);
             if(!parsed.ok){
               logLine(`Line ${ln}: ${parsed.error}`, "err");
               setStatus("Assemble error","err");
@@ -666,7 +716,7 @@ document.addEventListener("DOMContentLoaded", () => {
       function resetCPU(keepMemory=true){
         cpu.regs.AX=0; cpu.regs.BX=0; cpu.regs.CX=0; cpu.regs.DX=0;
         cpu.regs.SI=0; cpu.regs.DI=0; cpu.regs.BP=0; cpu.regs.SP=0xFFFE;
-        cpu.regs.IP=0; cpu.regs.DS=0; cpu.regs.ES=0;
+        cpu.regs.IP=0;
         cpu.flags.ZF=0; cpu.flags.SF=0; cpu.flags.CF=0; cpu.flags.OF=0;
         cpu.cycles=0;
         if(!keepMemory) mem.fill(0);
@@ -904,7 +954,6 @@ document.addEventListener("DOMContentLoaded", () => {
           ["SI", getReg16("SI"), 4], ["DI", getReg16("DI"), 4],
           ["BP", getReg16("BP"), 4], ["SP", getReg16("SP"), 4],
           ["IP", getReg16("IP"), 4],
-          ["DS", getReg16("DS"), 4], ["ES", getReg16("ES"), 4],
         ];
 
         for(const [k,v,w] of pairs){
@@ -1044,21 +1093,22 @@ HLT
 
       function boot(){
         const saved = localStorage.getItem(LS_CODE);
-        codeEl.value = saved ?? `; Paste your MASM/TASM-like code here
-; Example: Toggle Case
-
-ORG 100h
-MOV SI, OFFSET STR
-MOV CX, 2
-
-L:  MOV AL, [SI]  ; Size inferred from AL!
-    XOR AL, 20h
-    MOV [SI], AL
-    INC SI
-    LOOP L
+        codeEl.value = saved ?? `ORG 100H
+X1 DB ?
+X2 DB 'ABC'
+X3 DB 32
+X4 DB 20H
+X5 DB 01011001B
+X6 DB 01, 'JAN'
+X7 DB '32654'
+X8 DB 3 DUP(0)
+Y1 DW 0FFF0H
+Y2 DW 01011001B
+Y3 DW X7
+Y4 DW 3, 4, 17
+Y5 DW 2 DUP(0)
+Y6 DW X8-X7
 HLT
-
-STR DB "ab"
 `;
         loadBreakpoints();
         refreshGutter();
