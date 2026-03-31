@@ -68,12 +68,13 @@ document.addEventListener("DOMContentLoaded", () => {
       // ---- CPU model ----
       const REG16 = ["AX","BX","CX","DX","SI","DI","BP","SP","IP", "DS"];
       const REG8  = ["AL","AH","BL","BH","CL","CH","DL","DH"];
-      // INJECTED FLAGS HERE: AF, DF, IF, TF added alongside standard flags
-      const FLAGS = ["ZF","SF","CF","OF", "AF", "DF", "IF", "TF"];
+      
+      // INJECTED FLAGS HERE: PF added to the array
+      const FLAGS = ["ZF","SF","CF","OF", "AF", "DF", "IF", "TF", "PF"];
 
       const cpu = {
         regs: { AX:0,BX:0,CX:0,DX:0,SI:0,DI:0,BP:0,SP:0xFFFE,IP:0,DS:0 },
-        flags:{ ZF:0,SF:0,CF:0,OF:0, AF:0, DF:0, IF:0, TF:0 },
+        flags:{ ZF:0,SF:0,CF:0,OF:0, AF:0, DF:0, IF:0, TF:0, PF:0 },
         cycles:0
       };
 
@@ -195,6 +196,14 @@ document.addEventListener("DOMContentLoaded", () => {
       function isReg8(n){ return REG8.includes(n); }
 
       function setZS(width, value){
+        // Parity Flag Calculation (Count 1s in the lowest 8 bits)
+        let popCount = 0;
+        let lowestByte = value & 0xFF;
+        for (let i = 0; i < 8; i++) {
+          if (lowestByte & (1 << i)) popCount++;
+        }
+        cpu.flags.PF = (popCount % 2 === 0) ? 1 : 0;
+
         if(width === 8){
           const v = value & 0xFF;
           cpu.flags.ZF = (v === 0) ? 1 : 0;
@@ -613,7 +622,8 @@ document.addEventListener("DOMContentLoaded", () => {
         // Pass 2
         ip = 0;
         dataPtr = dataPtrDefault;
-        const controlFlowOps = ["JMP", "JZ", "JE", "JNZ", "JNE", "LOOP", "CALL"];
+        // INJECTED JPE/JP and JPO/JNP here:
+        const controlFlowOps = ["JMP", "JZ", "JE", "JNZ", "JNE", "LOOP", "CALL", "JP", "JPE", "JNP", "JPO"];
 
         for(let i=0;i<lines.length;i++){
           const ln = i+1;
@@ -699,7 +709,8 @@ document.addEventListener("DOMContentLoaded", () => {
         
         // Resetting the new flags
         cpu.flags.ZF=0; cpu.flags.SF=0; cpu.flags.CF=0; cpu.flags.OF=0;
-        cpu.flags.AF=0; cpu.flags.DF=0; cpu.flags.IF=0; cpu.flags.TF=0;
+        cpu.flags.AF=0; cpu.flags.DF=0; cpu.flags.IF=0; cpu.flags.TF=0; 
+        cpu.flags.PF=0;
         
         cpu.cycles=0;
         if(!keepMemory) mem.fill(0);
@@ -923,6 +934,22 @@ document.addEventListener("DOMContentLoaded", () => {
               if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
               const target = evalOperand(a0);
               cpu.regs.IP = !cpu.flags.ZF ? clamp16(target) : nextIP;
+              cpu.cycles++;
+              break;
+            }
+
+            // INJECTED Jumps based on PF status:
+            case "JP": case "JPE": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              const target = evalOperand(a0);
+              cpu.regs.IP = cpu.flags.PF ? clamp16(target) : nextIP;
+              cpu.cycles++;
+              break;
+            }
+            case "JNP": case "JPO": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              const target = evalOperand(a0);
+              cpu.regs.IP = !cpu.flags.PF ? clamp16(target) : nextIP;
               cpu.cycles++;
               break;
             }
