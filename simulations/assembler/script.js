@@ -41,6 +41,8 @@ document.addEventListener("DOMContentLoaded", () => {
         outEl.scrollTop = outEl.scrollHeight;
       }
 
+      // Memory address boundaries mapping (20-bit addressing for Segmentation)
+      function clamp20(x){ return ((x % 0x100000) + 0x100000) & 0xFFFFF; }
       function clamp16(x){ return ((x % 0x10000) + 0x10000) & 0xFFFF; }
       function clamp8(x){ return ((x % 0x100) + 0x100) & 0xFF; }
       function clamp32(x){ return (x >>> 0); }
@@ -48,7 +50,6 @@ document.addEventListener("DOMContentLoaded", () => {
       function parseNumber(tok){
         const t = tok.trim();
         if(!t) return null;
-        // Ignore single quotes here, as they are handled in parseDataItems for multi-char
         if(/^'.{1}'$/.test(t) && t.length === 3) return t.charCodeAt(1); 
         
         if(/^0x[0-9a-f]+$/i.test(t)) return parseInt(t,16);
@@ -69,17 +70,18 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // ---- CPU model ----
-      const REG16 = ["AX","BX","CX","DX","SI","DI","BP","SP","IP"];
+      const REG16 = ["AX","BX","CX","DX","SI","DI","BP","SP","IP", "DS"];
       const REG8  = ["AL","AH","BL","BH","CL","CH","DL","DH"];
       const FLAGS = ["ZF","SF","CF","OF"];
 
       const cpu = {
-        regs: { AX:0,BX:0,CX:0,DX:0,SI:0,DI:0,BP:0,SP:0xFFFE,IP:0 },
+        regs: { AX:0,BX:0,CX:0,DX:0,SI:0,DI:0,BP:0,SP:0xFFFE,IP:0,DS:0 },
         flags:{ ZF:0,SF:0,CF:0,OF:0 },
         cycles:0
       };
 
-      const mem = new Uint8Array(0x10000);
+      // 1MB memory array to properly support (Segment << 4) + Offset address calculation
+      const mem = new Uint8Array(0x100000); 
 
       let program = [];
       let ipToLine = new Map();
@@ -269,20 +271,21 @@ document.addEventListener("DOMContentLoaded", () => {
         return res;
       }
 
-      function read8(addr){ return mem[addr & 0xFFFF] & 0xFF; }
-      function write8(addr, v){ mem[addr & 0xFFFF] = clamp8(v); }
+      // Memory reads use 20-bit addressing now via clamp20
+      function read8(addr){ return mem[clamp20(addr)] & 0xFF; }
+      function write8(addr, v){ mem[clamp20(addr)] = clamp8(v); }
       function read16(addr){
-        const a = addr & 0xFFFF;
+        const a = clamp20(addr);
         return (read8(a) | (read8(a+1) << 8)) & 0xFFFF;
       }
       function write16(addr, v){
-        const a = addr & 0xFFFF;
+        const a = clamp20(addr);
         const w = v & 0xFFFF;
         write8(a, w & 0xFF);
         write8(a+1, (w >> 8) & 0xFF);
       }
       function read32(addr){
-        const a = addr & 0xFFFF;
+        const a = clamp20(addr);
         const b0 = read8(a);
         const b1 = read8(a+1);
         const b2 = read8(a+2);
@@ -290,7 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return (b0 | (b1<<8) | (b2<<16) | (b3<<24)) >>> 0;
       }
       function write32(addr, v){
-        const a = addr & 0xFFFF;
+        const a = clamp20(addr);
         const d = v >>> 0;
         write8(a, d & 0xFF);
         write8(a+1, (d >>> 8) & 0xFF);
@@ -377,11 +380,16 @@ document.addEventListener("DOMContentLoaded", () => {
         return { type:"bad", error:`Unknown operand: ${raw}` };
       }
 
+      // Updated to combine effective address + (DS << 4) segmentation
       function addrOfMem(op){
         const regBase = op.baseReg ? getReg16(op.baseReg) : 0;
         const off = op.offset ?? 0;
         const labelBase = op.label ? (labels.get(op.label) ?? 0) : 0;
-        return clamp16(labelBase + regBase + off);
+        
+        const effectiveAddress = clamp16(labelBase + regBase + off);
+        const dsBase = getReg16("DS") << 4;
+        
+        return clamp20(dsBase + effectiveAddress);
       }
 
       function getEffectiveWidth(a0, a1) {
@@ -418,7 +426,6 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("Destination must be reg or mem");
       }
 
-      // NEW LOGIC: Evaluator for math operations like X8-X7
       function evalDataExpr(expr, pass, labelsMap) {
         let clean = expr.replace(/^OFFSET\s+/i, "").replace(/\s+/g,"");
         const tokens = clean.split(/([+-])/).filter(Boolean);
@@ -440,9 +447,9 @@ document.addEventListener("DOMContentLoaded", () => {
             const parsed = parseNumber(tok);
             if(parsed === null) {
               if (pass === 1) {
-                 val = 0; // Allocate forward space in Pass 1
+                 val = 0; 
               } else {
-                 return null; // Error in Pass 2
+                 return null; 
               }
             } else {
               val = parsed;
@@ -464,13 +471,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const pushDword = (d) => {
           const v = d >>> 0;
           bytes.push(v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF);
-        };
+        }
 
         const processSingleValue = (valStr) => {
           const it = valStr.trim();
           if(!it) return true; 
 
-          // UPDATED: Now handles both 'ABC' and "ABC" strings safely
           const strMatch = it.match(/^["'](.*)["']$/);
           if(strMatch){
             const s = strMatch[1];
@@ -490,7 +496,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return true;
           }
           
-          // UPDATED: Uses evalDataExpr so label math and pointers work!
           let n = evalDataExpr(it, pass, labelsMap);
           if(n === null) return false;
 
@@ -509,7 +514,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const countStr = dupMatch[1];
             const valStr = dupMatch[2];
             
-            // Uses eval for the count as well
             const count = evalDataExpr(countStr, pass, labelsMap);
             
             if(count === null || count < 0){
@@ -716,7 +720,7 @@ document.addEventListener("DOMContentLoaded", () => {
       function resetCPU(keepMemory=true){
         cpu.regs.AX=0; cpu.regs.BX=0; cpu.regs.CX=0; cpu.regs.DX=0;
         cpu.regs.SI=0; cpu.regs.DI=0; cpu.regs.BP=0; cpu.regs.SP=0xFFFE;
-        cpu.regs.IP=0;
+        cpu.regs.IP=0; cpu.regs.DS=0; // Reset DS here
         cpu.flags.ZF=0; cpu.flags.SF=0; cpu.flags.CF=0; cpu.flags.OF=0;
         cpu.cycles=0;
         if(!keepMemory) mem.fill(0);
@@ -750,6 +754,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
             case "MOV":{
               if(inst.args.length !== 2) throw new Error("MOV needs 2 operands");
+              
+              // Segment Hardware Spec Constraint: Cannot Move immediate to DS directly
+              if(a0.type === "reg16" && a0.name === "DS" && a1.type === "imm") {
+                throw new Error("Cannot move immediate value directly into DS register");
+              }
+
               const w = getEffectiveWidth(a0, a1);
               let v = evalOperand(a1, w);
 
@@ -773,6 +783,12 @@ document.addEventListener("DOMContentLoaded", () => {
             case "XOR":
             case "TEST": {
               if(inst.args.length !== 2) throw new Error(op + " needs 2 operands");
+              
+              // Segment Hardware Spec Constraint: No arithmetic on segment registers
+              if((a0 && a0.name === "DS") || (a1 && a1.name === "DS")) {
+                 throw new Error(`Cannot perform ${op} on segment register DS`);
+              }
+
               const w = getEffectiveWidth(a0, a1);
               const left = evalOperand(a0, w);
               const right = evalOperand(a1, w);
@@ -803,6 +819,8 @@ document.addEventListener("DOMContentLoaded", () => {
             
             case "NOT": {
               if(inst.args.length !== 1) throw new Error("NOT needs 1 operand");
+              if (a0 && a0.name === "DS") throw new Error(`Cannot perform NOT on segment register DS`);
+              
               const w = getEffectiveWidth(a0, null);
               const v = evalOperand(a0, w);
               let res = (~v) >>> 0;
@@ -816,6 +834,8 @@ document.addEventListener("DOMContentLoaded", () => {
             case "INC":
             case "DEC": {
               if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              if (a0 && a0.name === "DS") throw new Error(`Cannot perform ${op} on segment register DS`);
+              
               const w = getEffectiveWidth(a0, null);
               const v = evalOperand(a0, w);
               const oldCF = cpu.flags.CF;
@@ -830,7 +850,7 @@ document.addEventListener("DOMContentLoaded", () => {
               if(inst.args.length !== 1) throw new Error("PUSH needs 1 operand");
               const v = evalOperand(a0, 16) & 0xFFFF;
               cpu.regs.SP = (cpu.regs.SP - 2) & 0xFFFF;
-              write16(cpu.regs.SP, v);
+              write16(cpu.regs.SP, v); // Stack natively ignores DS offset in physical routing
               cpu.regs.IP = nextIP; cpu.cycles++;
               break;
             }
@@ -953,7 +973,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ["DL", getReg8("DL"), 2], ["DH", getReg8("DH"), 2],
           ["SI", getReg16("SI"), 4], ["DI", getReg16("DI"), 4],
           ["BP", getReg16("BP"), 4], ["SP", getReg16("SP"), 4],
-          ["IP", getReg16("IP"), 4],
+          ["IP", getReg16("IP"), 4], ["DS", getReg16("DS"), 4] // DS injected for UI
         ];
 
         for(const [k,v,w] of pairs){
@@ -976,7 +996,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       function parseAddrInput(s){
         const n = parseNumber(s.trim());
-        return (n === null) ? null : clamp16(n);
+        return (n === null) ? null : clamp20(n);
       }
 
       function refreshMemory(){
@@ -986,11 +1006,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const rows = 16, cols = 16;
         let out = "";
         for(let r=0;r<rows;r++){
-          const addr = (start + r*cols) & 0xFFFF;
-          out += fmt(addr,4) + "  ";
+          const addr = clamp20(start + r*cols);
+          out += fmt(addr, 5) + "  "; // Show 5 digits since we are in 20-bit address mode now
           let ascii = "";
           for(let c=0;c<cols;c++){
-            const b = mem[(addr+c) & 0xFFFF];
+            const b = mem[clamp20(addr+c)];
             out += b.toString(16).toUpperCase().padStart(2,"0") + " ";
             ascii += (b>=32 && b<=126) ? String.fromCharCode(b) : ".";
           }
