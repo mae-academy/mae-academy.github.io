@@ -68,8 +68,6 @@ document.addEventListener("DOMContentLoaded", () => {
       // ---- CPU model ----
       const REG16 = ["AX","BX","CX","DX","SI","DI","BP","SP","IP", "DS"];
       const REG8  = ["AL","AH","BL","BH","CL","CH","DL","DH"];
-      
-      // INJECTED FLAGS HERE: PF added to the array
       const FLAGS = ["ZF","SF","CF","OF", "AF", "DF", "IF", "TF", "PF"];
 
       const cpu = {
@@ -196,7 +194,6 @@ document.addEventListener("DOMContentLoaded", () => {
       function isReg8(n){ return REG8.includes(n); }
 
       function setZS(width, value){
-        // Parity Flag Calculation (Count 1s in the lowest 8 bits)
         let popCount = 0;
         let lowestByte = value & 0xFF;
         for (let i = 0; i < 8; i++) {
@@ -219,12 +216,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      function addN(a,b,width){
-        // AF Calculation (Carry from bit 3)
-        cpu.flags.AF = (((a & 0x0F) + (b & 0x0F)) > 0x0F) ? 1 : 0;
+      // ADDED carryIn param for ADC functionality
+      function addN(a,b,width,carryIn=0){
+        cpu.flags.AF = (((a & 0x0F) + (b & 0x0F) + carryIn) > 0x0F) ? 1 : 0;
 
         if(width === 8){
-          const sum = (a & 0xFF) + (b & 0xFF);
+          const sum = (a & 0xFF) + (b & 0xFF) + carryIn;
           const res = sum & 0xFF;
           cpu.flags.CF = (sum > 0xFF) ? 1 : 0;
           const sa = (a & 0x80) !== 0, sb = (b & 0x80) !== 0, sr = (res & 0x80) !== 0;
@@ -233,7 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
           return res;
         }
         if(width === 16){
-          const sum = (a & 0xFFFF) + (b & 0xFFFF);
+          const sum = (a & 0xFFFF) + (b & 0xFFFF) + carryIn;
           const res = sum & 0xFFFF;
           cpu.flags.CF = (sum > 0xFFFF) ? 1 : 0;
           const sa = (a & 0x8000) !== 0, sb = (b & 0x8000) !== 0, sr = (res & 0x8000) !== 0;
@@ -241,7 +238,7 @@ document.addEventListener("DOMContentLoaded", () => {
           setZS(16,res);
           return res;
         }
-        const sum = (a >>> 0) + (b >>> 0);
+        const sum = (a >>> 0) + (b >>> 0) + carryIn;
         const res = sum >>> 0;
         cpu.flags.CF = (sum > 0xFFFFFFFF) ? 1 : 0;
         const sa = (a & 0x80000000) !== 0, sb = (b & 0x80000000) !== 0, sr = (res & 0x80000000) !== 0;
@@ -250,12 +247,12 @@ document.addEventListener("DOMContentLoaded", () => {
         return res;
       }
 
-      function subN(a,b,width){
-        // AF Calculation (Borrow from bit 3)
-        cpu.flags.AF = (((a & 0x0F) - (b & 0x0F)) < 0) ? 1 : 0;
+      // ADDED borrowIn param for SBB functionality
+      function subN(a,b,width,borrowIn=0){
+        cpu.flags.AF = (((a & 0x0F) - (b & 0x0F) - borrowIn) < 0) ? 1 : 0;
 
         if(width === 8){
-          const diff = (a & 0xFF) - (b & 0xFF);
+          const diff = (a & 0xFF) - (b & 0xFF) - borrowIn;
           const res = diff & 0xFF;
           cpu.flags.CF = (diff < 0) ? 1 : 0;
           const sa = (a & 0x80) !== 0, sb = (b & 0x80) !== 0, sr = (res & 0x80) !== 0;
@@ -264,7 +261,7 @@ document.addEventListener("DOMContentLoaded", () => {
           return res;
         }
         if(width === 16){
-          const diff = (a & 0xFFFF) - (b & 0xFFFF);
+          const diff = (a & 0xFFFF) - (b & 0xFFFF) - borrowIn;
           const res = diff & 0xFFFF;
           cpu.flags.CF = (diff < 0) ? 1 : 0;
           const sa = (a & 0x8000) !== 0, sb = (b & 0x8000) !== 0, sr = (res & 0x8000) !== 0;
@@ -272,9 +269,9 @@ document.addEventListener("DOMContentLoaded", () => {
           setZS(16,res);
           return res;
         }
-        const diff = (a >>> 0) - (b >>> 0);
+        const diff = (a >>> 0) - (b >>> 0) - borrowIn;
         const res = diff >>> 0;
-        cpu.flags.CF = ((a >>> 0) < (b >>> 0)) ? 1 : 0;
+        cpu.flags.CF = ((a >>> 0) < (b >>> 0) + borrowIn) ? 1 : 0;
         const sa = (a & 0x80000000) !== 0, sb = (b & 0x80000000) !== 0, sr = (res & 0x80000000) !== 0;
         cpu.flags.OF = (sa !== sb && sa !== sr) ? 1 : 0;
         setZS(32,res);
@@ -622,7 +619,6 @@ document.addEventListener("DOMContentLoaded", () => {
         // Pass 2
         ip = 0;
         dataPtr = dataPtrDefault;
-        // INJECTED JPE/JP and JPO/JNP here:
         const controlFlowOps = ["JMP", "JZ", "JE", "JNZ", "JNE", "LOOP", "CALL", "JP", "JPE", "JNP", "JPO"];
 
         for(let i=0;i<lines.length;i++){
@@ -707,7 +703,6 @@ document.addEventListener("DOMContentLoaded", () => {
         cpu.regs.SI=0; cpu.regs.DI=0; cpu.regs.BP=0; cpu.regs.SP=0xFFFE;
         cpu.regs.IP=0; cpu.regs.DS=0; 
         
-        // Resetting the new flags
         cpu.flags.ZF=0; cpu.flags.SF=0; cpu.flags.CF=0; cpu.flags.OF=0;
         cpu.flags.AF=0; cpu.flags.DF=0; cpu.flags.IF=0; cpu.flags.TF=0; 
         cpu.flags.PF=0;
@@ -742,18 +737,16 @@ document.addEventListener("DOMContentLoaded", () => {
               updateUI(); refreshMemory(); refreshGutter();
               return false;
 
-            // Flag Manipulators
             case "CLD": cpu.flags.DF = 0; cpu.regs.IP = nextIP; cpu.cycles++; break;
             case "STD": cpu.flags.DF = 1; cpu.regs.IP = nextIP; cpu.cycles++; break;
             case "CLI": cpu.flags.IF = 0; cpu.regs.IP = nextIP; cpu.cycles++; break;
             case "STI": cpu.flags.IF = 1; cpu.regs.IP = nextIP; cpu.cycles++; break;
 
-            // Standard String Operations interacting with DF
             case "MOVSB":
             case "MOVSW": {
               const size = op === "MOVSB" ? 1 : 2;
               const src = clamp20((getReg16("DS") << 4) + getReg16("SI"));
-              const dst = clamp20((getReg16("DS") << 4) + getReg16("DI")); // ES:DI normally, mapped to DS:DI here
+              const dst = clamp20((getReg16("DS") << 4) + getReg16("DI"));
               if(size === 1) write8(dst, read8(src));
               else write16(dst, read16(src));
               
@@ -811,8 +804,11 @@ document.addEventListener("DOMContentLoaded", () => {
               break;
             }
 
+            // INJECTED ADC and SBB functionality into the math block
             case "ADD":
             case "SUB":
+            case "ADC":
+            case "SBB":
             case "CMP":
             case "AND":
             case "OR":
@@ -828,8 +824,10 @@ document.addEventListener("DOMContentLoaded", () => {
               const right = evalOperand(a1, w);
               let res;
 
-              if(op === "ADD") res = addN(left, right, w);
-              else if(op === "SUB" || op === "CMP") res = subN(left, right, w);
+              if(op === "ADD") res = addN(left, right, w, 0);
+              else if(op === "ADC") res = addN(left, right, w, cpu.flags.CF); // Factors in CF
+              else if(op === "SUB" || op === "CMP") res = subN(left, right, w, 0);
+              else if(op === "SBB") res = subN(left, right, w, cpu.flags.CF); // Factors in Borrow (CF)
               else if(op === "AND") {
                 res = (left & right) >>> 0;
                 cpu.flags.CF=0; cpu.flags.OF=0; setZS(w, res);
@@ -846,6 +844,50 @@ document.addEventListener("DOMContentLoaded", () => {
 
               if(op !== "CMP" && op !== "TEST") writeOperand(a0, res, w);
               cpu.regs.IP = nextIP; cpu.cycles++;
+              break;
+            }
+
+            // INJECTED MUL and DIV logic block
+            case "MUL":
+            case "DIV": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              if(a0 && a0.name === "DS") throw new Error(`Cannot perform ${op} on segment register DS`);
+              
+              const w = getEffectiveWidth(a0, null);
+              if (w === null || w === 32) throw new Error("Missing operand size or unsupported 32-bit for " + op);
+              
+              const v = evalOperand(a0, w);
+              
+              if(op === "MUL") {
+                if(w === 8) {
+                  const res = getReg8("AL") * v;
+                  setReg16("AX", res);
+                  cpu.flags.CF = cpu.flags.OF = (res > 0xFF) ? 1 : 0;
+                } else if (w === 16) {
+                  const res = getReg16("AX") * v;
+                  setReg16("AX", res & 0xFFFF);
+                  setReg16("DX", Math.floor(res / 0x10000) & 0xFFFF);
+                  cpu.flags.CF = cpu.flags.OF = (res > 0xFFFF) ? 1 : 0;
+                }
+              } else { // DIV
+                if(v === 0) throw new Error("Divide by zero");
+                if(w === 8) {
+                  const dividend = getReg16("AX");
+                  const quotient = Math.floor(dividend / v);
+                  const remainder = dividend % v;
+                  if(quotient > 0xFF) throw new Error("Divide error (overflow)");
+                  setReg8("AL", quotient);
+                  setReg8("AH", remainder);
+                } else if (w === 16) {
+                  const dividend = (getReg16("DX") * 0x10000) + getReg16("AX");
+                  const quotient = Math.floor(dividend / v);
+                  const remainder = dividend % v;
+                  if(quotient > 0xFFFF) throw new Error("Divide error (overflow)");
+                  setReg16("AX", quotient);
+                  setReg16("DX", remainder);
+                }
+              }
+              cpu.regs.IP = nextIP; cpu.cycles += 10;
               break;
             }
             
@@ -870,8 +912,8 @@ document.addEventListener("DOMContentLoaded", () => {
               
               const w = getEffectiveWidth(a0, null);
               const v = evalOperand(a0, w);
-              const oldCF = cpu.flags.CF; // INC/DEC do not alter CF
-              const res = op === "INC" ? addN(v, 1, w) : subN(v, 1, w);
+              const oldCF = cpu.flags.CF; // Ensure INC/DEC do not affect Carry Flag
+              const res = op === "INC" ? addN(v, 1, w, 0) : subN(v, 1, w, 0);
               cpu.flags.CF = oldCF;
               writeOperand(a0, res, w);
               cpu.regs.IP = nextIP; cpu.cycles++;
@@ -938,7 +980,6 @@ document.addEventListener("DOMContentLoaded", () => {
               break;
             }
 
-            // INJECTED Jumps based on PF status:
             case "JP": case "JPE": {
               if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
               const target = evalOperand(a0);
@@ -1002,7 +1043,6 @@ document.addEventListener("DOMContentLoaded", () => {
           steps++;
           if(!ok) return;
 
-          // Trap Flag check! Emulating the hardware single-step interrupt
           if(cpu.flags.TF) {
             setStatus("Paused (Trap Flag)", "run");
             logLine(`Trap Flag active: Paused after instruction at line ${curLine}.`, "warn");
