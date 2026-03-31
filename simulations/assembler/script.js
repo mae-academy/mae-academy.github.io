@@ -41,7 +41,6 @@ document.addEventListener("DOMContentLoaded", () => {
         outEl.scrollTop = outEl.scrollHeight;
       }
 
-      // Memory address boundaries mapping (20-bit addressing for Segmentation)
       function clamp20(x){ return ((x % 0x100000) + 0x100000) & 0xFFFFF; }
       function clamp16(x){ return ((x % 0x10000) + 0x10000) & 0xFFFF; }
       function clamp8(x){ return ((x % 0x100) + 0x100) & 0xFF; }
@@ -51,13 +50,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const t = tok.trim();
         if(!t) return null;
         if(/^'.{1}'$/.test(t) && t.length === 3) return t.charCodeAt(1); 
-        
         if(/^0x[0-9a-f]+$/i.test(t)) return parseInt(t,16);
         if(/^[0-9a-f]+h$/i.test(t)) return parseInt(t.slice(0,-1),16);
-        
         if(/^0b[01]+$/i.test(t)) return parseInt(t.slice(2), 2);
         if(/^[01]+b$/i.test(t)) return parseInt(t.slice(0,-1), 2);
-        
         if(/^[+-]?\d+$/.test(t)) return parseInt(t,10);
         return null;
       }
@@ -72,15 +68,15 @@ document.addEventListener("DOMContentLoaded", () => {
       // ---- CPU model ----
       const REG16 = ["AX","BX","CX","DX","SI","DI","BP","SP","IP", "DS"];
       const REG8  = ["AL","AH","BL","BH","CL","CH","DL","DH"];
-      const FLAGS = ["ZF","SF","CF","OF"];
+      // INJECTED FLAGS HERE: AF, DF, IF, TF added alongside standard flags
+      const FLAGS = ["ZF","SF","CF","OF", "AF", "DF", "IF", "TF"];
 
       const cpu = {
         regs: { AX:0,BX:0,CX:0,DX:0,SI:0,DI:0,BP:0,SP:0xFFFE,IP:0,DS:0 },
-        flags:{ ZF:0,SF:0,CF:0,OF:0 },
+        flags:{ ZF:0,SF:0,CF:0,OF:0, AF:0, DF:0, IF:0, TF:0 },
         cycles:0
       };
 
-      // 1MB memory array to properly support (Segment << 4) + Offset address calculation
       const mem = new Uint8Array(0x100000); 
 
       let program = [];
@@ -168,7 +164,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return parts;
       }
 
-      // ---- Register access (16/8) ----
       function getReg16(name){ return cpu.regs[name] & 0xFFFF; }
       function setReg16(name,val){ cpu.regs[name] = clamp16(val); }
 
@@ -216,6 +211,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       function addN(a,b,width){
+        // AF Calculation (Carry from bit 3)
+        cpu.flags.AF = (((a & 0x0F) + (b & 0x0F)) > 0x0F) ? 1 : 0;
+
         if(width === 8){
           const sum = (a & 0xFF) + (b & 0xFF);
           const res = sum & 0xFF;
@@ -244,6 +242,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       function subN(a,b,width){
+        // AF Calculation (Borrow from bit 3)
+        cpu.flags.AF = (((a & 0x0F) - (b & 0x0F)) < 0) ? 1 : 0;
+
         if(width === 8){
           const diff = (a & 0xFF) - (b & 0xFF);
           const res = diff & 0xFF;
@@ -271,7 +272,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return res;
       }
 
-      // Memory reads use 20-bit addressing now via clamp20
       function read8(addr){ return mem[clamp20(addr)] & 0xFF; }
       function write8(addr, v){ mem[clamp20(addr)] = clamp8(v); }
       function read16(addr){
@@ -380,7 +380,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return { type:"bad", error:`Unknown operand: ${raw}` };
       }
 
-      // Updated to combine effective address + (DS << 4) segmentation
       function addrOfMem(op){
         const regBase = op.baseReg ? getReg16(op.baseReg) : 0;
         const off = op.offset ?? 0;
@@ -536,7 +535,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return { ok:true, bytes };
       }
 
-      // ---- Assembler (2-pass minimal) ----
       function assemble(){
         clearOutput();
         setStatus("Assembling…","run");
@@ -548,10 +546,10 @@ document.addEventListener("DOMContentLoaded", () => {
         lineToIp = new Map();
         mem.fill(0);
 
-        // PASS 1
         let ip = 0;
         let dataPtr = dataPtrDefault;
 
+        // Pass 1
         for(let i=0;i<lines.length;i++){
           const ln = i+1;
           let raw = stripComment(lines[i]);
@@ -612,7 +610,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
 
-        // PASS 2
+        // Pass 2
         ip = 0;
         dataPtr = dataPtrDefault;
         const controlFlowOps = ["JMP", "JZ", "JE", "JNZ", "JNE", "LOOP", "CALL"];
@@ -626,37 +624,26 @@ document.addEventListener("DOMContentLoaded", () => {
           const orgM = raw.toUpperCase().match(/^ORG\s+(.+)$/);
           if(orgM){
             const n = parseNumber(orgM[1].trim());
-            if(n === null){
-              logLine(`Line ${ln}: ORG needs numeric value`, "err");
-              setStatus("Assemble error","err");
-              return false;
-            }
+            if(n === null) return false;
             dataPtr = clamp16(n);
             continue;
           }
 
           let rest = raw;
-
           const colonLabelMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*):/i);
           if(colonLabelMatch){
             rest = rest.slice(colonLabelMatch[0].length).trim();
             if(!rest) continue;
           } else {
             const noColonMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*)\s+(DB|DW|DD)\b/i);
-            if(noColonMatch){
-              rest = rest.slice(noColonMatch[1].length).trim();
-            }
+            if(noColonMatch) rest = rest.slice(noColonMatch[1].length).trim();
           }
 
           const upRest = rest.toUpperCase();
           if(upRest.startsWith("DB ") || upRest.startsWith("DW ") || upRest.startsWith("DD ")){
             const dir = upRest.slice(0,2);
             const parsed = parseDataItems(rest.slice(2).trim(), dir, 2, labels);
-            if(!parsed.ok){
-              logLine(`Line ${ln}: ${parsed.error}`, "err");
-              setStatus("Assemble error","err");
-              return false;
-            }
+            if(!parsed.ok) return false;
             for(const b of parsed.bytes){
               write8(dataPtr, b);
               dataPtr = clamp16(dataPtr + 1);
@@ -671,22 +658,14 @@ document.addEventListener("DOMContentLoaded", () => {
           const args = ops.map(parseOperand);
 
           for(const a of args){
-            if(a.type === "bad"){
-              logLine(`Line ${ln}: ${a.error}`, "err");
-              setStatus("Assemble error","err");
-              return false;
-            }
+            if(a.type === "bad") { logLine(`Line ${ln}: ${a.error}`, "err"); return false; }
           }
 
           for(let k=0;k<args.length;k++){
             const a = args[k];
             if(a.type === "label"){
               const val = labels.get(a.name);
-              if(val === undefined){
-                logLine(`Line ${ln}: Unknown label "${a.name}"`, "err");
-                setStatus("Assemble error","err");
-                return false;
-              }
+              if(val === undefined) { logLine(`Line ${ln}: Unknown label "${a.name}"`, "err"); return false; }
               if(controlFlowOps.includes(op)) {
                 args[k] = { type:"imm", value: val >>> 0, size: a.size || 16 };
               } else {
@@ -695,11 +674,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             if(a.type === "offset"){
               const val = labels.get(a.name);
-              if(val === undefined){
-                logLine(`Line ${ln}: Unknown label "${a.name}"`, "err");
-                setStatus("Assemble error","err");
-                return false;
-              }
+              if(val === undefined) { logLine(`Line ${ln}: Unknown label "${a.name}"`, "err"); return false; }
               args[k] = { type:"imm", value: val >>> 0, size:16 };
             }
           }
@@ -720,8 +695,12 @@ document.addEventListener("DOMContentLoaded", () => {
       function resetCPU(keepMemory=true){
         cpu.regs.AX=0; cpu.regs.BX=0; cpu.regs.CX=0; cpu.regs.DX=0;
         cpu.regs.SI=0; cpu.regs.DI=0; cpu.regs.BP=0; cpu.regs.SP=0xFFFE;
-        cpu.regs.IP=0; cpu.regs.DS=0; // Reset DS here
+        cpu.regs.IP=0; cpu.regs.DS=0; 
+        
+        // Resetting the new flags
         cpu.flags.ZF=0; cpu.flags.SF=0; cpu.flags.CF=0; cpu.flags.OF=0;
+        cpu.flags.AF=0; cpu.flags.DF=0; cpu.flags.IF=0; cpu.flags.TF=0;
+        
         cpu.cycles=0;
         if(!keepMemory) mem.fill(0);
         updateUI();
@@ -752,10 +731,56 @@ document.addEventListener("DOMContentLoaded", () => {
               updateUI(); refreshMemory(); refreshGutter();
               return false;
 
+            // Flag Manipulators
+            case "CLD": cpu.flags.DF = 0; cpu.regs.IP = nextIP; cpu.cycles++; break;
+            case "STD": cpu.flags.DF = 1; cpu.regs.IP = nextIP; cpu.cycles++; break;
+            case "CLI": cpu.flags.IF = 0; cpu.regs.IP = nextIP; cpu.cycles++; break;
+            case "STI": cpu.flags.IF = 1; cpu.regs.IP = nextIP; cpu.cycles++; break;
+
+            // Standard String Operations interacting with DF
+            case "MOVSB":
+            case "MOVSW": {
+              const size = op === "MOVSB" ? 1 : 2;
+              const src = clamp20((getReg16("DS") << 4) + getReg16("SI"));
+              const dst = clamp20((getReg16("DS") << 4) + getReg16("DI")); // ES:DI normally, mapped to DS:DI here
+              if(size === 1) write8(dst, read8(src));
+              else write16(dst, read16(src));
+              
+              const step = cpu.flags.DF ? -size : size;
+              setReg16("SI", getReg16("SI") + step);
+              setReg16("DI", getReg16("DI") + step);
+              cpu.regs.IP = nextIP; cpu.cycles += 2;
+              break;
+            }
+
+            case "LODSB":
+            case "LODSW": {
+              const size = op === "LODSB" ? 1 : 2;
+              const src = clamp20((getReg16("DS") << 4) + getReg16("SI"));
+              if(size === 1) setReg8("AL", read8(src));
+              else setReg16("AX", read16(src));
+              
+              const step = cpu.flags.DF ? -size : size;
+              setReg16("SI", getReg16("SI") + step);
+              cpu.regs.IP = nextIP; cpu.cycles += 1;
+              break;
+            }
+
+            case "STOSB":
+            case "STOSW": {
+              const size = op === "STOSB" ? 1 : 2;
+              const dst = clamp20((getReg16("DS") << 4) + getReg16("DI"));
+              if(size === 1) write8(dst, getReg8("AL"));
+              else write16(dst, getReg16("AX"));
+              
+              const step = cpu.flags.DF ? -size : size;
+              setReg16("DI", getReg16("DI") + step);
+              cpu.regs.IP = nextIP; cpu.cycles += 1;
+              break;
+            }
+
             case "MOV":{
               if(inst.args.length !== 2) throw new Error("MOV needs 2 operands");
-              
-              // Segment Hardware Spec Constraint: Cannot Move immediate to DS directly
               if(a0.type === "reg16" && a0.name === "DS" && a1.type === "imm") {
                 throw new Error("Cannot move immediate value directly into DS register");
               }
@@ -783,8 +808,6 @@ document.addEventListener("DOMContentLoaded", () => {
             case "XOR":
             case "TEST": {
               if(inst.args.length !== 2) throw new Error(op + " needs 2 operands");
-              
-              // Segment Hardware Spec Constraint: No arithmetic on segment registers
               if((a0 && a0.name === "DS") || (a1 && a1.name === "DS")) {
                  throw new Error(`Cannot perform ${op} on segment register DS`);
               }
@@ -810,9 +833,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 cpu.flags.CF=0; cpu.flags.OF=0; setZS(w, res);
               }
 
-              if(op !== "CMP" && op !== "TEST") {
-                writeOperand(a0, res, w);
-              }
+              if(op !== "CMP" && op !== "TEST") writeOperand(a0, res, w);
               cpu.regs.IP = nextIP; cpu.cycles++;
               break;
             }
@@ -838,7 +859,7 @@ document.addEventListener("DOMContentLoaded", () => {
               
               const w = getEffectiveWidth(a0, null);
               const v = evalOperand(a0, w);
-              const oldCF = cpu.flags.CF;
+              const oldCF = cpu.flags.CF; // INC/DEC do not alter CF
               const res = op === "INC" ? addN(v, 1, w) : subN(v, 1, w);
               cpu.flags.CF = oldCF;
               writeOperand(a0, res, w);
@@ -850,7 +871,7 @@ document.addEventListener("DOMContentLoaded", () => {
               if(inst.args.length !== 1) throw new Error("PUSH needs 1 operand");
               const v = evalOperand(a0, 16) & 0xFFFF;
               cpu.regs.SP = (cpu.regs.SP - 2) & 0xFFFF;
-              write16(cpu.regs.SP, v); // Stack natively ignores DS offset in physical routing
+              write16(cpu.regs.SP, v); 
               cpu.regs.IP = nextIP; cpu.cycles++;
               break;
             }
@@ -890,8 +911,7 @@ document.addEventListener("DOMContentLoaded", () => {
               break;
             }
 
-            case "JZ":
-            case "JE": {
+            case "JZ": case "JE": {
               if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
               const target = evalOperand(a0);
               cpu.regs.IP = cpu.flags.ZF ? clamp16(target) : nextIP;
@@ -899,8 +919,7 @@ document.addEventListener("DOMContentLoaded", () => {
               break;
             }
 
-            case "JNZ":
-            case "JNE": {
+            case "JNZ": case "JNE": {
               if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
               const target = evalOperand(a0);
               cpu.regs.IP = !cpu.flags.ZF ? clamp16(target) : nextIP;
@@ -951,9 +970,17 @@ document.addEventListener("DOMContentLoaded", () => {
             logLine(`Paused at breakpoint on line ${curLine}.`, "warn");
             return;
           }
+
           const ok = stepOnce();
           steps++;
           if(!ok) return;
+
+          // Trap Flag check! Emulating the hardware single-step interrupt
+          if(cpu.flags.TF) {
+            setStatus("Paused (Trap Flag)", "run");
+            logLine(`Trap Flag active: Paused after instruction at line ${curLine}.`, "warn");
+            return;
+          }
         }
 
         setStatus("Stopped (max steps)","err");
@@ -973,7 +1000,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ["DL", getReg8("DL"), 2], ["DH", getReg8("DH"), 2],
           ["SI", getReg16("SI"), 4], ["DI", getReg16("DI"), 4],
           ["BP", getReg16("BP"), 4], ["SP", getReg16("SP"), 4],
-          ["IP", getReg16("IP"), 4], ["DS", getReg16("DS"), 4] // DS injected for UI
+          ["IP", getReg16("IP"), 4], ["DS", getReg16("DS"), 4] 
         ];
 
         for(const [k,v,w] of pairs){
@@ -1007,7 +1034,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let out = "";
         for(let r=0;r<rows;r++){
           const addr = clamp20(start + r*cols);
-          out += fmt(addr, 5) + "  "; // Show 5 digits since we are in 20-bit address mode now
+          out += fmt(addr, 5) + "  "; 
           let ascii = "";
           for(let c=0;c<cols;c++){
             const b = mem[clamp20(addr+c)];
