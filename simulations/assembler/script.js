@@ -89,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // --- Time-Travel Debugging & Memory Sync Variables ---
       let executionHistory = [];
       let memChangesThisStep = [];
-      let lastModifiedAddrs = new Set(); 
+      let lastModifiedAddrs = new Set(); // Tracks addresses changed for UI highlighting
       let isExecutingStep = false;
 
       // ---- Editor gutter ----
@@ -378,12 +378,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       function read8(addr){ return mem[clamp20(addr)] & 0xFF; }
       
+      // Records changes and flags them for Auto-Sync Highlighting
       function write8(addr, v){ 
         const a = clamp20(addr);
         if (isExecutingStep) {
             memChangesThisStep.push({ addr: a, oldVal: mem[a] });
         }
-        lastModifiedAddrs.add(a);
+        lastModifiedAddrs.add(a); 
         mem[a] = clamp8(v); 
       }
       
@@ -571,7 +572,6 @@ document.addEventListener("DOMContentLoaded", () => {
           if(currentOp === '+') result += val;
           else if(currentOp === '-') result -= val;
         }
-        // MODIFIED: clamp32 allows DD to correctly parse and store values > 0xFFFF
         return clamp32(result);
       }
 
@@ -629,7 +629,6 @@ document.addEventListener("DOMContentLoaded", () => {
             
             const count = evalDataExpr(countStr, pass, labelsMap);
             
-            // MODIFIED: Prevent infinite loops if evalDataExpr returns a negative clamped to 32 bits
             if(count === null || count < 0 || count > 0x100000){
               return { ok:false, error:`Invalid DUP count: "${countStr}"` };
             }
@@ -842,8 +841,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       function stepOnce(){
-        lastModifiedAddrs.clear(); 
-
         if(cpu.regs.IP < 0 || cpu.regs.IP >= program.length){
           logLine("Reached end of program (halt).", "warn");
           setStatus("Stopped","ok");
@@ -1203,7 +1200,7 @@ document.addEventListener("DOMContentLoaded", () => {
               
               const w = getEffectiveWidth(a0, null);
               const v = evalOperand(a0, w);
-              const oldCF = cpu.flags.CF; 
+              const oldCF = cpu.flags.CF; // Ensure INC/DEC do not affect Carry Flag
               const res = op === "INC" ? addN(v, 1, w, 0) : subN(v, 1, w, 0);
               cpu.flags.CF = oldCF;
               writeOperand(a0, res, w);
@@ -1307,6 +1304,27 @@ document.addEventListener("DOMContentLoaded", () => {
         return true;
       }
 
+      // INJECTED: Auto-scrolls the memory viewer so the lowest modified byte is ~4 lines down from top
+      function autoSyncMemoryView() {
+          if (lastModifiedAddrs.size === 0) return;
+
+          let currentStart = parseAddrInput(memStartEl.value);
+          if (currentStart === null) currentStart = 0x0100;
+          let currentEnd = currentStart + 255;
+
+          const addrs = Array.from(lastModifiedAddrs);
+          const minAddr = Math.min(...addrs);
+          const maxAddr = Math.max(...addrs);
+
+          // If the modification is out of view, re-center it.
+          if (minAddr < currentStart || maxAddr > currentEnd) {
+              let targetStart = (minAddr & 0xFFFFF0) - 0x40; // 0x40 = 64 bytes = 4 rows down
+              if (targetStart < 0) targetStart = 0;
+              if (targetStart > (0xFFFFF - 255)) targetStart = 0xFFFFF - 255;
+              memStartEl.value = "0x" + targetStart.toString(16).toUpperCase().padStart(4, "0");
+          }
+      }
+
       function runProgram(){
         clearOutput();
         if(!assemble()){
@@ -1317,20 +1335,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const maxSteps = 200000;
         let steps = 0;
+        
+        lastModifiedAddrs.clear(); // Clear before run to collect ALL changes across the entire run!
 
         while(steps < maxSteps){
           const curLine = ipToLine.get(cpu.regs.IP);
           if(curLine && breakpoints.has(curLine) && steps > 0){
             setStatus(`Paused at breakpoint (line ${curLine})`,"run");
             logLine(`Paused at breakpoint on line ${curLine}.`, "warn");
+            autoSyncMemoryView();
             updateUI(); refreshMemory(); refreshGutter();
             return;
           }
 
-          lastModifiedAddrs.clear(); 
           const ok = stepOnce();
           steps++;
           if(!ok) {
+              autoSyncMemoryView();
               updateUI(); refreshMemory(); refreshGutter();
               return;
           }
@@ -1338,6 +1359,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if(cpu.flags.TF) {
             setStatus("Paused (Trap Flag)", "run");
             logLine(`Trap Flag active: Paused after instruction at line ${curLine}.`, "warn");
+            autoSyncMemoryView();
             updateUI(); refreshMemory(); refreshGutter();
             return;
           }
@@ -1345,6 +1367,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         setStatus("Stopped (max steps)","err");
         logLine("Stopped: exceeded max steps (possible infinite loop).", "err");
+        autoSyncMemoryView();
         updateUI(); refreshMemory(); refreshGutter();
       }
 
@@ -1450,6 +1473,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         memChangesThisStep = [];
         isExecutingStep = true;
+        lastModifiedAddrs.clear(); // Clear so we only highlight this step's changes
 
         const ok = stepOnce();
 
@@ -1458,15 +1482,7 @@ document.addEventListener("DOMContentLoaded", () => {
           executionHistory[executionHistory.length - 1].memChanges = memChangesThisStep;
         }
 
-        if (lastModifiedAddrs.size > 0) {
-            let currentStart = parseAddrInput(memStartEl.value) || 0x0100;
-            let currentEnd = currentStart + 255;
-            const firstMod = [...lastModifiedAddrs][0];
-            if (firstMod < currentStart || firstMod > currentEnd) {
-                memStartEl.value = "0x" + (firstMod & 0xFFFFF0).toString(16).toUpperCase().padStart(4, "0");
-            }
-        }
-
+        autoSyncMemoryView();
         updateUI(); 
         refreshMemory(); 
         refreshGutter();
@@ -1493,18 +1509,10 @@ document.addEventListener("DOMContentLoaded", () => {
           for (let i = prevState.memChanges.length - 1; i >= 0; i--) {
             const change = prevState.memChanges[i];
             mem[change.addr] = change.oldVal;
-            lastModifiedAddrs.add(change.addr); 
+            lastModifiedAddrs.add(change.addr); // Highlight the bytes we reversed!
           }
 
-          if (lastModifiedAddrs.size > 0) {
-            let currentStart = parseAddrInput(memStartEl.value) || 0x0100;
-            let currentEnd = currentStart + 255;
-            const firstMod = [...lastModifiedAddrs][0];
-            if (firstMod < currentStart || firstMod > currentEnd) {
-                memStartEl.value = "0x" + (firstMod & 0xFFFFF0).toString(16).toUpperCase().padStart(4, "0");
-            }
-          }
-
+          autoSyncMemoryView();
           updateUI();
           refreshMemory();
           refreshGutter();
@@ -1521,6 +1529,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       baseSel.addEventListener("change", () => { updateUI(); refreshMemory(); });
       el("memRefresh").addEventListener("click", refreshMemory);
+      // INJECTED: Allow hitting "Enter" in the memory text box to jump instantly
+      memStartEl.addEventListener("change", refreshMemory); 
 
       el("exampleSel").addEventListener("change", (e) => {
         const v = e.target.value;
