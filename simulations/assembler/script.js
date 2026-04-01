@@ -89,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // --- Time-Travel Debugging & Memory Sync Variables ---
       let executionHistory = [];
       let memChangesThisStep = [];
-      let lastModifiedAddrs = new Set(); // Tracks addresses changed in the current step for highlighting
+      let lastModifiedAddrs = new Set(); 
       let isExecutingStep = false;
 
       // ---- Editor gutter ----
@@ -378,13 +378,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       function read8(addr){ return mem[clamp20(addr)] & 0xFF; }
       
-      // MODIFIED: Record changes and flag for Auto-Sync Highlighting
       function write8(addr, v){ 
         const a = clamp20(addr);
         if (isExecutingStep) {
             memChangesThisStep.push({ addr: a, oldVal: mem[a] });
         }
-        lastModifiedAddrs.add(a); // Save address to highlight later
+        lastModifiedAddrs.add(a);
         mem[a] = clamp8(v); 
       }
       
@@ -572,7 +571,8 @@ document.addEventListener("DOMContentLoaded", () => {
           if(currentOp === '+') result += val;
           else if(currentOp === '-') result -= val;
         }
-        return clamp16(result);
+        // MODIFIED: clamp32 allows DD to correctly parse and store values > 0xFFFF
+        return clamp32(result);
       }
 
       function parseDataItems(argStr, directive, pass, labelsMap){
@@ -629,7 +629,8 @@ document.addEventListener("DOMContentLoaded", () => {
             
             const count = evalDataExpr(countStr, pass, labelsMap);
             
-            if(count === null || count < 0){
+            // MODIFIED: Prevent infinite loops if evalDataExpr returns a negative clamped to 32 bits
+            if(count === null || count < 0 || count > 0x100000){
               return { ok:false, error:`Invalid DUP count: "${countStr}"` };
             }
             
@@ -659,7 +660,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ipToLine = new Map();
         lineToIp = new Map();
         mem.fill(0);
-        executionHistory = []; // Clear time-travel history on re-assembly
+        executionHistory = []; 
 
         let ip = 0;
         let dataPtr = dataPtrDefault;
@@ -832,7 +833,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
         cpu.cycles=0;
         executionHistory = []; 
-        lastModifiedAddrs.clear(); // Reset UI highlighting
+        lastModifiedAddrs.clear(); 
         
         if(!keepMemory) mem.fill(0);
         updateUI();
@@ -841,7 +842,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       function stepOnce(){
-        lastModifiedAddrs.clear(); // Clear highlighted memory from previous step
+        lastModifiedAddrs.clear(); 
 
         if(cpu.regs.IP < 0 || cpu.regs.IP >= program.length){
           logLine("Reached end of program (halt).", "warn");
@@ -1202,7 +1203,7 @@ document.addEventListener("DOMContentLoaded", () => {
               
               const w = getEffectiveWidth(a0, null);
               const v = evalOperand(a0, w);
-              const oldCF = cpu.flags.CF; // Ensure INC/DEC do not affect Carry Flag
+              const oldCF = cpu.flags.CF; 
               const res = op === "INC" ? addN(v, 1, w, 0) : subN(v, 1, w, 0);
               cpu.flags.CF = oldCF;
               writeOperand(a0, res, w);
@@ -1326,7 +1327,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
           }
 
-          lastModifiedAddrs.clear(); // Don't track memory highlights if fast-running
+          lastModifiedAddrs.clear(); 
           const ok = stepOnce();
           steps++;
           if(!ok) {
@@ -1401,7 +1402,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const b = mem[a];
             const hexStr = b.toString(16).toUpperCase().padStart(2,"0");
             
-            // INJECTED: Highlight modified bytes
             if (lastModifiedAddrs.has(a)) {
                 out += `<span style="background: rgba(63,111,255,0.25); color: #0f172a; font-weight: 900; border-radius: 3px;">${hexStr}</span> `;
             } else {
@@ -1410,11 +1410,10 @@ document.addEventListener("DOMContentLoaded", () => {
             
             ascii += (b>=32 && b<=126) ? String.fromCharCode(b) : ".";
           }
-          // Sanitize for HTML rendering
           ascii = ascii.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
           out += " |" + ascii + "|\n";
         }
-        memDumpEl.innerHTML = out; // Now supports innerHTML for spans
+        memDumpEl.innerHTML = out; 
       }
 
       function activateTab(name){
@@ -1459,7 +1458,6 @@ document.addEventListener("DOMContentLoaded", () => {
           executionHistory[executionHistory.length - 1].memChanges = memChangesThisStep;
         }
 
-        // INJECTED: Auto-scroll memory viewer to highlighted changes
         if (lastModifiedAddrs.size > 0) {
             let currentStart = parseAddrInput(memStartEl.value) || 0x0100;
             let currentEnd = currentStart + 255;
@@ -1491,14 +1489,13 @@ document.addEventListener("DOMContentLoaded", () => {
           cpu.flags = { ...prevState.flags };
           cpu.cycles = prevState.cycles;
 
-          lastModifiedAddrs.clear(); // Reset UI highlighting
+          lastModifiedAddrs.clear(); 
           for (let i = prevState.memChanges.length - 1; i >= 0; i--) {
             const change = prevState.memChanges[i];
             mem[change.addr] = change.oldVal;
-            lastModifiedAddrs.add(change.addr); // Highlight the reversed memory changes!
+            lastModifiedAddrs.add(change.addr); 
           }
 
-          // INJECTED: Auto-scroll memory viewer back to highlighted changes
           if (lastModifiedAddrs.size > 0) {
             let currentStart = parseAddrInput(memStartEl.value) || 0x0100;
             let currentEnd = currentStart + 255;
