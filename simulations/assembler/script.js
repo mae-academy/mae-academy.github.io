@@ -824,7 +824,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ip++;
         }
 
-        logLine("Assemble OK ✅", "ok");
+        logLine("Assemble OK", "ok");
         logLine(`Instructions: ${program.length} • Labels: ${labels.size}`, "ok");
         setStatus("Assembled","ok");
         return true;
@@ -989,7 +989,13 @@ document.addEventListener("DOMContentLoaded", () => {
               cpu.regs.IP = nextIP; cpu.cycles += 2;
               break;
             }
-
+            // 👇 ADD THIS NEW BLOCK RIGHT HERE 👇
+            case "NOP": {
+              if(inst.args.length !== 0) throw new Error("NOP takes 0 operands");
+              cpu.regs.IP = nextIP; 
+              cpu.cycles += 3; // In older x86 CPUs, NOP typically burns 3 cycles
+              break;
+            }4
             // INJECTED: XCHG Instruction (Exchanges operands without affecting flags)
             case "XCHG": {
               if(inst.args.length !== 2) throw new Error("XCHG needs 2 operands");
