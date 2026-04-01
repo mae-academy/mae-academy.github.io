@@ -86,9 +86,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const dataPtrDefault = 0x0100;
       let breakpoints = new Set();
 
-      // --- Time-Travel Debugging Variables ---
+      // --- Time-Travel Debugging & Memory Sync Variables ---
       let executionHistory = [];
       let memChangesThisStep = [];
+      let lastModifiedAddrs = new Set(); // Tracks addresses changed in the current step for highlighting
       let isExecutingStep = false;
 
       // ---- Editor gutter ----
@@ -154,12 +155,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
         const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
 
-        // Custom UNDO (Ctrl+Z or Cmd+Z)
         if (cmdOrCtrl && e.key.toLowerCase() === 'z') {
             e.preventDefault();
             if (undoStack.length > 1) {
-                undoStack.pop(); // Remove current state
-                const prevState = undoStack[undoStack.length - 1]; // Get previous
+                undoStack.pop(); 
+                const prevState = undoStack[undoStack.length - 1]; 
                 codeEl.value = prevState.text;
                 codeEl.selectionStart = prevState.start;
                 codeEl.selectionEnd = prevState.end;
@@ -168,7 +168,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Custom TAB and Multi-Line TAB
         if (e.key === "Tab") {
           e.preventDefault();
           saveHistoryState(); 
@@ -379,12 +378,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       function read8(addr){ return mem[clamp20(addr)] & 0xFF; }
       
-      // MODIFIED: Record memory changes for Time-Travel Debugging
+      // MODIFIED: Record changes and flag for Auto-Sync Highlighting
       function write8(addr, v){ 
         const a = clamp20(addr);
         if (isExecutingStep) {
             memChangesThisStep.push({ addr: a, oldVal: mem[a] });
         }
+        lastModifiedAddrs.add(a); // Save address to highlight later
         mem[a] = clamp8(v); 
       }
       
@@ -659,7 +659,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ipToLine = new Map();
         lineToIp = new Map();
         mem.fill(0);
-        executionHistory = []; // MODIFIED: Clear time-travel history on re-assembly
+        executionHistory = []; // Clear time-travel history on re-assembly
 
         let ip = 0;
         let dataPtr = dataPtrDefault;
@@ -831,7 +831,8 @@ document.addEventListener("DOMContentLoaded", () => {
         cpu.flags.PF=0;
         
         cpu.cycles=0;
-        executionHistory = []; // MODIFIED: Clear time-travel history on reset
+        executionHistory = []; 
+        lastModifiedAddrs.clear(); // Reset UI highlighting
         
         if(!keepMemory) mem.fill(0);
         updateUI();
@@ -840,6 +841,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       function stepOnce(){
+        lastModifiedAddrs.clear(); // Clear highlighted memory from previous step
+
         if(cpu.regs.IP < 0 || cpu.regs.IP >= program.length){
           logLine("Reached end of program (halt).", "warn");
           setStatus("Stopped","ok");
@@ -874,7 +877,6 @@ document.addEventListener("DOMContentLoaded", () => {
               if (repPrefix && getReg16("CX") === 0) {
                   cpu.regs.IP = nextIP;
                   cpu.cycles++;
-                  updateUI(); refreshMemory(); refreshGutter();
                   return true;
               }
 
@@ -943,7 +945,6 @@ document.addEventListener("DOMContentLoaded", () => {
                   cpu.regs.IP = nextIP;
               }
 
-              updateUI(); refreshMemory(); refreshGutter();
               return true; 
           }
 
@@ -956,7 +957,6 @@ document.addEventListener("DOMContentLoaded", () => {
               cpu.cycles++;
               logLine(`HLT at line ${inst.line}`, "ok");
               setStatus("HLT (stopped)","ok");
-              updateUI(); refreshMemory(); refreshGutter();
               return false;
 
             case "CLD": cpu.flags.DF = 0; cpu.regs.IP = nextIP; cpu.cycles++; break;
@@ -1202,7 +1202,7 @@ document.addEventListener("DOMContentLoaded", () => {
               
               const w = getEffectiveWidth(a0, null);
               const v = evalOperand(a0, w);
-              const oldCF = cpu.flags.CF; 
+              const oldCF = cpu.flags.CF; // Ensure INC/DEC do not affect Carry Flag
               const res = op === "INC" ? addN(v, 1, w, 0) : subN(v, 1, w, 0);
               cpu.flags.CF = oldCF;
               writeOperand(a0, res, w);
@@ -1300,13 +1300,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }catch(err){
           setStatus("Runtime error","err");
           logLine(`Runtime error at line ${inst.line}: ${err.message}`, "err");
-          updateUI(); refreshMemory(); refreshGutter();
           return false;
         }
 
-        updateUI();
-        refreshMemory();
-        refreshGutter();
         return true;
       }
 
@@ -1326,22 +1322,29 @@ document.addEventListener("DOMContentLoaded", () => {
           if(curLine && breakpoints.has(curLine) && steps > 0){
             setStatus(`Paused at breakpoint (line ${curLine})`,"run");
             logLine(`Paused at breakpoint on line ${curLine}.`, "warn");
+            updateUI(); refreshMemory(); refreshGutter();
             return;
           }
 
+          lastModifiedAddrs.clear(); // Don't track memory highlights if fast-running
           const ok = stepOnce();
           steps++;
-          if(!ok) return;
+          if(!ok) {
+              updateUI(); refreshMemory(); refreshGutter();
+              return;
+          }
 
           if(cpu.flags.TF) {
             setStatus("Paused (Trap Flag)", "run");
             logLine(`Trap Flag active: Paused after instruction at line ${curLine}.`, "warn");
+            updateUI(); refreshMemory(); refreshGutter();
             return;
           }
         }
 
         setStatus("Stopped (max steps)","err");
         logLine("Stopped: exceeded max steps (possible infinite loop).", "err");
+        updateUI(); refreshMemory(); refreshGutter();
       }
 
       // ---- UI ----
@@ -1394,13 +1397,24 @@ document.addEventListener("DOMContentLoaded", () => {
           out += fmt(addr, 5) + "  "; 
           let ascii = "";
           for(let c=0;c<cols;c++){
-            const b = mem[clamp20(addr+c)];
-            out += b.toString(16).toUpperCase().padStart(2,"0") + " ";
+            const a = clamp20(addr+c);
+            const b = mem[a];
+            const hexStr = b.toString(16).toUpperCase().padStart(2,"0");
+            
+            // INJECTED: Highlight modified bytes
+            if (lastModifiedAddrs.has(a)) {
+                out += `<span style="background: rgba(63,111,255,0.25); color: #0f172a; font-weight: 900; border-radius: 3px;">${hexStr}</span> `;
+            } else {
+                out += hexStr + " ";
+            }
+            
             ascii += (b>=32 && b<=126) ? String.fromCharCode(b) : ".";
           }
+          // Sanitize for HTML rendering
+          ascii = ascii.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
           out += " |" + ascii + "|\n";
         }
-        memDumpEl.textContent = out;
+        memDumpEl.innerHTML = out; // Now supports innerHTML for spans
       }
 
       function activateTab(name){
@@ -1409,7 +1423,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => activateTab(t.dataset.tab)));
 
-      // MODIFIED: Step Forward Button includes history saving
+      // Buttons
+      el("assembleBtn").addEventListener("click", () => {
+        if(assemble()){
+          resetCPU(true);
+        }
+      });
+
+      el("runBtn").addEventListener("click", runProgram);
+
       el("stepBtn").addEventListener("click", () => {
         if(program.length === 0){
           clearOutput();
@@ -1421,7 +1443,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         setStatus("Stepping…","run");
 
-        // Save state BEFORE step
         executionHistory.push({
           regs: { ...cpu.regs },
           flags: { ...cpu.flags },
@@ -1438,10 +1459,23 @@ document.addEventListener("DOMContentLoaded", () => {
           executionHistory[executionHistory.length - 1].memChanges = memChangesThisStep;
         }
 
+        // INJECTED: Auto-scroll memory viewer to highlighted changes
+        if (lastModifiedAddrs.size > 0) {
+            let currentStart = parseAddrInput(memStartEl.value) || 0x0100;
+            let currentEnd = currentStart + 255;
+            const firstMod = [...lastModifiedAddrs][0];
+            if (firstMod < currentStart || firstMod > currentEnd) {
+                memStartEl.value = "0x" + (firstMod & 0xFFFFF0).toString(16).toUpperCase().padStart(4, "0");
+            }
+        }
+
+        updateUI(); 
+        refreshMemory(); 
+        refreshGutter();
+
         if(!ok) setStatus("Stopped","ok");
       });
 
-      // INJECTED: Step Backward Event Listener (Make sure to add button in HTML)
       const stepBackBtn = el("stepBackBtn");
       if (stepBackBtn) {
         stepBackBtn.addEventListener("click", () => {
@@ -1457,10 +1491,21 @@ document.addEventListener("DOMContentLoaded", () => {
           cpu.flags = { ...prevState.flags };
           cpu.cycles = prevState.cycles;
 
-          // Restore memory changes in reverse
+          lastModifiedAddrs.clear(); // Reset UI highlighting
           for (let i = prevState.memChanges.length - 1; i >= 0; i--) {
             const change = prevState.memChanges[i];
             mem[change.addr] = change.oldVal;
+            lastModifiedAddrs.add(change.addr); // Highlight the reversed memory changes!
+          }
+
+          // INJECTED: Auto-scroll memory viewer back to highlighted changes
+          if (lastModifiedAddrs.size > 0) {
+            let currentStart = parseAddrInput(memStartEl.value) || 0x0100;
+            let currentEnd = currentStart + 255;
+            const firstMod = [...lastModifiedAddrs][0];
+            if (firstMod < currentStart || firstMod > currentEnd) {
+                memStartEl.value = "0x" + (firstMod & 0xFFFFF0).toString(16).toUpperCase().padStart(4, "0");
+            }
           }
 
           updateUI();
@@ -1470,14 +1515,6 @@ document.addEventListener("DOMContentLoaded", () => {
           logLine(`Stepped back to line ${currentLine !== undefined ? currentLine : '?'}.`, "ok");
         });
       }
-
-      el("assembleBtn").addEventListener("click", () => {
-        if(assemble()){
-          resetCPU(true);
-        }
-      });
-
-      el("runBtn").addEventListener("click", runProgram);
 
       el("resetBtn").addEventListener("click", () => {
         resetCPU(true);
@@ -1613,7 +1650,6 @@ DATA DB "ABCDEF" `
       window.addEventListener("keydown", (e) => {
         if(e.ctrlKey && e.key === "Enter"){ e.preventDefault(); runProgram(); }
         if(e.key === "F10"){ e.preventDefault(); el("stepBtn").click(); }
-        // INJECTED: Step Back Keyboard Shortcut
         if(e.key === "F9"){ e.preventDefault(); el("stepBackBtn")?.click(); }
         if(e.ctrlKey && (e.key === "r" || e.key === "R")){ e.preventDefault(); el("resetBtn").click(); }
       });
