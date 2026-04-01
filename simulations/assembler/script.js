@@ -958,7 +958,6 @@ document.addEventListener("DOMContentLoaded", () => {
             case "CLI": cpu.flags.IF = 0; cpu.regs.IP = nextIP; cpu.cycles++; break;
             case "STI": cpu.flags.IF = 1; cpu.regs.IP = nextIP; cpu.cycles++; break;
 
-            // INJECTED LEA LOGIC
             case "LEA": {
               if(inst.args.length !== 2) throw new Error("LEA needs 2 operands");
               if(a0.type !== "reg16") throw new Error("LEA destination must be a 16-bit register");
@@ -968,7 +967,6 @@ document.addEventListener("DOMContentLoaded", () => {
               const off = a1.offset ?? 0;
               const labelBase = a1.label ? (labels.get(a1.label) ?? 0) : 0; 
               
-              // Calculates the 16-bit effective address perfectly and ignores standard segment rules
               const ea = clamp16(labelBase + regBase + off);
 
               setReg16(a0.name, ea);
@@ -1198,7 +1196,7 @@ document.addEventListener("DOMContentLoaded", () => {
               
               const w = getEffectiveWidth(a0, null);
               const v = evalOperand(a0, w);
-              const oldCF = cpu.flags.CF; // Ensure INC/DEC do not affect Carry Flag
+              const oldCF = cpu.flags.CF; 
               const res = op === "INC" ? addN(v, 1, w, 0) : subN(v, 1, w, 0);
               cpu.flags.CF = oldCF;
               writeOperand(a0, res, w);
@@ -1437,43 +1435,118 @@ document.addEventListener("DOMContentLoaded", () => {
       baseSel.addEventListener("change", () => { updateUI(); refreshMemory(); });
       el("memRefresh").addEventListener("click", refreshMemory);
 
+      // INJECTED: 10 robust new examples
       el("exampleSel").addEventListener("change", (e) => {
         const v = e.target.value;
         if(!v) return;
 
         const EX = {
-          case: `ORG 100h
-MOV SI, OFFSET STR
-MOV CX, 2
+          ex1: `; --- Ex 1: Basic Math & Flags ---
+ORG 100h
+MOV AX, 00FFh
+ADD AX, 1       ; Should set AF (Half Carry)
+SUB AX, 100h    ; Should set ZF (Zero)
+MOV BX, 5
+MUL BX          ; AX = 0
+HLT`,
 
-L:  MOV AL, [SI]
-    XOR AL, 20h
-    MOV [SI], AL
-    INC SI
-    LOOP L
+          ex2: `; --- Ex 2: Shifts & Rotates ---
+ORG 100h
+MOV AL, 0F0h    ; 1111 0000
+SHR AL, 1       ; 0111 1000 (CF=0)
+SHL AL, 2       ; 1110 0000 (CF=0)
+ROL AL, 3       ; 0000 0111 (CF=1)
+SAR AL, 1       ; 0000 0011 
+HLT`,
+
+          ex3: `; --- Ex 3: String Operations (MOVSB) ---
+ORG 100h
+MOV CX, 5
+MOV SI, OFFSET STR1
+MOV DI, OFFSET STR2
+CLD             ; Direction = Forward
+REP MOVSB       ; Copies "HELLO" to STR2
+
+HLT
+STR1 DB "HELLO"
+STR2 DB 5 DUP(0)`,
+
+          ex4: `; --- Ex 4: String Compare (CMPSB) ---
+ORG 100h
+MOV CX, 4
+MOV SI, OFFSET S1
+MOV DI, OFFSET S2
+CLD
+REPE CMPSB      ; Stops when it hits 'X' vs 'Y'
 HLT
 
-STR DB "ab"
-`,
-          data: `ORG 200h
-W1 DW 1234h
-D1 DD 11223344h
-S1 DB "Hi", 0
-BIN DB 0b1010
-ARR DB 3 DUP (0xFF)
+S1 DB "ABXC"
+S2 DB "ABYC"`,
 
-MOV SI, OFFSET W1
-MOV AX, [SI]
-ADD AX, 1
-MOV [SI], AX
-
-MOV BX, W1
-CMP BX, 1235h
-JE DONE
-
-DONE:
+          ex5: `; --- Ex 5: String Scan (SCASB) ---
+ORG 100h
+MOV AL, 'X'     ; We are looking for 'X'
+MOV CX, 5
+MOV DI, OFFSET S1
+CLD
+REPNE SCASB     ; Scans until it finds 'X'
 HLT
-`
+
+S1 DB "HELLOX"`,
+
+          ex6: `; --- Ex 6: Loop & Logic ---
+ORG 100h
+MOV CX, 3
+MOV AX, 0
+
+L1: ADD AX, CX
+    XOR BX, BX  ; Clear BX
+    NOT BX      ; BX = FFFF
+    LOOP L1
+HLT`,
+
+          ex7: `; --- Ex 7: Stack Operations ---
+ORG 100h
+MOV AX, 1234h
+MOV BX, 5678h
+PUSH AX
+PUSH BX
+POP CX          ; CX = 5678h
+POP DX          ; DX = 1234h
+HLT`,
+
+          ex8: `; --- Ex 8: Subroutines (CALL/RET) ---
+ORG 100h
+MOV AX, 10
+CALL MYFUNC
+ADD AX, 5       ; AX becomes 35
+HLT
+
+MYFUNC:
+    ADD AX, 20
+    RET`,
+
+          ex9: `; --- Ex 9: Multi-Byte Addition (ADC) ---
+ORG 100h
+; Add 01FFh + 0002h manually
+MOV AL, 0FFh
+MOV BL, 02h
+ADD AL, BL      ; AL = 01, CF = 1
+
+MOV AH, 01h
+MOV BH, 00h
+ADC AH, BH      ; AH = 01 + 00 + 1 (CF) = 02
+; Result in AX is 0201h
+HLT`,
+
+          ex10: `; --- Ex 10: LEA & Memory Navigation ---
+ORG 100h
+MOV BX, 5
+LEA SI, DATA[BX] ; SI gets OFFSET DATA + 5
+MOV AL, [SI]     ; AL = 'F'
+HLT
+
+DATA DB "ABCDEF" `
         };
 
         codeEl.value = EX[v];
@@ -1485,7 +1558,6 @@ HLT
         e.target.value = "";
       });
 
-      // INJECTED: Save Initial History State on Boot
       function boot(){
         const saved = localStorage.getItem(LS_CODE);
         codeEl.value = saved ?? `ORG 100H
@@ -1505,7 +1577,6 @@ Y5 DW 2 DUP(0)
 Y6 DW X8-X7
 HLT
 `;
-        // Save initial state for Undo functionality
         saveHistoryState(); 
 
         loadBreakpoints();
@@ -1515,6 +1586,20 @@ HLT
         setStatus("Idle","idle");
         clearOutput();
         logLine("Tip: Assemble first to validate OFFSET/DB/DW/DD and labels.", "ok");
+        
+        // Populate the dropdown menu dynamically to match the new examples
+        const sel = el("exampleSel");
+        sel.innerHTML = `<option value="">Load example…</option>
+          <option value="ex1">1. Basic Math & Flags</option>
+          <option value="ex2">2. Shifts & Rotates</option>
+          <option value="ex3">3. String Copy (REP MOVSB)</option>
+          <option value="ex4">4. String Compare (REPE CMPSB)</option>
+          <option value="ex5">5. String Scan (REPNE SCASB)</option>
+          <option value="ex6">6. Loop & Logic (XOR/NOT)</option>
+          <option value="ex7">7. Stack (PUSH/POP)</option>
+          <option value="ex8">8. Subroutines (CALL/RET)</option>
+          <option value="ex9">9. Multi-Byte Add (ADC)</option>
+          <option value="ex10">10. LEA & Memory</option>`;
       }
 
       boot();
