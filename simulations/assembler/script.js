@@ -117,6 +117,22 @@ document.addEventListener("DOMContentLoaded", () => {
         refreshGutter();
       });
       codeEl.addEventListener("scroll", () => { gutterEl.scrollTop = codeEl.scrollTop; });
+      
+      // INJECTED: Allow using Tab in the Code Editor
+      codeEl.addEventListener("keydown", (e) => {
+        if (e.key === "Tab") {
+          e.preventDefault();
+          const start = codeEl.selectionStart;
+          const end = codeEl.selectionEnd;
+          // Insert 4 spaces at cursor
+          const tabStr = "    ";
+          codeEl.value = codeEl.value.substring(0, start) + tabStr + codeEl.value.substring(end);
+          // Move cursor to after the inserted tab
+          codeEl.selectionStart = codeEl.selectionEnd = start + tabStr.length;
+          // Trigger input event to save the state
+          codeEl.dispatchEvent(new Event("input"));
+        }
+      });
 
       function loadBreakpoints(){
         try{
@@ -586,7 +602,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           }
 
-          // Pre-process REP prefixes in pass 1
           const parts = rest.trim().split(/\s+/);
           let op = parts[0].toUpperCase();
           if (op.startsWith("REP") && parts.length > 1) {
@@ -666,7 +681,6 @@ document.addEventListener("DOMContentLoaded", () => {
           let op = parts[0].toUpperCase();
           let operandStr = rest.slice(parts[0].length).trim();
           
-          // Pre-process REP prefixes in pass 2
           if (op.startsWith("REP") && parts.length > 1) {
               const nextOp = parts[1].toUpperCase();
               op = op + " " + nextOp;
@@ -751,7 +765,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           if (op.startsWith("REP")) {
               const parts = op.split(" ");
-              repPrefix = parts[0]; // Matches "REP", "REPE", "REPZ", "REPNE", "REPNZ"
+              repPrefix = parts[0]; 
               baseOp = parts[1];
           }
 
@@ -760,7 +774,6 @@ document.addEventListener("DOMContentLoaded", () => {
           if (isStringOp) {
               const size = baseOp.endsWith("B") ? 1 : 2;
 
-              // Base exit condition for any REP prefix: CX hits 0
               if (repPrefix && getReg16("CX") === 0) {
                   cpu.regs.IP = nextIP;
                   cpu.cycles++;
@@ -768,10 +781,9 @@ document.addEventListener("DOMContentLoaded", () => {
                   return true;
               }
 
-              // String Execution Block
               if (baseOp.startsWith("MOVS")) {
                   const src = clamp20((getReg16("DS") << 4) + getReg16("SI"));
-                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI")); // ES:DI normally
+                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI"));
                   if(size === 1) write8(dst, read8(src));
                   else write16(dst, read16(src));
                   
@@ -788,7 +800,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   setReg16("SI", getReg16("SI") + step);
                   cpu.cycles += 1;
               } else if (baseOp.startsWith("STOS")) {
-                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI")); // ES:DI normally
+                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI"));
                   if(size === 1) write8(dst, getReg8("AL"));
                   else write16(dst, getReg16("AX"));
                   
@@ -797,45 +809,41 @@ document.addEventListener("DOMContentLoaded", () => {
                   cpu.cycles += 1;
               } else if (baseOp.startsWith("CMPS")) {
                   const src = clamp20((getReg16("DS") << 4) + getReg16("SI"));
-                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI")); // ES:DI normally
+                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI"));
                   const valSrc = size === 1 ? read8(src) : read16(src);
                   const valDst = size === 1 ? read8(dst) : read16(dst);
-                  subN(valSrc, valDst, size * 8, 0); // Sets CF, OF, ZF, SF, AF, PF
+                  subN(valSrc, valDst, size * 8, 0); 
                   
                   const step = cpu.flags.DF ? -size : size;
                   setReg16("SI", getReg16("SI") + step);
                   setReg16("DI", getReg16("DI") + step);
                   cpu.cycles += 2;
               } else if (baseOp.startsWith("SCAS")) {
-                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI")); // ES:DI normally
+                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI"));
                   const valDst = size === 1 ? read8(dst) : read16(dst);
                   const valAcc = size === 1 ? getReg8("AL") : getReg16("AX");
-                  subN(valAcc, valDst, size * 8, 0); // Sets CF, OF, ZF, SF, AF, PF
+                  subN(valAcc, valDst, size * 8, 0); 
                   
                   const step = cpu.flags.DF ? -size : size;
                   setReg16("DI", getReg16("DI") + step);
                   cpu.cycles += 1;
               }
 
-              // Loop Evaluation Logic (evaluated after execution updates the flags)
               if (repPrefix) {
                   setReg16("CX", getReg16("CX") - 1);
                   let continueLoop = (getReg16("CX") !== 0);
 
-                  // Conditional Repeat overrides
                   if (continueLoop && (repPrefix === "REPE" || repPrefix === "REPZ")) {
                       continueLoop = (cpu.flags.ZF === 1);
                   } else if (continueLoop && (repPrefix === "REPNE" || repPrefix === "REPNZ")) {
                       continueLoop = (cpu.flags.ZF === 0);
                   }
 
-                  if (continueLoop) {
-                      // Do NOT change IP - it forces the CPU to repeat this specific line next cycle
-                  } else {
-                      cpu.regs.IP = nextIP; // Loop broken/finished, proceed.
+                  if (!continueLoop) {
+                      cpu.regs.IP = nextIP;
                   }
               } else {
-                  cpu.regs.IP = nextIP; // Non-repeating string instruction, proceed.
+                  cpu.regs.IP = nextIP;
               }
 
               updateUI(); refreshMemory(); refreshGutter();
@@ -858,6 +866,24 @@ document.addEventListener("DOMContentLoaded", () => {
             case "STD": cpu.flags.DF = 1; cpu.regs.IP = nextIP; cpu.cycles++; break;
             case "CLI": cpu.flags.IF = 0; cpu.regs.IP = nextIP; cpu.cycles++; break;
             case "STI": cpu.flags.IF = 1; cpu.regs.IP = nextIP; cpu.cycles++; break;
+
+            // INJECTED LEA LOGIC
+            case "LEA": {
+              if(inst.args.length !== 2) throw new Error("LEA needs 2 operands");
+              if(a0.type !== "reg16") throw new Error("LEA destination must be a 16-bit register");
+              if(a1.type !== "mem") throw new Error("LEA source must be a memory operand");
+
+              const regBase = a1.baseReg ? getReg16(a1.baseReg) : 0;
+              const off = a1.offset ?? 0;
+              const labelBase = a1.label ? (labels.get(a1.label) ?? 0) : 0; 
+              
+              // Calculates the 16-bit effective address perfectly and ignores standard segment rules
+              const ea = clamp16(labelBase + regBase + off);
+
+              setReg16(a0.name, ea);
+              cpu.regs.IP = nextIP; cpu.cycles += 2;
+              break;
+            }
 
             case "MOV":{
               if(inst.args.length !== 2) throw new Error("MOV needs 2 operands");
