@@ -46,15 +46,26 @@ document.addEventListener("DOMContentLoaded", () => {
       function clamp8(x){ return ((x % 0x100) + 0x100) & 0xFF; }
       function clamp32(x){ return (x >>> 0); }
 
+      // MODIFIED: Universal negative sign handler for Hex, Bin, and Dec
       function parseNumber(tok){
         const t = tok.trim();
         if(!t) return null;
         if(/^'.{1}'$/.test(t) && t.length === 3) return t.charCodeAt(1); 
-        if(/^0x[0-9a-f]+$/i.test(t)) return parseInt(t,16);
-        if(/^[0-9a-f]+h$/i.test(t)) return parseInt(t.slice(0,-1),16);
-        if(/^0b[01]+$/i.test(t)) return parseInt(t.slice(2), 2);
-        if(/^[01]+b$/i.test(t)) return parseInt(t.slice(0,-1), 2);
-        if(/^[+-]?\d+$/.test(t)) return parseInt(t,10);
+        
+        let sign = 1;
+        let str = t;
+        if (str.startsWith("-")) {
+            sign = -1;
+            str = str.substring(1);
+        } else if (str.startsWith("+")) {
+            str = str.substring(1);
+        }
+
+        if(/^0x[0-9a-f]+$/i.test(str)) return sign * parseInt(str, 16);
+        if(/^[0-9a-f]+h$/i.test(str)) return sign * parseInt(str.slice(0,-1), 16);
+        if(/^0b[01]+$/i.test(str)) return sign * parseInt(str.slice(2), 2);
+        if(/^[01]+b$/i.test(str)) return sign * parseInt(str.slice(0,-1), 2);
+        if(/^\d+$/.test(str)) return sign * parseInt(str, 10);
         return null;
       }
 
@@ -89,7 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // --- Time-Travel Debugging & Memory Sync Variables ---
       let executionHistory = [];
       let memChangesThisStep = [];
-      let lastModifiedAddrs = new Set(); // Tracks addresses changed for UI highlighting
+      let lastModifiedAddrs = new Set(); 
       let isExecutingStep = false;
 
       // ---- Editor gutter ----
@@ -378,7 +389,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       function read8(addr){ return mem[clamp20(addr)] & 0xFF; }
       
-      // Records changes and flags them for Auto-Sync Highlighting
       function write8(addr, v){ 
         const a = clamp20(addr);
         if (isExecutingStep) {
@@ -841,6 +851,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       function stepOnce(){
+        lastModifiedAddrs.clear(); 
+
         if(cpu.regs.IP < 0 || cpu.regs.IP >= program.length){
           logLine("Reached end of program (halt).", "warn");
           setStatus("Stopped","ok");
@@ -975,6 +987,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
               setReg16(a0.name, ea);
               cpu.regs.IP = nextIP; cpu.cycles += 2;
+              break;
+            }
+
+            // INJECTED: XCHG Instruction (Exchanges operands without affecting flags)
+            case "XCHG": {
+              if(inst.args.length !== 2) throw new Error("XCHG needs 2 operands");
+              if(a0.type === "imm" || a1.type === "imm") throw new Error("Cannot XCHG with immediate values");
+              if(a0.type === "mem" && a1.type === "mem") throw new Error("Cannot XCHG memory to memory");
+              if((a0.name === "DS") || (a1.name === "DS")) throw new Error("Cannot XCHG segment register DS");
+              
+              const w = getEffectiveWidth(a0, a1);
+              const val0 = evalOperand(a0, w);
+              const val1 = evalOperand(a1, w);
+              
+              // Swap them! Flags are explicitly unaffected.
+              writeOperand(a0, val1, w);
+              writeOperand(a1, val0, w);
+              
+              cpu.regs.IP = nextIP; cpu.cycles += 3;
               break;
             }
 
@@ -1200,7 +1231,7 @@ document.addEventListener("DOMContentLoaded", () => {
               
               const w = getEffectiveWidth(a0, null);
               const v = evalOperand(a0, w);
-              const oldCF = cpu.flags.CF; // Ensure INC/DEC do not affect Carry Flag
+              const oldCF = cpu.flags.CF; 
               const res = op === "INC" ? addN(v, 1, w, 0) : subN(v, 1, w, 0);
               cpu.flags.CF = oldCF;
               writeOperand(a0, res, w);
@@ -1304,7 +1335,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return true;
       }
 
-      // INJECTED: Auto-scrolls the memory viewer so the lowest modified byte is ~4 lines down from top
       function autoSyncMemoryView() {
           if (lastModifiedAddrs.size === 0) return;
 
@@ -1316,9 +1346,8 @@ document.addEventListener("DOMContentLoaded", () => {
           const minAddr = Math.min(...addrs);
           const maxAddr = Math.max(...addrs);
 
-          // If the modification is out of view, re-center it.
           if (minAddr < currentStart || maxAddr > currentEnd) {
-              let targetStart = (minAddr & 0xFFFFF0) - 0x40; // 0x40 = 64 bytes = 4 rows down
+              let targetStart = (minAddr & 0xFFFFF0) - 0x40; 
               if (targetStart < 0) targetStart = 0;
               if (targetStart > (0xFFFFF - 255)) targetStart = 0xFFFFF - 255;
               memStartEl.value = "0x" + targetStart.toString(16).toUpperCase().padStart(4, "0");
@@ -1336,7 +1365,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const maxSteps = 200000;
         let steps = 0;
         
-        lastModifiedAddrs.clear(); // Clear before run to collect ALL changes across the entire run!
+        lastModifiedAddrs.clear(); 
 
         while(steps < maxSteps){
           const curLine = ipToLine.get(cpu.regs.IP);
@@ -1473,7 +1502,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         memChangesThisStep = [];
         isExecutingStep = true;
-        lastModifiedAddrs.clear(); // Clear so we only highlight this step's changes
+        lastModifiedAddrs.clear(); 
 
         const ok = stepOnce();
 
@@ -1509,7 +1538,7 @@ document.addEventListener("DOMContentLoaded", () => {
           for (let i = prevState.memChanges.length - 1; i >= 0; i--) {
             const change = prevState.memChanges[i];
             mem[change.addr] = change.oldVal;
-            lastModifiedAddrs.add(change.addr); // Highlight the bytes we reversed!
+            lastModifiedAddrs.add(change.addr); 
           }
 
           autoSyncMemoryView();
@@ -1529,7 +1558,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       baseSel.addEventListener("change", () => { updateUI(); refreshMemory(); });
       el("memRefresh").addEventListener("click", refreshMemory);
-      // INJECTED: Allow hitting "Enter" in the memory text box to jump instantly
       memStartEl.addEventListener("change", refreshMemory); 
 
       el("exampleSel").addEventListener("change", (e) => {
@@ -1642,7 +1670,21 @@ LEA SI, DATA[BX] ; SI gets OFFSET DATA + 5
 MOV AL, [SI]     ; AL = 'F'
 HLT
 
-DATA DB "ABCDEF" `
+DATA DB "ABCDEF" `,
+
+          // INJECTED: Example 11 showing off Negative Hex and XCHG functionality
+          ex11: `; --- Ex 11: Negative Hex & XCHG ---
+ORG 100h
+MOV AX, -0x1A   ; Loads negative hex (-26 dec = FFE6 hex)
+MOV BX, -10h    ; Alternative hex syntax (-16 dec = FFF0 hex)
+MOV CX, -0b101  ; Binary negative (-5 dec = FFFB hex)
+
+XCHG AX, BX     ; Swaps AX and BX
+XCHG BX, CX     ; Swaps BX and CX
+
+MOV [0x200], AX
+XCHG CX, [0x200] ; Memory exchange!
+HLT`
         };
 
         codeEl.value = EX[v];
@@ -1702,7 +1744,8 @@ HLT
             <option value="ex7">7. Stack (PUSH/POP)</option>
             <option value="ex8">8. Subroutines (CALL/RET)</option>
             <option value="ex9">9. Multi-Byte Add (ADC)</option>
-            <option value="ex10">10. LEA & Memory</option>`;
+            <option value="ex10">10. LEA & Memory</option>
+            <option value="ex11">11. Negative Hex & XCHG</option>`;
         }
       }
 
