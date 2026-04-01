@@ -111,26 +111,117 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
+      // ==========================================
+      // IDE FEATURES: Custom Undo History & Tab Management
+      // ==========================================
+      let undoStack = [];
+      let isTyping = false;
+
+      function saveHistoryState() {
+          if (undoStack.length > 0 && undoStack[undoStack.length - 1].text === codeEl.value) {
+              return; // Don't save if nothing changed
+          }
+          undoStack.push({
+              text: codeEl.value,
+              start: codeEl.selectionStart,
+              end: codeEl.selectionEnd
+          });
+          if (undoStack.length > 50) undoStack.shift(); // Keep history size manageable
+      }
+
+      function triggerInputEvent() {
+          codeEl.dispatchEvent(new Event("input"));
+          saveHistoryState();
+      }
+
       codeEl.addEventListener("input", () => {
         localStorage.setItem(LS_CODE, codeEl.value);
         program = [];
         refreshGutter();
+        if (!isTyping) {
+            saveHistoryState();
+        }
       });
+      
       codeEl.addEventListener("scroll", () => { gutterEl.scrollTop = codeEl.scrollTop; });
       
-      // INJECTED: Allow using Tab in the Code Editor
       codeEl.addEventListener("keydown", (e) => {
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+        // Custom UNDO (Ctrl+Z or Cmd+Z)
+        if (cmdOrCtrl && e.key.toLowerCase() === 'z') {
+            e.preventDefault();
+            if (undoStack.length > 1) {
+                undoStack.pop(); // Remove current state
+                const prevState = undoStack[undoStack.length - 1]; // Get previous
+                codeEl.value = prevState.text;
+                codeEl.selectionStart = prevState.start;
+                codeEl.selectionEnd = prevState.end;
+                codeEl.dispatchEvent(new Event("input"));
+            }
+            return;
+        }
+
+        // Custom TAB and Multi-Line TAB
         if (e.key === "Tab") {
           e.preventDefault();
+          saveHistoryState(); // Save state before tabbing
+
           const start = codeEl.selectionStart;
           const end = codeEl.selectionEnd;
-          // Insert 4 spaces at cursor
+          const value = codeEl.value;
           const tabStr = "    ";
-          codeEl.value = codeEl.value.substring(0, start) + tabStr + codeEl.value.substring(end);
-          // Move cursor to after the inserted tab
-          codeEl.selectionStart = codeEl.selectionEnd = start + tabStr.length;
-          // Trigger input event to save the state
-          codeEl.dispatchEvent(new Event("input"));
+
+          // If multiple characters are selected, check if it spans multiple lines
+          if (start !== end) {
+              const beforeSelection = value.substring(0, start);
+              const selection = value.substring(start, end);
+              const afterSelection = value.substring(end);
+
+              // Find the actual start of the first selected line
+              const startOfFirstLine = beforeSelection.lastIndexOf('\n') + 1;
+              const actualSelection = value.substring(startOfFirstLine, end);
+              const lines = actualSelection.split('\n');
+
+              let newSelection = "";
+              if (e.shiftKey) {
+                  // SHIFT+TAB: Remove indents
+                  newSelection = lines.map(line => {
+                      if (line.startsWith(tabStr)) return line.substring(4);
+                      if (line.startsWith('\t')) return line.substring(1);
+                      // If fewer than 4 spaces, remove leading spaces
+                      const match = line.match(/^ +/);
+                      if (match) return line.substring(Math.min(match[0].length, 4));
+                      return line;
+                  }).join('\n');
+              } else {
+                  // TAB: Add indents
+                  newSelection = lines.map(line => tabStr + line).join('\n');
+              }
+
+              codeEl.value = value.substring(0, startOfFirstLine) + newSelection + afterSelection;
+              codeEl.selectionStart = startOfFirstLine;
+              codeEl.selectionEnd = startOfFirstLine + newSelection.length;
+
+          } else {
+              // Single cursor tab
+              if (e.shiftKey) {
+                  // Standard Shift+Tab on a single line
+                  const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+                  const currentLineToCursor = value.substring(lineStart, start);
+                  
+                  if (currentLineToCursor.endsWith(tabStr)) {
+                      codeEl.value = value.substring(0, start - 4) + value.substring(end);
+                      codeEl.selectionStart = codeEl.selectionEnd = start - 4;
+                  }
+              } else {
+                  // Standard Tab on a single line
+                  codeEl.value = value.substring(0, start) + tabStr + value.substring(end);
+                  codeEl.selectionStart = codeEl.selectionEnd = start + tabStr.length;
+              }
+          }
+          triggerInputEvent();
         }
       });
 
@@ -1394,12 +1485,7 @@ HLT
         e.target.value = "";
       });
 
-      window.addEventListener("keydown", (e) => {
-        if(e.ctrlKey && e.key === "Enter"){ e.preventDefault(); runProgram(); }
-        if(e.key === "F10"){ e.preventDefault(); el("stepBtn").click(); }
-        if(e.ctrlKey && (e.key === "r" || e.key === "R")){ e.preventDefault(); el("resetBtn").click(); }
-      });
-
+      // INJECTED: Save Initial History State on Boot
       function boot(){
         const saved = localStorage.getItem(LS_CODE);
         codeEl.value = saved ?? `ORG 100H
@@ -1419,6 +1505,9 @@ Y5 DW 2 DUP(0)
 Y6 DW X8-X7
 HLT
 `;
+        // Save initial state for Undo functionality
+        saveHistoryState(); 
+
         loadBreakpoints();
         refreshGutter();
         updateUI();
