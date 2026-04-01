@@ -86,6 +86,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const dataPtrDefault = 0x0100;
       let breakpoints = new Set();
 
+      // --- Time-Travel Debugging Variables ---
+      let executionHistory = [];
+      let memChangesThisStep = [];
+      let isExecutingStep = false;
+
       // ---- Editor gutter ----
       function getLines(){ return codeEl.value.replace(/\r\n/g,"\n").split("\n"); }
 
@@ -119,14 +124,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       function saveHistoryState() {
           if (undoStack.length > 0 && undoStack[undoStack.length - 1].text === codeEl.value) {
-              return; // Don't save if nothing changed
+              return; 
           }
           undoStack.push({
               text: codeEl.value,
               start: codeEl.selectionStart,
               end: codeEl.selectionEnd
           });
-          if (undoStack.length > 50) undoStack.shift(); // Keep history size manageable
+          if (undoStack.length > 50) undoStack.shift(); 
       }
 
       function triggerInputEvent() {
@@ -166,37 +171,30 @@ document.addEventListener("DOMContentLoaded", () => {
         // Custom TAB and Multi-Line TAB
         if (e.key === "Tab") {
           e.preventDefault();
-          saveHistoryState(); // Save state before tabbing
+          saveHistoryState(); 
 
           const start = codeEl.selectionStart;
           const end = codeEl.selectionEnd;
           const value = codeEl.value;
           const tabStr = "    ";
 
-          // If multiple characters are selected, check if it spans multiple lines
           if (start !== end) {
               const beforeSelection = value.substring(0, start);
-              const selection = value.substring(start, end);
               const afterSelection = value.substring(end);
-
-              // Find the actual start of the first selected line
               const startOfFirstLine = beforeSelection.lastIndexOf('\n') + 1;
               const actualSelection = value.substring(startOfFirstLine, end);
               const lines = actualSelection.split('\n');
 
               let newSelection = "";
               if (e.shiftKey) {
-                  // SHIFT+TAB: Remove indents
                   newSelection = lines.map(line => {
                       if (line.startsWith(tabStr)) return line.substring(4);
                       if (line.startsWith('\t')) return line.substring(1);
-                      // If fewer than 4 spaces, remove leading spaces
                       const match = line.match(/^ +/);
                       if (match) return line.substring(Math.min(match[0].length, 4));
                       return line;
                   }).join('\n');
               } else {
-                  // TAB: Add indents
                   newSelection = lines.map(line => tabStr + line).join('\n');
               }
 
@@ -205,18 +203,14 @@ document.addEventListener("DOMContentLoaded", () => {
               codeEl.selectionEnd = startOfFirstLine + newSelection.length;
 
           } else {
-              // Single cursor tab
               if (e.shiftKey) {
-                  // Standard Shift+Tab on a single line
                   const lineStart = value.lastIndexOf('\n', start - 1) + 1;
                   const currentLineToCursor = value.substring(lineStart, start);
-                  
                   if (currentLineToCursor.endsWith(tabStr)) {
                       codeEl.value = value.substring(0, start - 4) + value.substring(end);
                       codeEl.selectionStart = codeEl.selectionEnd = start - 4;
                   }
               } else {
-                  // Standard Tab on a single line
                   codeEl.value = value.substring(0, start) + tabStr + value.substring(end);
                   codeEl.selectionStart = codeEl.selectionEnd = start + tabStr.length;
               }
@@ -384,7 +378,16 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       function read8(addr){ return mem[clamp20(addr)] & 0xFF; }
-      function write8(addr, v){ mem[clamp20(addr)] = clamp8(v); }
+      
+      // MODIFIED: Record memory changes for Time-Travel Debugging
+      function write8(addr, v){ 
+        const a = clamp20(addr);
+        if (isExecutingStep) {
+            memChangesThisStep.push({ addr: a, oldVal: mem[a] });
+        }
+        mem[a] = clamp8(v); 
+      }
+      
       function read16(addr){
         const a = clamp20(addr);
         return (read8(a) | (read8(a+1) << 8)) & 0xFFFF;
@@ -656,6 +659,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ipToLine = new Map();
         lineToIp = new Map();
         mem.fill(0);
+        executionHistory = []; // MODIFIED: Clear time-travel history on re-assembly
 
         let ip = 0;
         let dataPtr = dataPtrDefault;
@@ -827,6 +831,8 @@ document.addEventListener("DOMContentLoaded", () => {
         cpu.flags.PF=0;
         
         cpu.cycles=0;
+        executionHistory = []; // MODIFIED: Clear time-travel history on reset
+        
         if(!keepMemory) mem.fill(0);
         updateUI();
         refreshGutter();
@@ -1403,15 +1409,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => activateTab(t.dataset.tab)));
 
-      // Buttons
-      el("assembleBtn").addEventListener("click", () => {
-        if(assemble()){
-          resetCPU(true);
-        }
-      });
-
-      el("runBtn").addEventListener("click", runProgram);
-
+      // MODIFIED: Step Forward Button includes history saving
       el("stepBtn").addEventListener("click", () => {
         if(program.length === 0){
           clearOutput();
@@ -1422,9 +1420,64 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
         setStatus("Stepping…","run");
+
+        // Save state BEFORE step
+        executionHistory.push({
+          regs: { ...cpu.regs },
+          flags: { ...cpu.flags },
+          cycles: cpu.cycles,
+          memChanges: []
+        });
+        memChangesThisStep = [];
+        isExecutingStep = true;
+
         const ok = stepOnce();
+
+        isExecutingStep = false;
+        if (executionHistory.length > 0) {
+          executionHistory[executionHistory.length - 1].memChanges = memChangesThisStep;
+        }
+
         if(!ok) setStatus("Stopped","ok");
       });
+
+      // INJECTED: Step Backward Event Listener (Make sure to add button in HTML)
+      const stepBackBtn = el("stepBackBtn");
+      if (stepBackBtn) {
+        stepBackBtn.addEventListener("click", () => {
+          if (executionHistory.length === 0) {
+            logLine("Already at the start of execution. Cannot step back.", "warn");
+            return;
+          }
+          setStatus("Stepping back…", "run");
+
+          const prevState = executionHistory.pop();
+
+          cpu.regs = { ...prevState.regs };
+          cpu.flags = { ...prevState.flags };
+          cpu.cycles = prevState.cycles;
+
+          // Restore memory changes in reverse
+          for (let i = prevState.memChanges.length - 1; i >= 0; i--) {
+            const change = prevState.memChanges[i];
+            mem[change.addr] = change.oldVal;
+          }
+
+          updateUI();
+          refreshMemory();
+          refreshGutter();
+          const currentLine = ipToLine.get(cpu.regs.IP);
+          logLine(`Stepped back to line ${currentLine !== undefined ? currentLine : '?'}.`, "ok");
+        });
+      }
+
+      el("assembleBtn").addEventListener("click", () => {
+        if(assemble()){
+          resetCPU(true);
+        }
+      });
+
+      el("runBtn").addEventListener("click", runProgram);
 
       el("resetBtn").addEventListener("click", () => {
         resetCPU(true);
@@ -1435,7 +1488,6 @@ document.addEventListener("DOMContentLoaded", () => {
       baseSel.addEventListener("change", () => { updateUI(); refreshMemory(); });
       el("memRefresh").addEventListener("click", refreshMemory);
 
-      // INJECTED: 10 robust new examples
       el("exampleSel").addEventListener("change", (e) => {
         const v = e.target.value;
         if(!v) return;
@@ -1558,6 +1610,14 @@ DATA DB "ABCDEF" `
         e.target.value = "";
       });
 
+      window.addEventListener("keydown", (e) => {
+        if(e.ctrlKey && e.key === "Enter"){ e.preventDefault(); runProgram(); }
+        if(e.key === "F10"){ e.preventDefault(); el("stepBtn").click(); }
+        // INJECTED: Step Back Keyboard Shortcut
+        if(e.key === "F9"){ e.preventDefault(); el("stepBackBtn")?.click(); }
+        if(e.ctrlKey && (e.key === "r" || e.key === "R")){ e.preventDefault(); el("resetBtn").click(); }
+      });
+
       function boot(){
         const saved = localStorage.getItem(LS_CODE);
         codeEl.value = saved ?? `ORG 100H
@@ -1587,19 +1647,20 @@ HLT
         clearOutput();
         logLine("Tip: Assemble first to validate OFFSET/DB/DW/DD and labels.", "ok");
         
-        // Populate the dropdown menu dynamically to match the new examples
         const sel = el("exampleSel");
-        sel.innerHTML = `<option value="">Load example…</option>
-          <option value="ex1">1. Basic Math & Flags</option>
-          <option value="ex2">2. Shifts & Rotates</option>
-          <option value="ex3">3. String Copy (REP MOVSB)</option>
-          <option value="ex4">4. String Compare (REPE CMPSB)</option>
-          <option value="ex5">5. String Scan (REPNE SCASB)</option>
-          <option value="ex6">6. Loop & Logic (XOR/NOT)</option>
-          <option value="ex7">7. Stack (PUSH/POP)</option>
-          <option value="ex8">8. Subroutines (CALL/RET)</option>
-          <option value="ex9">9. Multi-Byte Add (ADC)</option>
-          <option value="ex10">10. LEA & Memory</option>`;
+        if (sel && sel.options.length < 5) {
+          sel.innerHTML = `<option value="">Load example…</option>
+            <option value="ex1">1. Basic Math & Flags</option>
+            <option value="ex2">2. Shifts & Rotates</option>
+            <option value="ex3">3. String Copy (REP MOVSB)</option>
+            <option value="ex4">4. String Compare (REPE CMPSB)</option>
+            <option value="ex5">5. String Scan (REPNE SCASB)</option>
+            <option value="ex6">6. Loop & Logic (XOR/NOT)</option>
+            <option value="ex7">7. Stack (PUSH/POP)</option>
+            <option value="ex8">8. Subroutines (CALL/RET)</option>
+            <option value="ex9">9. Multi-Byte Add (ADC)</option>
+            <option value="ex10">10. LEA & Memory</option>`;
+        }
       }
 
       boot();
