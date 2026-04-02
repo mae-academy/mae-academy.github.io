@@ -46,7 +46,6 @@ document.addEventListener("DOMContentLoaded", () => {
       function clamp8(x){ return ((x % 0x100) + 0x100) & 0xFF; }
       function clamp32(x){ return (x >>> 0); }
 
-      // MODIFIED: Universal negative sign handler for Hex, Bin, and Dec
       function parseNumber(tok){
         const t = tok.trim();
         if(!t) return null;
@@ -744,7 +743,12 @@ document.addEventListener("DOMContentLoaded", () => {
         // Pass 2
         ip = 0;
         dataPtr = dataPtrDefault;
-        const controlFlowOps = ["JMP", "JZ", "JE", "JNZ", "JNE", "LOOP", "CALL", "JP", "JPE", "JNP", "JPO"];
+        
+        // MODIFIED: Added all signed and unsigned conditional jump variants
+        const controlFlowOps = [
+          "JMP", "JZ", "JE", "JNZ", "JNE", "LOOP", "CALL", "JP", "JPE", "JNP", "JPO",
+          "JG", "JGE", "JL", "JLE", "JA", "JAE", "JB", "JBE", "JC", "JNC"
+        ];
 
         for(let i=0;i<lines.length;i++){
           const ln = i+1;
@@ -824,7 +828,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ip++;
         }
 
-        logLine("Assemble OK", "ok");
+        logLine("Assemble OK ✅", "ok");
         logLine(`Instructions: ${program.length} • Labels: ${labels.size}`, "ok");
         setStatus("Assembled","ok");
         return true;
@@ -969,6 +973,13 @@ document.addEventListener("DOMContentLoaded", () => {
               setStatus("HLT (stopped)","ok");
               return false;
 
+            case "NOP": {
+              if(inst.args.length !== 0) throw new Error("NOP takes 0 operands");
+              cpu.regs.IP = nextIP; 
+              cpu.cycles += 3; 
+              break;
+            }
+
             case "CLD": cpu.flags.DF = 0; cpu.regs.IP = nextIP; cpu.cycles++; break;
             case "STD": cpu.flags.DF = 1; cpu.regs.IP = nextIP; cpu.cycles++; break;
             case "CLI": cpu.flags.IF = 0; cpu.regs.IP = nextIP; cpu.cycles++; break;
@@ -989,14 +1000,7 @@ document.addEventListener("DOMContentLoaded", () => {
               cpu.regs.IP = nextIP; cpu.cycles += 2;
               break;
             }
-            // 👇 ADD THIS NEW BLOCK RIGHT HERE 👇
-            case "NOP": {
-              if(inst.args.length !== 0) throw new Error("NOP takes 0 operands");
-              cpu.regs.IP = nextIP; 
-              cpu.cycles += 3; // In older x86 CPUs, NOP typically burns 3 cycles
-              break;
-            }4
-            // INJECTED: XCHG Instruction (Exchanges operands without affecting flags)
+
             case "XCHG": {
               if(inst.args.length !== 2) throw new Error("XCHG needs 2 operands");
               if(a0.type === "imm" || a1.type === "imm") throw new Error("Cannot XCHG with immediate values");
@@ -1007,7 +1011,6 @@ document.addEventListener("DOMContentLoaded", () => {
               const val0 = evalOperand(a0, w);
               const val1 = evalOperand(a1, w);
               
-              // Swap them! Flags are explicitly unaffected.
               writeOperand(a0, val1, w);
               writeOperand(a1, val0, w);
               
@@ -1123,7 +1126,7 @@ document.addEventListener("DOMContentLoaded", () => {
             case "SUB":
             case "ADC":
             case "SBB":
-            case "CMP":
+            case "CMP": // <--- CMP IS HANDLED RIGHT HERE
             case "AND":
             case "OR":
             case "XOR":
@@ -1140,7 +1143,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
               if(op === "ADD") res = addN(left, right, w, 0);
               else if(op === "ADC") res = addN(left, right, w, cpu.flags.CF);
-              else if(op === "SUB" || op === "CMP") res = subN(left, right, w, 0);
+              else if(op === "SUB" || op === "CMP") res = subN(left, right, w, 0); // SUB and CMP both subtract
               else if(op === "SBB") res = subN(left, right, w, cpu.flags.CF);
               else if(op === "AND") {
                 res = (left & right) >>> 0;
@@ -1160,6 +1163,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 cpu.flags.CF=0; cpu.flags.OF=0; cpu.flags.AF=0; setZS(w, res);
               }
 
+              // But CMP (and TEST) skip this step, effectively discarding the result!
               if(op !== "CMP" && op !== "TEST") writeOperand(a0, res, w);
               cpu.regs.IP = nextIP; cpu.cycles++;
               break;
@@ -1316,6 +1320,72 @@ document.addEventListener("DOMContentLoaded", () => {
               if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
               const target = evalOperand(a0);
               cpu.regs.IP = !cpu.flags.PF ? clamp16(target) : nextIP;
+              cpu.cycles++;
+              break;
+            }
+
+            // INJECTED: Signed and Unsigned Logic Jumps
+            case "JG": case "JNLE": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              const target = evalOperand(a0);
+              const condition = (cpu.flags.ZF === 0) && (cpu.flags.SF === cpu.flags.OF);
+              cpu.regs.IP = condition ? clamp16(target) : nextIP;
+              cpu.cycles++;
+              break;
+            }
+            case "JGE": case "JNL": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              const target = evalOperand(a0);
+              const condition = (cpu.flags.SF === cpu.flags.OF);
+              cpu.regs.IP = condition ? clamp16(target) : nextIP;
+              cpu.cycles++;
+              break;
+            }
+            case "JL": case "JNGE": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              const target = evalOperand(a0);
+              const condition = (cpu.flags.SF !== cpu.flags.OF);
+              cpu.regs.IP = condition ? clamp16(target) : nextIP;
+              cpu.cycles++;
+              break;
+            }
+            case "JLE": case "JNG": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              const target = evalOperand(a0);
+              const condition = (cpu.flags.ZF === 1) || (cpu.flags.SF !== cpu.flags.OF);
+              cpu.regs.IP = condition ? clamp16(target) : nextIP;
+              cpu.cycles++;
+              break;
+            }
+            case "JA": case "JNBE": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              const target = evalOperand(a0);
+              const condition = (cpu.flags.CF === 0) && (cpu.flags.ZF === 0);
+              cpu.regs.IP = condition ? clamp16(target) : nextIP;
+              cpu.cycles++;
+              break;
+            }
+            case "JAE": case "JNB": case "JNC": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              const target = evalOperand(a0);
+              const condition = (cpu.flags.CF === 0);
+              cpu.regs.IP = condition ? clamp16(target) : nextIP;
+              cpu.cycles++;
+              break;
+            }
+            case "JB": case "JNAE": case "JC": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              const target = evalOperand(a0);
+              const condition = (cpu.flags.CF === 1);
+              cpu.regs.IP = condition ? clamp16(target) : nextIP;
+              cpu.cycles++;
+              break;
+            }
+            case "JBE": case "JNA": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              const target = evalOperand(a0);
+              const condition = (cpu.flags.CF === 1) || (cpu.flags.ZF === 1);
+              cpu.regs.IP = condition ? clamp16(target) : nextIP;
               cpu.cycles++;
               break;
             }
@@ -1678,7 +1748,6 @@ HLT
 
 DATA DB "ABCDEF" `,
 
-          // INJECTED: Example 11 showing off Negative Hex and XCHG functionality
           ex11: `; --- Ex 11: Negative Hex & XCHG ---
 ORG 100h
 MOV AX, -0x1A   ; Loads negative hex (-26 dec = FFE6 hex)
@@ -1690,6 +1759,33 @@ XCHG BX, CX     ; Swaps BX and CX
 
 MOV [0x200], AX
 XCHG CX, [0x200] ; Memory exchange!
+HLT`,
+
+          // INJECTED: Example 12 specifically highlighting CMP and Conditional Jumps!
+          ex12: `; --- Ex 12: CMP & Conditional Jumps ---
+ORG 100h
+MOV AX, 15
+CMP AX, 20
+JL IS_LESS      ; Jump if Less (Signed: 15 < 20)
+
+HLT
+
+IS_LESS:
+MOV BX, 99
+CMP BX, 99
+JE IS_EQUAL     ; Jump if Equal (99 == 99)
+
+HLT
+
+IS_EQUAL:
+MOV CX, 50
+CMP CX, 20
+JA IS_ABOVE     ; Jump if Above (Unsigned: 50 > 20)
+
+HLT
+
+IS_ABOVE:
+MOV DX, 777     ; Success! All jumps executed.
 HLT`
         };
 
@@ -1751,7 +1847,8 @@ HLT
             <option value="ex8">8. Subroutines (CALL/RET)</option>
             <option value="ex9">9. Multi-Byte Add (ADC)</option>
             <option value="ex10">10. LEA & Memory</option>
-            <option value="ex11">11. Negative Hex & XCHG</option>`;
+            <option value="ex11">11. Negative Hex & XCHG</option>
+            <option value="ex12">12. CMP & Conditional Jumps</option>`;
         }
       }
 
