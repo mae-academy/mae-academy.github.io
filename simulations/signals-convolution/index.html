@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MAE Academy — Convolution</title>
+
+  <link rel="icon" type="image/svg+xml" href="../../assets/favicon-16.svg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3"></script>
+
+  <link rel="stylesheet" href="../../css/global.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div id="navbar"></div>
+  <script>
+    fetch('../components/navbar.html')
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById('navbar').innerHTML = data;
+        const pt = document.getElementById("pageTitle");
+        if(pt) pt.textContent = "Convolution Simulator";
+      });
+  </script>
+
+  <main class="wrap">
+    <div class="hero reveal">
+      <div class="hero-left">
+        <h2>Convolution Simulator</h2>
+        <p>Visualize signal convolution</p>
+      </div>
+    </div>
+
+    <section class="grid reveal">
+      <div class="card">
+        <div class="card-h">
+          <strong>Controls</strong>
+          <div class="seg" role="tablist" aria-label="Mode">
+            <button id="modeCont" class="on" type="button">Continuous</button>
+            <button id="modeDisc" type="button">Discrete</button>
+          </div>
+        </div>
+        <div class="card-b">
+          <div class="row">
+            <div>
+              <label>Time Range (t)</label>
+              <div class="row">
+                <input id="tMin" type="number" step="0.5" value="-6">
+                <input id="tMax" type="number" step="0.5" value="6">
+              </div>
+              <div class="hint">Auto resolution adapts to the range.</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row">
+            <div>
+              <label>x(t) Signal</label>
+              <select id="xType">
+                <option value="delta">δ(t) (approx)</option>
+                <option value="u" selected>u(t)</option>
+                <option value="r">r(t)</option>
+                <option value="sin">sin(t)</option>
+                <option value="cos">cos(t)</option>
+                <option value="rect">rect(t)</option>
+                <option value="tri">tri(t)</option>
+                <option value="sinc">sinc(πt)</option>
+                <option value="sa">sa(t)=sin(t)/t</option>
+              </select>
+            </div>
+            <div>
+              <label>h(t) Signal</label>
+              <select id="hType">
+                <option value="delta">δ(t) (approx)</option>
+                <option value="u">u(t)</option>
+                <option value="r">r(t)</option>
+                <option value="sin">sin(t)</option>
+                <option value="cos">cos(t)</option>
+                <option value="rect" selected>rect(t)</option>
+                <option value="tri">tri(t)</option>
+                <option value="sinc">sinc(πt)</option>
+                <option value="sa">sa(t)=sin(t)/t</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <div>
+              <label>x(t): Amplitude</label>
+              <input id="xA" type="number" step="0.1" value="1">
+            </div>
+            <div>
+              <label>x(t): Shift</label>
+              <input id="xShift" type="number" step="0.1" value="0">
+            </div>
+            <div>
+              <label>x(t): Scale</label>
+              <input id="xScale" type="number" min="0.1" step="0.1" value="1">
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <div>
+              <label>h(t): Amplitude</label>
+              <input id="hA" type="number" step="0.1" value="1">
+            </div>
+            <div>
+              <label>h(t): Shift</label>
+              <input id="hShift" type="number" step="0.1" value="0">
+            </div>
+            <div>
+              <label>h(t): Scale</label>
+              <input id="hScale" type="number" min="0.1" step="0.1" value="1">
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div>
+            <label>Slide t (for integrand x(τ)·h(t−τ))</label>
+            <input id="tSlider" type="range" min="0" max="1000" value="500">
+            <div class="row" style="margin-top:10px">
+              <div class="pill" style="flex:1 1 auto; justify-content:center;">
+                <span class="dot"></span> t = <span id="tNow" style="margin-left:6px;color:var(--text)"></span>
+              </div>
+              <div class="pill" style="flex:1 1 auto; justify-content:center;">
+                <span class="dot green"></span> y(t) = <span id="yNow" style="margin-left:6px;color:var(--text)"></span>
+              </div>
+            </div>
+            <div class="hint">Use <b>←</b>/<b>→</b> for fine sliding · <b>Shift</b>+arrows for faster.</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row">
+            <button class="btn" id="btnExport">Export y(t) CSV</button>
+            <button class="btn" id="btnAuto">Auto Recompute: <span id="autoState">ON</span></button>
+          </div>
+
+          <div class="hint" style="margin-top:10px">
+            Notes:
+            <ul style="margin:8px 0 0 16px; padding:0; line-height:1.55;">
+              <li><b>δ(t)</b> is Gaussian approximation (stable numeric).</li>
+              <li>In <b>Discrete</b> mode: shifts are rounded to nearest integer.</li>
+              <li>Discrete plots are shown as <b>stems + points</b>.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <strong>Plots</strong>
+          <span class="pill"><span class="dot"></span> τ-domain integrand + y(t)</span>
+        </div>
+
+        <div class="plots">
+          <div class="plot x">
+            <div class="plot-title">x(t) <span id="xDesc"></span></div>
+            <div class="chart-wrapper">
+              <canvas id="cx"></canvas>
+            </div>
+          </div>
+
+          <div class="plot h">
+            <div class="plot-title">h(t) <span id="hDesc"></span></div>
+            <div class="chart-wrapper">
+              <canvas id="ch"></canvas>
+            </div>
+          </div>
+
+          <div class="plot xh">
+            <div class="plot-title">x*h (integrand) <span id="intDesc"></span></div>
+            <div class="chart-wrapper big">
+              <canvas id="cint"></canvas>
+            </div>
+          </div>
+
+          <div class="plot y">
+            <div class="plot-title">y(t) (convolution output) <span id="yDesc"></span></div>
+            <div class="chart-wrapper big">
+              <canvas id="cy"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="footer"></div>
+  <script>
+    fetch('../components/footer.html')
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById('footer').innerHTML = data;
+        const y = document.getElementById('year');
+        if (y) y.textContent = new Date().getFullYear();
+      });
+  </script>
+
+  <script src="../../js/global.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>

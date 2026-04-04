@@ -1,0 +1,773 @@
+/* =========================================================
+   Linear Algebra Simulator - Professional Engineering Tool
+   Modern, clean design optimized for mathematical operations
+========================================================= */
+
+:root {
+  --cell-focus: rgba(63, 111, 255, 0.15);
+  --success-color: #08b58d;
+  --error-color: #d32f2f;
+  --bg-dark: #0b1220;
+}
+
+/* =========================================================
+   Layout Structure
+========================================================= */
+main {
+  padding: 44px 0 70px;
+}
+
+.app-grid {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .app-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.content-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* =========================================================
+   Card Styling - Universal
+========================================================= */
+.card {
+  border: 1px solid rgba(9, 16, 42, 0.12);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 12px;
+  box-shadow: 0 10px 20px rgba(16, 24, 40, 0.06);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 60px rgba(16, 24, 40, 0.12);
+  border-color: rgba(63, 111, 255, 0.22);
+}
+
+.card h2 {
+  margin: 0;
+  padding: 14px;
+  border-bottom: 1px solid rgba(9, 16, 42, 0.12);
+  font-size: 14px;
+  font-weight: 900;
+  color: rgba(9, 16, 42, 0.95);
+}
+
+.pad {
+  padding: 14px;
+  flex: 1;
+}
+
+/* =========================================================
+   Header Styling
+========================================================= */
+.headRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.headRow h2 {
+  margin: 0;
+  font-size: 44px;
+  letter-spacing: -1px;
+  line-height: 1.05;
+  color: var(--text);
+}
+
+.sub {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-weight: 650;
+  line-height: 1.8;
+  max-width: 72ch;
+}
+
+/* =========================================================
+   Tabs and Tab Navigation
+========================================================= */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(242, 246, 255, 0.7), rgba(255, 255, 255, 0.7));
+}
+
+.tab-btn {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text);
+  padding: 10px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 13px;
+  transition: 0.15s transform, 0.15s box-shadow, 0.15s background, 0.15s border-color;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(63, 111, 255, 0.1);
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, rgba(8, 181, 141, 0.18), rgba(63, 111, 255, 0.18));
+  color: var(--text);
+  border-color: rgba(63, 111, 255, 0.3);
+  font-weight: 900;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
+}
+
+/* =========================================================
+   Matrix Editor Components
+========================================================= */
+.matrix-editor {
+  margin-bottom: 16px;
+}
+
+.matrix-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.matrix-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 1000;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(9, 16, 42, 0.88);
+  border-bottom: 2px solid rgba(9, 16, 42, 0.14);
+  padding-bottom: 8px;
+  flex: 1;
+  min-width: fit-content;
+}
+
+.matrix-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.matrix-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.matrix-controls input[type="number"] {
+  width: 50px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: box-shadow 0.15s ease;
+}
+
+.matrix-controls input[type="number"]:focus {
+  outline: none;
+  border-color: rgba(63, 111, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(63, 111, 255, 0.1);
+}
+
+.resize-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  transition: 0.15s all;
+}
+
+.resize-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(63, 111, 255, 0.1);
+  background: linear-gradient(135deg, rgba(63, 111, 255, 0.1), rgba(8, 181, 141, 0.1));
+}
+
+.matrix-grid {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 2px dashed rgba(9, 16, 42, 0.18);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(63, 111, 255, 0.02), rgba(8, 181, 141, 0.02));
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* Matrix Grid Cell */
+.cell {
+  width: 100%;
+  min-width: 60px;
+  padding: 10px;
+  border: 1.5px solid rgba(9, 16, 42, 0.18);
+  border-radius: 10px;
+  background: #fff;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08);
+}
+
+.cell:hover {
+  border-color: rgba(63, 111, 255, 0.3);
+  background: linear-gradient(135deg, rgba(63, 111, 255, 0.02), rgba(255, 255, 255, 1));
+}
+
+.cell:focus {
+  border-color: rgba(63, 111, 255, 0.6);
+  box-shadow: 0 0 0 4px var(--cell-focus), 0 2px 8px rgba(63, 111, 255, 0.2);
+}
+
+.cell::placeholder {
+  color: rgba(9, 16, 42, 0.3);
+}
+
+/* =========================================================
+   Operations Panel
+========================================================= */
+.operations-panel {
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.operations-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.operations-panel::-webkit-scrollbar-track {
+  background: rgba(9, 16, 42, 0.05);
+  border-radius: 10px;
+}
+
+.operations-panel::-webkit-scrollbar-thumb {
+  background: rgba(9, 16, 42, 0.2);
+  border-radius: 10px;
+}
+
+.operations-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(9, 16, 42, 0.3);
+}
+
+.operation-section {
+  margin-bottom: 20px;
+}
+
+.operation-section h3 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--text);
+  border-bottom: 2px solid rgba(63, 111, 255, 0.2);
+  padding-bottom: 8px;
+}
+
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* =========================================================
+   Button Styles
+========================================================= */
+button {
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 249, 255, 1));
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 16px;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 13px;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  font-family: inherit;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(16, 24, 40, 0.06);
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(16, 24, 40, 0.12);
+}
+
+button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(16, 24, 40, 0.06);
+}
+
+.btn-primary {
+  border-color: rgba(63, 111, 255, 0.4);
+  background: linear-gradient(135deg, #08b58d 0%, rgba(8, 181, 141, 0.85) 40%, rgba(63, 111, 255, 0.95) 100%);
+  color: #fff;
+  font-weight: 1000;
+  flex: 1;
+  min-width: 140px;
+  box-shadow: 0 4px 12px rgba(8, 181, 141, 0.25);
+}
+
+.btn-primary:hover {
+  border-color: rgba(63, 111, 255, 0.6);
+  box-shadow: 0 12px 32px rgba(8, 181, 141, 0.35);
+  transform: translateY(-3px);
+}
+
+.btn-secondary {
+  border-color: rgba(63, 111, 255, 0.3);
+  background: linear-gradient(135deg, rgba(63, 111, 255, 0.12), rgba(63, 111, 255, 0.06));
+  color: #0b2a7a;
+  font-weight: 900;
+  flex: 1;
+  min-width: 100px;
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(135deg, rgba(63, 111, 255, 0.18), rgba(63, 111, 255, 0.12));
+  border-color: rgba(63, 111, 255, 0.5);
+  box-shadow: 0 8px 20px rgba(63, 111, 255, 0.15);
+}
+
+.btn-small {
+  padding: 8px 14px;
+  font-size: 12px;
+  flex: 1;
+}
+
+.quick-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* =========================================================
+   Output Panel & Results
+========================================================= */
+.output-card {
+  min-height: 300px;
+  max-height: 700px;
+}
+
+.output-panel {
+  font-family: var(--mono);
+  font-size: 13px;
+  background: var(--bg-dark);
+  color: #e6eefc;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-y: auto;
+  height: 100%;
+  line-height: 1.6;
+}
+
+.output-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.output-panel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.output-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+
+.output-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.result-block {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  animation: slideInFade 0.3s ease forwards;
+}
+
+@keyframes slideInFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.result-block:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.result-title {
+  font-weight: 900;
+  color: var(--success-color);
+  margin-bottom: 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.result-latex {
+  background: rgba(8, 181, 141, 0.12);
+  border-left: 4px solid var(--success-color);
+  padding: 14px;
+  border-radius: 10px;
+  margin: 10px 0;
+  font-size: 14px;
+  color: #e6eefc;
+  overflow-x: auto;
+  line-height: 1.8;
+}
+
+.result-extra {
+  color: rgba(230, 238, 252, 0.75);
+  font-size: 12px;
+  margin-top: 10px;
+  line-height: 1.6;
+}
+
+.error-message {
+  background: rgba(211, 47, 47, 0.18);
+  border-left: 4px solid var(--error-color);
+  padding: 14px;
+  border-radius: 10px;
+  color: #ff8a8a;
+  font-weight: 700;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+/* =========================================================
+   Typography
+========================================================= */
+.sectionTitle {
+  font-weight: 1000;
+  font-size: 13px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin: 12px 0 8px 0;
+  color: rgba(9, 16, 42, 0.88);
+  border-bottom: 2px solid rgba(9, 16, 42, 0.14);
+  padding-bottom: 8px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 12px 0;
+}
+
+.hint {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  line-height: 1.5;
+  background: rgba(63, 111, 255, 0.05);
+  padding: 10px;
+  border-radius: 8px;
+  border-left: 2px solid rgba(63, 111, 255, 0.3);
+  margin-top: 8px;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* =========================================================
+   Reveal Animation
+========================================================= */
+@keyframes revealFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  animation: revealFade 0.4s ease forwards;
+}
+
+/* =========================================================
+   KaTeX Math Rendering
+========================================================= */
+.katex {
+  margin: 0 2px;
+  padding: 0;
+  color: #e6eefc;
+}
+
+.katex-display {
+  margin: 0;
+  padding: 0;
+}
+
+/* =========================================================
+   Responsive Design
+========================================================= */
+@media (max-width: 1024px) {
+  .app-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .operation-card {
+    order: 1;
+  }
+
+  .output-card {
+    order: 2;
+  }
+}
+
+@media (max-width: 768px) {
+  main {
+    padding: 36px 0 60px;
+  }
+
+  .app-grid {
+    padding: 12px;
+    gap: 14px;
+    grid-template-columns: 300px 1fr;
+    max-width: 100%;
+  }
+
+  .card {
+    border-radius: 16px;
+    padding: 10px;
+  }
+
+  .headRow h2 {
+    font-size: 32px;
+  }
+
+  .matrix-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .matrix-header h3 {
+    width: 100%;
+  }
+
+  .matrix-controls {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-small {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .matrix-grid {
+    max-height: 250px;
+  }
+
+  .output-panel {
+    font-size: 12px;
+    max-height: 400px;
+  }
+
+  .output-card {
+    min-height: 250px;
+    max-height: 500px;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-grid {
+    grid-template-columns: 1fr;
+    padding: 10px;
+  }
+
+  .sidebar {
+    max-height: 100%;
+    overflow-y: visible;
+  }
+
+  .headRow h2 {
+    font-size: 28px;
+  }
+
+  .matrix-controls input[type="number"] {
+    width: 45px;
+    font-size: 11px;
+  }
+
+  .resize-btn {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  .card h2 {
+    font-size: 13px;
+  }
+
+  .tab-btn {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+
+  button {
+    font-size: 12px;
+    padding: 9px 12px;
+  }
+}
+
+/* =========================================================
+   Print Styles
+========================================================= */
+@media print {
+  body {
+    background: white;
+  }
+
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #ddd;
+    page-break-inside: avoid;
+  }
+
+  .output-panel {
+    background: white;
+    color: black;
+    border: 1px solid #ddd;
+  }
+
+  button,
+  .sidebar {
+    display: none;
+  }
+
+  .result-latex {
+    background: white;
+    color: black;
+    border: 1px solid #ddd;
+  }
+}
+  }
+
+  .headRow h2 {
+    font-size: 32px;
+  }
+
+  .matrix-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .matrix-controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .matrix-grid {
+    max-height: 300px;
+  }
+
+  .output-panel {
+    font-size: 12px;
+  }
+}
+
+/* =========================================================
+   Print Styles
+========================================================= */
+@media print {
+  body {
+    background: white;
+  }
+
+  .card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+    page-break-inside: avoid;
+  }
+
+  .output-panel {
+    background: white;
+    color: black;
+    border: 1px solid #ddd;
+  }
+
+  button {
+    display: none;
+  }
+}
