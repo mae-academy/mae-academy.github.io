@@ -495,6 +495,14 @@ document.addEventListener("DOMContentLoaded", () => {
           return { type:"mem", baseReg: parsed.baseReg, offset: parsed.offset, size: size || null };
         }
 
+        // MODIFIED: Support direct offset arithmetic like "X+2" without brackets
+        const labelOffsetMatch = up.match(/^([A-Z_.$][A-Z0-9_.$]*)([+-]\d+)$/i);
+        if(labelOffsetMatch) {
+          const parsed = parseMemInside(labelOffsetMatch[1] + "[" + labelOffsetMatch[2] + "]");
+          if(!parsed.ok) return { type:"bad", error: parsed.error };
+          return { type:"mem", baseReg: parsed.baseReg, offset: parsed.offset, label: parsed.label, size: size || null };
+        }
+
         const num = parseNumber(up);
         if(num !== null) return { type:"imm", value: num >>> 0, size:16 };
 
@@ -744,7 +752,6 @@ document.addEventListener("DOMContentLoaded", () => {
         ip = 0;
         dataPtr = dataPtrDefault;
         
-        // MODIFIED: Added all signed and unsigned conditional jump variants
         const controlFlowOps = [
           "JMP", "JZ", "JE", "JNZ", "JNE", "LOOP", "CALL", "JP", "JPE", "JNP", "JPO",
           "JG", "JGE", "JL", "JLE", "JA", "JAE", "JB", "JBE", "JC", "JNC"
@@ -1126,7 +1133,7 @@ document.addEventListener("DOMContentLoaded", () => {
             case "SUB":
             case "ADC":
             case "SBB":
-            case "CMP": // <--- CMP IS HANDLED RIGHT HERE
+            case "CMP": 
             case "AND":
             case "OR":
             case "XOR":
@@ -1143,7 +1150,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
               if(op === "ADD") res = addN(left, right, w, 0);
               else if(op === "ADC") res = addN(left, right, w, cpu.flags.CF);
-              else if(op === "SUB" || op === "CMP") res = subN(left, right, w, 0); // SUB and CMP both subtract
+              else if(op === "SUB" || op === "CMP") res = subN(left, right, w, 0);
               else if(op === "SBB") res = subN(left, right, w, cpu.flags.CF);
               else if(op === "AND") {
                 res = (left & right) >>> 0;
@@ -1163,7 +1170,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 cpu.flags.CF=0; cpu.flags.OF=0; cpu.flags.AF=0; setZS(w, res);
               }
 
-              // But CMP (and TEST) skip this step, effectively discarding the result!
               if(op !== "CMP" && op !== "TEST") writeOperand(a0, res, w);
               cpu.regs.IP = nextIP; cpu.cycles++;
               break;
@@ -1324,7 +1330,6 @@ document.addEventListener("DOMContentLoaded", () => {
               break;
             }
 
-            // INJECTED: Signed and Unsigned Logic Jumps
             case "JG": case "JNLE": {
               if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
               const target = evalOperand(a0);
@@ -1761,7 +1766,6 @@ MOV [0x200], AX
 XCHG CX, [0x200] ; Memory exchange!
 HLT`,
 
-          // INJECTED: Example 12 specifically highlighting CMP and Conditional Jumps!
           ex12: `; --- Ex 12: CMP & Conditional Jumps ---
 ORG 100h
 MOV AX, 15
