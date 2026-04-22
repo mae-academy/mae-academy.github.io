@@ -76,13 +76,14 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // ---- CPU model ----
-      const REG16 = ["AX","BX","CX","DX","SI","DI","BP","SP","IP", "DS"];
+      // MODIFIED: Explicitly including all segment registers
+      const REG16 = ["AX","BX","CX","DX","SI","DI","BP","SP","IP", "DS", "CS", "ES", "SS"];
       const REG8  = ["AL","AH","BL","BH","CL","CH","DL","DH"];
       const FLAGS = ["ZF","SF","CF","OF", "AF", "DF", "IF", "TF", "PF"];
 
       const cpu = {
-        regs: { AX:0,BX:0,CX:0,DX:0,SI:0,DI:0,BP:0,SP:0xFFFE,IP:0,DS:0 },
-        flags:{ ZF:0,SF:0,CF:0,OF:0, AF:0, DF:0, IF:0, TF:0, PF:0 },
+        regs: { AX:0, BX:0, CX:0, DX:0, SI:0, DI:0, BP:0, SP:0xFFFE, IP:0, DS:0, CS:0, ES:0, SS:0 },
+        flags:{ ZF:0, SF:0, CF:0, OF:0, AF:0, DF:0, IF:0, TF:0, PF:0 },
         cycles:0
       };
 
@@ -92,11 +93,11 @@ document.addEventListener("DOMContentLoaded", () => {
       let ipToLine = new Map();
       let lineToIp = new Map();
       let labels = new Map();
+      let equMap = new Map(); // Tracks EQU definitions
 
       const dataPtrDefault = 0x0100;
       let breakpoints = new Set();
 
-      // --- Time-Travel Debugging & Memory Sync Variables ---
       let executionHistory = [];
       let memChangesThisStep = [];
       let lastModifiedAddrs = new Set(); 
@@ -427,6 +428,13 @@ document.addEventListener("DOMContentLoaded", () => {
       function parseMemInside(inside){
         let expr = inside.replace(/\s+/g,"");
         expr = expr.replace(/-/g,"+-");
+        
+        let segmentOverride = null;
+        if (expr.includes(":")) {
+            const parts = expr.split(":");
+            segmentOverride = parts[0].toUpperCase();
+            expr = parts[1];
+        }
 
         const labelMatch = expr.match(/^([A-Z_.$][A-Z0-9_.$]*)\[([A-Z0-9+\-]*)\]$/i);
         if(labelMatch) {
@@ -445,7 +453,7 @@ document.addEventListener("DOMContentLoaded", () => {
               offset += n;
             }
           }
-          return { ok:true, baseReg, offset: clamp16(offset), label: label.toUpperCase() };
+          return { ok:true, segmentOverride, baseReg, offset: clamp16(offset), label: label.toUpperCase() };
         }
 
         const chunks = expr.split("+").filter(Boolean);
@@ -460,7 +468,7 @@ document.addEventListener("DOMContentLoaded", () => {
             offset += n;
           }
         }
-        return { ok:true, baseReg, offset: clamp16(offset) };
+        return { ok:true, segmentOverride, baseReg, offset: clamp16(offset) };
       }
 
       function parseOperand(raw){
@@ -486,21 +494,20 @@ document.addEventListener("DOMContentLoaded", () => {
         if(labelMemMatch) {
           const parsed = parseMemInside(labelMemMatch[1] + "[" + labelMemMatch[2] + "]");
           if(!parsed.ok) return { type:"bad", error: parsed.error };
-          return { type:"mem", baseReg: parsed.baseReg, offset: parsed.offset, label: parsed.label, size: size || null };
+          return { type:"mem", segmentOverride: parsed.segmentOverride, baseReg: parsed.baseReg, offset: parsed.offset, label: parsed.label, size: size || null };
         }
 
         if(up.startsWith("[") && up.endsWith("]")){
           const parsed = parseMemInside(up.slice(1,-1));
           if(!parsed.ok) return { type:"bad", error: parsed.error };
-          return { type:"mem", baseReg: parsed.baseReg, offset: parsed.offset, size: size || null };
+          return { type:"mem", segmentOverride: parsed.segmentOverride, baseReg: parsed.baseReg, offset: parsed.offset, size: size || null };
         }
 
-        // MODIFIED: Support direct offset arithmetic like "X+2" without brackets
         const labelOffsetMatch = up.match(/^([A-Z_.$][A-Z0-9_.$]*)([+-]\d+)$/i);
         if(labelOffsetMatch) {
           const parsed = parseMemInside(labelOffsetMatch[1] + "[" + labelOffsetMatch[2] + "]");
           if(!parsed.ok) return { type:"bad", error: parsed.error };
-          return { type:"mem", baseReg: parsed.baseReg, offset: parsed.offset, label: parsed.label, size: size || null };
+          return { type:"mem", segmentOverride: parsed.segmentOverride, baseReg: parsed.baseReg, offset: parsed.offset, label: parsed.label, size: size || null };
         }
 
         const num = parseNumber(up);
@@ -517,9 +524,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const labelBase = op.label ? (labels.get(op.label) ?? 0) : 0;
         
         const effectiveAddress = clamp16(labelBase + regBase + off);
-        const dsBase = getReg16("DS") << 4;
         
-        return clamp20(dsBase + effectiveAddress);
+        // MODIFIED: Support Segment Overrides (ES:, CS:, SS:, default DS:)
+        let segmentName = op.segmentOverride || "DS";
+        if (!["DS", "CS", "ES", "SS"].includes(segmentName)) segmentName = "DS"; 
+        const segmentBase = getReg16(segmentName) << 4;
+        
+        return clamp20(segmentBase + effectiveAddress);
       }
 
       function getEffectiveWidth(a0, a1) {
@@ -610,6 +621,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const strMatch = it.match(/^["'](.*)["']$/);
           if(strMatch){
             const s = strMatch[1];
+            // MODIFIED: Loop through every character in a string definition to record actual ASCII digit!
             for(let i=0;i<s.length;i++){
               const ch = s.charCodeAt(i) & 0xFF;
               if(directive === "DB") bytes.push(ch);
@@ -670,8 +682,9 @@ document.addEventListener("DOMContentLoaded", () => {
         clearOutput();
         setStatus("Assembling…","run");
 
-        const lines = getLines();
+        let lines = getLines();
         labels = new Map();
+        equMap = new Map();
         program = [];
         ipToLine = new Map();
         lineToIp = new Map();
@@ -681,11 +694,35 @@ document.addEventListener("DOMContentLoaded", () => {
         let ip = 0;
         let dataPtr = dataPtrDefault;
 
+        // INJECTED PASS 0: Search and log EQU constants
+        for(let i=0; i<lines.length; i++){
+            let raw = stripComment(lines[i]);
+            if(!raw) continue;
+            
+            const equMatch = raw.match(/^([A-Z_.$][A-Z0-9_.$]*)\s+EQU\s+(.+)$/i);
+            if (equMatch) {
+                equMap.set(equMatch[1].toUpperCase(), equMatch[2].trim());
+            }
+        }
+
+        // Apply EQU Replacements to all lines before Pass 1
+        for (let i = 0; i < lines.length; i++) {
+            let raw = lines[i];
+            for (let [key, val] of equMap.entries()) {
+                const regex = new RegExp(`\\b${key}\\b`, "gi");
+                raw = raw.replace(regex, val);
+            }
+            lines[i] = raw;
+        }
+
         // Pass 1
         for(let i=0;i<lines.length;i++){
           const ln = i+1;
           let raw = stripComment(lines[i]);
           if(!raw) continue;
+
+          // Skip EQU lines during actual assembly passes
+          if (raw.toUpperCase().includes(" EQU ")) continue;
 
           const orgM = raw.toUpperCase().match(/^ORG\s+(.+)$/);
           if(orgM){
@@ -752,9 +789,10 @@ document.addEventListener("DOMContentLoaded", () => {
         ip = 0;
         dataPtr = dataPtrDefault;
         
+        // MODIFIED: Include JCXZ 
         const controlFlowOps = [
           "JMP", "JZ", "JE", "JNZ", "JNE", "LOOP", "CALL", "JP", "JPE", "JNP", "JPO",
-          "JG", "JGE", "JL", "JLE", "JA", "JAE", "JB", "JBE", "JC", "JNC"
+          "JG", "JGE", "JL", "JLE", "JA", "JAE", "JB", "JBE", "JC", "JNC", "JCXZ"
         ];
 
         for(let i=0;i<lines.length;i++){
@@ -762,6 +800,8 @@ document.addEventListener("DOMContentLoaded", () => {
           const rawLine = lines[i];
           let raw = stripComment(rawLine);
           if(!raw) continue;
+
+          if (raw.toUpperCase().includes(" EQU ")) continue;
 
           const orgM = raw.toUpperCase().match(/^ORG\s+(.+)$/);
           if(orgM){
@@ -846,6 +886,7 @@ document.addEventListener("DOMContentLoaded", () => {
         cpu.regs.AX=0; cpu.regs.BX=0; cpu.regs.CX=0; cpu.regs.DX=0;
         cpu.regs.SI=0; cpu.regs.DI=0; cpu.regs.BP=0; cpu.regs.SP=0xFFFE;
         cpu.regs.IP=0; cpu.regs.DS=0; 
+        cpu.regs.CS=0; cpu.regs.ES=0; cpu.regs.SS=0; 
         
         cpu.flags.ZF=0; cpu.flags.SF=0; cpu.flags.CF=0; cpu.flags.OF=0;
         cpu.flags.AF=0; cpu.flags.DF=0; cpu.flags.IF=0; cpu.flags.TF=0; 
@@ -903,7 +944,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
               if (baseOp.startsWith("MOVS")) {
                   const src = clamp20((getReg16("DS") << 4) + getReg16("SI"));
-                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI"));
+                  const dst = clamp20((getReg16("ES") << 4) + getReg16("DI"));
                   if(size === 1) write8(dst, read8(src));
                   else write16(dst, read16(src));
                   
@@ -920,7 +961,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   setReg16("SI", getReg16("SI") + step);
                   cpu.cycles += 1;
               } else if (baseOp.startsWith("STOS")) {
-                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI"));
+                  const dst = clamp20((getReg16("ES") << 4) + getReg16("DI"));
                   if(size === 1) write8(dst, getReg8("AL"));
                   else write16(dst, getReg16("AX"));
                   
@@ -929,7 +970,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   cpu.cycles += 1;
               } else if (baseOp.startsWith("CMPS")) {
                   const src = clamp20((getReg16("DS") << 4) + getReg16("SI"));
-                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI"));
+                  const dst = clamp20((getReg16("ES") << 4) + getReg16("DI"));
                   const valSrc = size === 1 ? read8(src) : read16(src);
                   const valDst = size === 1 ? read8(dst) : read16(dst);
                   subN(valSrc, valDst, size * 8, 0); 
@@ -939,7 +980,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   setReg16("DI", getReg16("DI") + step);
                   cpu.cycles += 2;
               } else if (baseOp.startsWith("SCAS")) {
-                  const dst = clamp20((getReg16("DS") << 4) + getReg16("DI"));
+                  const dst = clamp20((getReg16("ES") << 4) + getReg16("DI"));
                   const valDst = size === 1 ? read8(dst) : read16(dst);
                   const valAcc = size === 1 ? getReg8("AL") : getReg16("AX");
                   subN(valAcc, valDst, size * 8, 0); 
@@ -1259,14 +1300,20 @@ document.addEventListener("DOMContentLoaded", () => {
               if(inst.args.length !== 1) throw new Error("PUSH needs 1 operand");
               const v = evalOperand(a0, 16) & 0xFFFF;
               cpu.regs.SP = (cpu.regs.SP - 2) & 0xFFFF;
-              write16(cpu.regs.SP, v); 
+              // MODIFIED: Writes to SS segment!
+              const spAddr = clamp20((getReg16("SS") << 4) + cpu.regs.SP);
+              const w = v & 0xFFFF;
+              write8(spAddr, w & 0xFF);
+              write8(spAddr+1, (w >> 8) & 0xFF); 
               cpu.regs.IP = nextIP; cpu.cycles++;
               break;
             }
 
             case "POP": {
               if(inst.args.length !== 1) throw new Error("POP needs 1 operand");
-              const v = read16(cpu.regs.SP);
+              // MODIFIED: Reads from SS segment!
+              const spAddr = clamp20((getReg16("SS") << 4) + cpu.regs.SP);
+              const v = (read8(spAddr) | (read8(spAddr+1) << 8)) & 0xFFFF;
               cpu.regs.SP = (cpu.regs.SP + 2) & 0xFFFF;
               writeOperand(a0, v, 16);
               cpu.regs.IP = nextIP; cpu.cycles++;
@@ -1277,14 +1324,20 @@ document.addEventListener("DOMContentLoaded", () => {
               if(inst.args.length !== 1) throw new Error("CALL needs 1 operand");
               const target = evalOperand(a0);
               cpu.regs.SP = (cpu.regs.SP - 2) & 0xFFFF;
-              write16(cpu.regs.SP, nextIP);
+              // MODIFIED: Writes to SS segment!
+              const spAddr = clamp20((getReg16("SS") << 4) + cpu.regs.SP);
+              const w = nextIP & 0xFFFF;
+              write8(spAddr, w & 0xFF);
+              write8(spAddr+1, (w >> 8) & 0xFF); 
               cpu.regs.IP = clamp16(target);
               cpu.cycles++;
               break;
             }
 
             case "RET": {
-              const retIP = read16(cpu.regs.SP);
+              // MODIFIED: Reads from SS segment!
+              const spAddr = clamp20((getReg16("SS") << 4) + cpu.regs.SP);
+              const retIP = (read8(spAddr) | (read8(spAddr+1) << 8)) & 0xFFFF;
               cpu.regs.SP = (cpu.regs.SP + 2) & 0xFFFF;
               cpu.regs.IP = retIP;
               cpu.cycles++;
@@ -1395,6 +1448,14 @@ document.addEventListener("DOMContentLoaded", () => {
               break;
             }
 
+            case "JCXZ": {
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              const target = evalOperand(a0);
+              cpu.regs.IP = (getReg16("CX") === 0) ? clamp16(target) : nextIP;
+              cpu.cycles++;
+              break;
+            }
+
             case "LOOP":{
               if(inst.args.length !== 1) throw new Error("LOOP needs 1 operand");
               setReg16("CX", (getReg16("CX") - 1) & 0xFFFF);
@@ -1494,7 +1555,9 @@ document.addEventListener("DOMContentLoaded", () => {
           ["DL", getReg8("DL"), 2], ["DH", getReg8("DH"), 2],
           ["SI", getReg16("SI"), 4], ["DI", getReg16("DI"), 4],
           ["BP", getReg16("BP"), 4], ["SP", getReg16("SP"), 4],
-          ["IP", getReg16("IP"), 4], ["DS", getReg16("DS"), 4] 
+          ["IP", getReg16("IP"), 4], ["DS", getReg16("DS"), 4],
+          ["CS", getReg16("CS"), 4], ["ES", getReg16("ES"), 4],
+          ["SS", getReg16("SS"), 4]
         ];
 
         for(const [k,v,w] of pairs){
