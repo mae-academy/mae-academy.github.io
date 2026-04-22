@@ -46,11 +46,11 @@ document.addEventListener("DOMContentLoaded", () => {
       function clamp8(x){ return ((x % 0x100) + 0x100) & 0xFF; }
       function clamp32(x){ return (x >>> 0); }
 
-      // MODIFIED: Preserves case and supports 1 or 2 byte character literals (e.g. 'a' or 'ab')
       function parseNumber(tok){
         const t = tok.trim();
         if(!t) return null;
         
+        // Single or double quotes (e.g. 'A' or 'AB')
         if((t.startsWith("'") && t.endsWith("'")) || (t.startsWith('"') && t.endsWith('"'))) {
             const str = t.slice(1, -1);
             if (str.length === 1) return str.charCodeAt(0);
@@ -516,7 +516,6 @@ document.addEventListener("DOMContentLoaded", () => {
           return { type:"mem", segmentOverride: parsed.segmentOverride, baseReg: parsed.baseReg, offset: parsed.offset, label: parsed.label, size: size || null };
         }
 
-        // MODIFIED: Use original 't' instead of uppercase 'up' so string cases are preserved
         const num = parseNumber(t);
         if(num !== null) return { type:"imm", value: num >>> 0, size:16 };
 
@@ -573,8 +572,14 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("Destination must be reg or mem");
       }
 
-      function evalDataExpr(expr, pass, labelsMap) {
+      // MODIFIED: Injected currentAddr parameter so we can process the $ symbol
+      function evalDataExpr(expr, pass, labelsMap, currentAddr) {
+        // Handle parenthesis used exclusively for the ($ - Label) length calculation syntax
         let clean = expr.replace(/^OFFSET\s+/i, "").replace(/\s+/g,"");
+        if (clean.startsWith("(") && clean.endsWith(")")) {
+            clean = clean.slice(1, -1);
+        }
+
         const tokens = clean.split(/([+-])/).filter(Boolean);
         if(tokens.length === 0) return null;
 
@@ -588,7 +593,10 @@ document.addEventListener("DOMContentLoaded", () => {
           let val = 0;
           const upTok = tok.toUpperCase();
           
-          if(labelsMap.has(upTok)) {
+          if(upTok === "$") {
+             // Inject the current instruction pointer / data pointer when $ is encountered
+             val = currentAddr;
+          } else if(labelsMap.has(upTok)) {
             val = labelsMap.get(upTok); 
           } else {
             const parsed = parseNumber(tok);
@@ -609,7 +617,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return clamp32(result);
       }
 
-      function parseDataItems(argStr, directive, pass, labelsMap){
+      // MODIFIED: passing dataPtr to evalDataExpr
+      function parseDataItems(argStr, directive, pass, labelsMap, dataPtr){
         const items = tokenizeCommaAware(argStr);
         if(items.length === 0) return { ok:false, error:`${directive} needs values` };
 
@@ -643,7 +652,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return true;
           }
           
-          let n = evalDataExpr(it, pass, labelsMap);
+          let n = evalDataExpr(it, pass, labelsMap, dataPtr);
           if(n === null) return false;
 
           if(directive === "DB") bytes.push(n & 0xFF);
@@ -661,7 +670,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const countStr = dupMatch[1];
             const valStr = dupMatch[2];
             
-            const count = evalDataExpr(countStr, pass, labelsMap);
+            const count = evalDataExpr(countStr, pass, labelsMap, dataPtr);
             
             if(count === null || count < 0 || count > 0x100000){
               return { ok:false, error:`Invalid DUP count: "${countStr}"` };
@@ -699,16 +708,25 @@ document.addEventListener("DOMContentLoaded", () => {
         let ip = 0;
         let dataPtr = dataPtrDefault;
 
+        // INJECTED PASS 0: Search and log EQU constants
         for(let i=0; i<lines.length; i++){
             let raw = stripComment(lines[i]);
             if(!raw) continue;
             
             const equMatch = raw.match(/^([A-Z_.$][A-Z0-9_.$]*)\s+EQU\s+(.+)$/i);
             if (equMatch) {
-                equMap.set(equMatch[1].toUpperCase(), equMatch[2].trim());
+                // If EQU expression has a $, we cannot evaluate it until we know where it lives in memory.
+                // We will leave it un-replaced if it contains $.
+                if (!equMatch[2].includes("$")) {
+                    equMap.set(equMatch[1].toUpperCase(), equMatch[2].trim());
+                } else {
+                    // It is a dynamic label. Store it in labels map as pointing to dataPtr or IP.
+                    // To do this accurately, we will let Pass 1 handle $ equates.
+                }
             }
         }
 
+        // Apply EQU Replacements to all lines before Pass 1 (Static EQUs only)
         for (let i = 0; i < lines.length; i++) {
             let raw = lines[i];
             for (let [key, val] of equMap.entries()) {
@@ -723,8 +741,6 @@ document.addEventListener("DOMContentLoaded", () => {
           const ln = i+1;
           let raw = stripComment(lines[i]);
           if(!raw) continue;
-
-          if (raw.toUpperCase().includes(" EQU ")) continue;
 
           const orgM = raw.toUpperCase().match(/^ORG\s+(.+)$/);
           if(orgM){
@@ -746,7 +762,7 @@ document.addEventListener("DOMContentLoaded", () => {
             labelName = colonLabelMatch[1].toUpperCase();
             rest = rest.slice(colonLabelMatch[0].length).trim();
           } else {
-            const noColonMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*)\s+(DB|DW|DD)\b/i);
+            const noColonMatch = rest.match(/^([A-Z_.$][A-Z0-9_.$]*)\s+(DB|DW|DD|EQU)\b/i);
             if(noColonMatch){
               labelName = noColonMatch[1].toUpperCase();
               rest = rest.slice(noColonMatch[1].length).trim();
@@ -761,21 +777,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
           const upRest = rest.toUpperCase();
           const isData = upRest.startsWith("DB ") || upRest.startsWith("DW ") || upRest.startsWith("DD ");
+          const isEqu = upRest.startsWith("EQU ");
 
-          if(labelName){
+          if(labelName && !isEqu){
             if(labels.has(labelName)){
               logLine(`Line ${ln}: Duplicate label "${labelName}"`, "err");
               setStatus("Assemble error","err");
               return false;
             }
             labels.set(labelName, isData ? dataPtr : ip);
+          } else if (labelName && isEqu) {
+            // Dynamic EQU involving $ gets resolved right now in Pass 1.
+            const expr = rest.substring(3).trim(); 
+            const resolvedValue = evalDataExpr(expr, 1, labels, dataPtr); // Note: dataPtr is passed as currentAddr
+            equMap.set(labelName, String(resolvedValue));
+            labels.set(labelName, resolvedValue);
+            continue; // Move on, EQU lines don't get assembled to memory
           }
 
           if(!rest) continue;
 
           if(isData){
             const dir = upRest.slice(0,2);
-            const parsed = parseDataItems(rest.slice(2).trim(), dir, 1, labels);
+            const parsed = parseDataItems(rest.slice(2).trim(), dir, 1, labels, dataPtr);
             if(!parsed.ok){
               logLine(`Line ${ln}: ${parsed.error}`, "err");
               setStatus("Assemble error","err");
@@ -785,6 +809,16 @@ document.addEventListener("DOMContentLoaded", () => {
           }else{
             ip++;
           }
+        }
+
+        // Re-Apply EQU replacements before Pass 2 to catch the dynamic $ EQUs we just resolved.
+        for (let i = 0; i < lines.length; i++) {
+            let raw = stripComment(lines[i]); // Strip comments again to be safe
+            for (let [key, val] of equMap.entries()) {
+                const regex = new RegExp(`\\b${key}\\b`, "gi");
+                raw = raw.replace(regex, val);
+            }
+            lines[i] = raw;
         }
 
         // Pass 2
@@ -825,7 +859,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const upRest = rest.toUpperCase();
           if(upRest.startsWith("DB ") || upRest.startsWith("DW ") || upRest.startsWith("DD ")){
             const dir = upRest.slice(0,2);
-            const parsed = parseDataItems(rest.slice(2).trim(), dir, 2, labels);
+            const parsed = parseDataItems(rest.slice(2).trim(), dir, 2, labels, dataPtr);
             if(!parsed.ok) return false;
             for(const b of parsed.bytes){
               write8(dataPtr, b);
@@ -1850,7 +1884,31 @@ HLT
 
 IS_ABOVE:
 MOV DX, 777     ; Success! All jumps executed.
-HLT`
+HLT`,
+
+          // INJECTED: Example 13 highlighting the new dynamic $ string length syntax
+          ex13: `; --- Ex 13: String Reversal ($ Address) ---
+ORG 100h
+
+MOV SI, OFFSET STR1
+ADD SI, LENGTH
+DEC SI
+MOV DI, OFFSET STR2
+MOV CX, LENGTH
+
+REVERSE_LOOP:
+    MOV AL, [SI]
+    MOV [DI], AL
+    DEC SI
+    INC DI
+    LOOP REVERSE_LOOP
+
+HLT
+
+STR1 DB 'Assembly'
+LENGTH EQU ($-STR1)
+STR2 DB LENGTH DUP(0)`
+
         };
 
         codeEl.value = EX[v];
@@ -1912,7 +1970,8 @@ HLT
             <option value="ex9">9. Multi-Byte Add (ADC)</option>
             <option value="ex10">10. LEA & Memory</option>
             <option value="ex11">11. Negative Hex & XCHG</option>
-            <option value="ex12">12. CMP & Conditional Jumps</option>`;
+            <option value="ex12">12. CMP & Conditional Jumps</option>
+            <option value="ex13">13. String Reverse ($)</option>`;
         }
       }
 
