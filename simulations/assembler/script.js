@@ -46,10 +46,16 @@ document.addEventListener("DOMContentLoaded", () => {
       function clamp8(x){ return ((x % 0x100) + 0x100) & 0xFF; }
       function clamp32(x){ return (x >>> 0); }
 
+      // MODIFIED: Preserves case and supports 1 or 2 byte character literals (e.g. 'a' or 'ab')
       function parseNumber(tok){
         const t = tok.trim();
         if(!t) return null;
-        if(/^'.{1}'$/.test(t) && t.length === 3) return t.charCodeAt(1); 
+        
+        if((t.startsWith("'") && t.endsWith("'")) || (t.startsWith('"') && t.endsWith('"'))) {
+            const str = t.slice(1, -1);
+            if (str.length === 1) return str.charCodeAt(0);
+            if (str.length === 2) return str.charCodeAt(0) | (str.charCodeAt(1) << 8);
+        }
         
         let sign = 1;
         let str = t;
@@ -76,14 +82,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // ---- CPU model ----
-      // MODIFIED: Explicitly including all segment registers
       const REG16 = ["AX","BX","CX","DX","SI","DI","BP","SP","IP", "DS", "CS", "ES", "SS"];
       const REG8  = ["AL","AH","BL","BH","CL","CH","DL","DH"];
       const FLAGS = ["ZF","SF","CF","OF", "AF", "DF", "IF", "TF", "PF"];
 
       const cpu = {
-        regs: { AX:0, BX:0, CX:0, DX:0, SI:0, DI:0, BP:0, SP:0xFFFE, IP:0, DS:0, CS:0, ES:0, SS:0 },
-        flags:{ ZF:0, SF:0, CF:0, OF:0, AF:0, DF:0, IF:0, TF:0, PF:0 },
+        regs: { AX:0,BX:0,CX:0,DX:0,SI:0,DI:0,BP:0,SP:0xFFFE,IP:0,DS:0, CS:0, ES:0, SS:0 },
+        flags:{ ZF:0,SF:0,CF:0,OF:0, AF:0, DF:0, IF:0, TF:0, PF:0 },
         cycles:0
       };
 
@@ -93,11 +98,12 @@ document.addEventListener("DOMContentLoaded", () => {
       let ipToLine = new Map();
       let lineToIp = new Map();
       let labels = new Map();
-      let equMap = new Map(); // Tracks EQU definitions
+      let equMap = new Map();
 
       const dataPtrDefault = 0x0100;
       let breakpoints = new Set();
 
+      // --- Time-Travel Debugging & Memory Sync Variables ---
       let executionHistory = [];
       let memChangesThisStep = [];
       let lastModifiedAddrs = new Set(); 
@@ -510,7 +516,8 @@ document.addEventListener("DOMContentLoaded", () => {
           return { type:"mem", segmentOverride: parsed.segmentOverride, baseReg: parsed.baseReg, offset: parsed.offset, label: parsed.label, size: size || null };
         }
 
-        const num = parseNumber(up);
+        // MODIFIED: Use original 't' instead of uppercase 'up' so string cases are preserved
+        const num = parseNumber(t);
         if(num !== null) return { type:"imm", value: num >>> 0, size:16 };
 
         if(/^[A-Z_.$][A-Z0-9_.$]*$/i.test(up)) return { type:"label", name: up.toUpperCase(), size: size || null };
@@ -525,7 +532,6 @@ document.addEventListener("DOMContentLoaded", () => {
         
         const effectiveAddress = clamp16(labelBase + regBase + off);
         
-        // MODIFIED: Support Segment Overrides (ES:, CS:, SS:, default DS:)
         let segmentName = op.segmentOverride || "DS";
         if (!["DS", "CS", "ES", "SS"].includes(segmentName)) segmentName = "DS"; 
         const segmentBase = getReg16(segmentName) << 4;
@@ -621,7 +627,6 @@ document.addEventListener("DOMContentLoaded", () => {
           const strMatch = it.match(/^["'](.*)["']$/);
           if(strMatch){
             const s = strMatch[1];
-            // MODIFIED: Loop through every character in a string definition to record actual ASCII digit!
             for(let i=0;i<s.length;i++){
               const ch = s.charCodeAt(i) & 0xFF;
               if(directive === "DB") bytes.push(ch);
@@ -694,7 +699,6 @@ document.addEventListener("DOMContentLoaded", () => {
         let ip = 0;
         let dataPtr = dataPtrDefault;
 
-        // INJECTED PASS 0: Search and log EQU constants
         for(let i=0; i<lines.length; i++){
             let raw = stripComment(lines[i]);
             if(!raw) continue;
@@ -705,7 +709,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-        // Apply EQU Replacements to all lines before Pass 1
         for (let i = 0; i < lines.length; i++) {
             let raw = lines[i];
             for (let [key, val] of equMap.entries()) {
@@ -721,7 +724,6 @@ document.addEventListener("DOMContentLoaded", () => {
           let raw = stripComment(lines[i]);
           if(!raw) continue;
 
-          // Skip EQU lines during actual assembly passes
           if (raw.toUpperCase().includes(" EQU ")) continue;
 
           const orgM = raw.toUpperCase().match(/^ORG\s+(.+)$/);
@@ -789,7 +791,6 @@ document.addEventListener("DOMContentLoaded", () => {
         ip = 0;
         dataPtr = dataPtrDefault;
         
-        // MODIFIED: Include JCXZ 
         const controlFlowOps = [
           "JMP", "JZ", "JE", "JNZ", "JNE", "LOOP", "CALL", "JP", "JPE", "JNP", "JPO",
           "JG", "JGE", "JL", "JLE", "JA", "JAE", "JB", "JBE", "JC", "JNC", "JCXZ"
@@ -1300,7 +1301,6 @@ document.addEventListener("DOMContentLoaded", () => {
               if(inst.args.length !== 1) throw new Error("PUSH needs 1 operand");
               const v = evalOperand(a0, 16) & 0xFFFF;
               cpu.regs.SP = (cpu.regs.SP - 2) & 0xFFFF;
-              // MODIFIED: Writes to SS segment!
               const spAddr = clamp20((getReg16("SS") << 4) + cpu.regs.SP);
               const w = v & 0xFFFF;
               write8(spAddr, w & 0xFF);
@@ -1311,7 +1311,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             case "POP": {
               if(inst.args.length !== 1) throw new Error("POP needs 1 operand");
-              // MODIFIED: Reads from SS segment!
               const spAddr = clamp20((getReg16("SS") << 4) + cpu.regs.SP);
               const v = (read8(spAddr) | (read8(spAddr+1) << 8)) & 0xFFFF;
               cpu.regs.SP = (cpu.regs.SP + 2) & 0xFFFF;
@@ -1324,7 +1323,6 @@ document.addEventListener("DOMContentLoaded", () => {
               if(inst.args.length !== 1) throw new Error("CALL needs 1 operand");
               const target = evalOperand(a0);
               cpu.regs.SP = (cpu.regs.SP - 2) & 0xFFFF;
-              // MODIFIED: Writes to SS segment!
               const spAddr = clamp20((getReg16("SS") << 4) + cpu.regs.SP);
               const w = nextIP & 0xFFFF;
               write8(spAddr, w & 0xFF);
@@ -1335,7 +1333,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             case "RET": {
-              // MODIFIED: Reads from SS segment!
               const spAddr = clamp20((getReg16("SS") << 4) + cpu.regs.SP);
               const retIP = (read8(spAddr) | (read8(spAddr+1) << 8)) & 0xFFFF;
               cpu.regs.SP = (cpu.regs.SP + 2) & 0xFFFF;
