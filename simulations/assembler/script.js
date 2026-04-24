@@ -50,7 +50,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const t = tok.trim();
         if(!t) return null;
         
-        // Single or double quotes (e.g. 'A' or 'AB')
         if((t.startsWith("'") && t.endsWith("'")) || (t.startsWith('"') && t.endsWith('"'))) {
             const str = t.slice(1, -1);
             if (str.length === 1) return str.charCodeAt(0);
@@ -572,9 +571,7 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error("Destination must be reg or mem");
       }
 
-      // MODIFIED: Injected currentAddr parameter so we can process the $ symbol
       function evalDataExpr(expr, pass, labelsMap, currentAddr) {
-        // Handle parenthesis used exclusively for the ($ - Label) length calculation syntax
         let clean = expr.replace(/^OFFSET\s+/i, "").replace(/\s+/g,"");
         if (clean.startsWith("(") && clean.endsWith(")")) {
             clean = clean.slice(1, -1);
@@ -594,7 +591,6 @@ document.addEventListener("DOMContentLoaded", () => {
           const upTok = tok.toUpperCase();
           
           if(upTok === "$") {
-             // Inject the current instruction pointer / data pointer when $ is encountered
              val = currentAddr;
           } else if(labelsMap.has(upTok)) {
             val = labelsMap.get(upTok); 
@@ -617,7 +613,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return clamp32(result);
       }
 
-      // MODIFIED: passing dataPtr to evalDataExpr
       function parseDataItems(argStr, directive, pass, labelsMap, dataPtr){
         const items = tokenizeCommaAware(argStr);
         if(items.length === 0) return { ok:false, error:`${directive} needs values` };
@@ -708,25 +703,19 @@ document.addEventListener("DOMContentLoaded", () => {
         let ip = 0;
         let dataPtr = dataPtrDefault;
 
-        // INJECTED PASS 0: Search and log EQU constants
+        // Pass 0: EQU
         for(let i=0; i<lines.length; i++){
             let raw = stripComment(lines[i]);
             if(!raw) continue;
             
             const equMatch = raw.match(/^([A-Z_.$][A-Z0-9_.$]*)\s+EQU\s+(.+)$/i);
             if (equMatch) {
-                // If EQU expression has a $, we cannot evaluate it until we know where it lives in memory.
-                // We will leave it un-replaced if it contains $.
                 if (!equMatch[2].includes("$")) {
                     equMap.set(equMatch[1].toUpperCase(), equMatch[2].trim());
-                } else {
-                    // It is a dynamic label. Store it in labels map as pointing to dataPtr or IP.
-                    // To do this accurately, we will let Pass 1 handle $ equates.
                 }
             }
         }
 
-        // Apply EQU Replacements to all lines before Pass 1 (Static EQUs only)
         for (let i = 0; i < lines.length; i++) {
             let raw = lines[i];
             for (let [key, val] of equMap.entries()) {
@@ -787,12 +776,11 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             labels.set(labelName, isData ? dataPtr : ip);
           } else if (labelName && isEqu) {
-            // Dynamic EQU involving $ gets resolved right now in Pass 1.
             const expr = rest.substring(3).trim(); 
-            const resolvedValue = evalDataExpr(expr, 1, labels, dataPtr); // Note: dataPtr is passed as currentAddr
+            const resolvedValue = evalDataExpr(expr, 1, labels, dataPtr); 
             equMap.set(labelName, String(resolvedValue));
             labels.set(labelName, resolvedValue);
-            continue; // Move on, EQU lines don't get assembled to memory
+            continue; 
           }
 
           if(!rest) continue;
@@ -811,9 +799,8 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
 
-        // Re-Apply EQU replacements before Pass 2 to catch the dynamic $ EQUs we just resolved.
         for (let i = 0; i < lines.length; i++) {
-            let raw = stripComment(lines[i]); // Strip comments again to be safe
+            let raw = stripComment(lines[i]); 
             for (let [key, val] of equMap.entries()) {
                 const regex = new RegExp(`\\b${key}\\b`, "gi");
                 raw = raw.replace(regex, val);
@@ -825,9 +812,11 @@ document.addEventListener("DOMContentLoaded", () => {
         ip = 0;
         dataPtr = dataPtrDefault;
         
+        // MODIFIED: Injected LOOP conditional variants
         const controlFlowOps = [
-          "JMP", "JZ", "JE", "JNZ", "JNE", "LOOP", "CALL", "JP", "JPE", "JNP", "JPO",
-          "JG", "JGE", "JL", "JLE", "JA", "JAE", "JB", "JBE", "JC", "JNC", "JCXZ"
+          "JMP", "JZ", "JE", "JNZ", "JNE", "CALL", "JP", "JPE", "JNP", "JPO",
+          "JG", "JGE", "JL", "JLE", "JA", "JAE", "JB", "JBE", "JC", "JNC", "JCXZ",
+          "LOOP", "LOOPZ", "LOOPE", "LOOPNZ", "LOOPNE"
         ];
 
         for(let i=0;i<lines.length;i++){
@@ -1487,11 +1476,30 @@ document.addEventListener("DOMContentLoaded", () => {
               break;
             }
 
+            // INJECTED: Complete LOOP* instruction variants
             case "LOOP":{
               if(inst.args.length !== 1) throw new Error("LOOP needs 1 operand");
               setReg16("CX", (getReg16("CX") - 1) & 0xFFFF);
               const target = evalOperand(a0);
               cpu.regs.IP = (getReg16("CX") !== 0) ? clamp16(target) : nextIP;
+              cpu.cycles++;
+              break;
+            }
+            case "LOOPZ": case "LOOPE":{
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              setReg16("CX", (getReg16("CX") - 1) & 0xFFFF);
+              const target = evalOperand(a0);
+              // Loop if CX != 0 AND Zero Flag is SET (Equal/Zero)
+              cpu.regs.IP = (getReg16("CX") !== 0 && cpu.flags.ZF === 1) ? clamp16(target) : nextIP;
+              cpu.cycles++;
+              break;
+            }
+            case "LOOPNZ": case "LOOPNE":{
+              if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
+              setReg16("CX", (getReg16("CX") - 1) & 0xFFFF);
+              const target = evalOperand(a0);
+              // Loop if CX != 0 AND Zero Flag is CLEAR (Not Equal/Not Zero)
+              cpu.regs.IP = (getReg16("CX") !== 0 && cpu.flags.ZF === 0) ? clamp16(target) : nextIP;
               cpu.cycles++;
               break;
             }
@@ -1886,7 +1894,6 @@ IS_ABOVE:
 MOV DX, 777     ; Success! All jumps executed.
 HLT`,
 
-          // INJECTED: Example 13 highlighting the new dynamic $ string length syntax
           ex13: `; --- Ex 13: String Reversal ($ Address) ---
 ORG 100h
 
