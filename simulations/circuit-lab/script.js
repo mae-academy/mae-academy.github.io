@@ -1,216 +1,238 @@
-let simChart = null;
+document.addEventListener("DOMContentLoaded", () => {
+  const workspace = document.getElementById('workspace');
+  const svgCanvas = document.getElementById('wireCanvas');
+  const propName = document.getElementById('propName');
+  const propValue = document.getElementById('propValue');
+  const propUnit = document.getElementById('propUnit');
+  const configForm = document.getElementById('configForm');
+  const noSelection = document.getElementById('noSelection');
 
-let params = { type: 'DC', V: 10, freq: 0.5, R: 10, L: 2.0, C: 100, probe: 'VC' };
-let state = { q: 0, i: 0 }; // q = charge (Coulombs), i = current (Amps)
+  // Prevent script from crashing if elements haven't loaded
+  if (!workspace || !svgCanvas) return;
 
-const MAX_HISTORY = 600;
-const DT_FRAME = 0.02; 
+  let selectedComponentId = null;
+  let isWiring = false;
+  let activeWireLine = null;
+  let startTerminalId = null;
+  let isDragging = false;
+  let draggedComp = null;
+  let dragElement = null; // Cache DOM element for smoother dragging
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+  let wires = [];
 
-let tSeries = [];
-let vSrcSeries = [];
-let probeSeries = [];
-let simTime = 0;
+  let componentsData = [
+    { id: 'src1', name: 'DC Source 1', val: 12, unit: 'V', x: 40, y: 40, w: 120, h: 80, terminals: [{id: 't1', x: 20, y: 80, label: '+'}, {id: 't2', x: 100, y: 80, label: '-'}] },
+    { id: 'src2', name: 'Func Gen', val: 50, unit: 'Hz', x: 40, y: 160, w: 120, h: 80, terminals: [{id: 't3', x: 20, y: 80, label: '+'}, {id: 't4', x: 100, y: 80, label: '-'}] },
+    { id: 'dmm', name: 'Multimeter', val: 0.00, unit: 'V', x: 220, y: 40, w: 120, h: 80, terminals: [{id: 't5', x: 20, y: 80, label: 'V/Ω'}, {id: 't6', x: 100, y: 80, label: 'COM'}] },
+    { id: 'osc', name: 'Oscilloscope', val: 0, unit: 'ms/div', x: 380, y: 40, w: 180, h: 100, terminals: [{id: 't7', x: 30, y: 100, label: 'CH1+'}, {id: 't8', x: 70, y: 100, label: 'CH1-'}, {id: 't9', x: 110, y: 100, label: 'CH2+'}, {id: 't10', x: 150, y: 100, label: 'CH2-'}] },
+    { id: 'r1', name: 'R1', val: 200, unit: 'Ω', x: 200, y: 220, w: 80, h: 40, terminals: [{id: 't11', x: -7, y: 20, label: ''}, {id: 't12', x: 80, y: 20, label: ''}] },
+    { id: 'r2', name: 'R2', val: 330, unit: 'Ω', x: 320, y: 220, w: 80, h: 40, terminals: [{id: 't13', x: -7, y: 20, label: ''}, {id: 't14', x: 80, y: 20, label: ''}] },
+    { id: 'c1', name: 'C1', val: 20, unit: 'µF', x: 200, y: 320, w: 80, h: 40, terminals: [{id: 't15', x: -7, y: 20, label: ''}, {id: 't16', x: 80, y: 20, label: ''}] },
+    { id: 'c2', name: 'C2', val: 47, unit: 'µF', x: 320, y: 320, w: 80, h: 40, terminals: [{id: 't17', x: -7, y: 20, label: ''}, {id: 't18', x: 80, y: 20, label: ''}] },
+    { id: 'l1', name: 'L1', val: 0.2, unit: 'mH', x: 200, y: 420, w: 80, h: 40, terminals: [{id: 't19', x: -7, y: 20, label: ''}, {id: 't20', x: 80, y: 20, label: ''}] },
+    { id: 'l2', name: 'L2', val: 1.0, unit: 'mH', x: 320, y: 420, w: 80, h: 40, terminals: [{id: 't21', x: -7, y: 20, label: ''}, {id: 't22', x: 80, y: 20, label: ''}] }
+  ];
 
-let lastChartUpdate = 0;
-const CHART_UPDATE_MS = 80;
-
-init();
-
-function init() {
-  bindInputs();
-  makeCharts();
-  updateUI();
-
-  const revealEls = document.querySelectorAll(".reveal");
-  const io = new IntersectionObserver((entries) => {
-    for(const e of entries){
-      if(e.isIntersecting){
-        e.target.classList.add("isVisible");
-        io.unobserve(e.target);
-      }
-    }
-  }, {threshold: 0.12});
-  revealEls.forEach(el => io.observe(el));
-
-  requestAnimationFrame(loop);
-}
-
-function makeCharts() {
-  const simCtx = document.getElementById('simCanvas').getContext('2d');
-  simChart = new Chart(simCtx, {
-    type: 'line',
-    data: {
-      labels: tSeries,
-      datasets: [
-        {
-          label: 'CH1: V_Source',
-          data: vSrcSeries,
-          borderWidth: 2,
-          pointRadius: 0,
-          borderDash: [6, 6],
-          tension: 0.1,
-          borderColor: '#08b58d'
-        },
-        {
-          label: 'CH2: Probe',
-          data: probeSeries,
-          borderWidth: 3,
-          pointRadius: 0,
-          tension: 0.1,
-          borderColor: '#3f6fff'
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { display: true } },
-      scales: {
-        x: {
-          type: 'linear',
-          title: { display: true, text: 'Time (s)' },
-        },
-        y: {
-          title: { display: true, text: 'Amplitude' },
-          suggestedMin: -20,
-          suggestedMax: 20
-        }
-      }
-    }
-  });
-}
-
-function bindInputs() {
-  const bindVal = (id, key) => {
-    const el = document.getElementById(id);
-    if(!el) return;
-    el.addEventListener('input', e => {
-      params[key] = parseFloat(e.target.value);
-      const valEl = document.getElementById(id.replace('inp', 'val'));
-      if(valEl) valEl.innerText = params[key];
+  function renderComponents() {
+    Array.from(workspace.children).forEach(child => {
+      if (child.id !== 'wireCanvas') child.remove();
     });
-  };
 
-  bindVal('inp-v', 'V');
-  bindVal('inp-freq', 'freq');
-  bindVal('inp-r', 'R');
-  bindVal('inp-l', 'L');
-  bindVal('inp-c', 'C');
+    componentsData.forEach(comp => {
+      const el = document.createElement('div');
+      el.className = `component ${selectedComponentId === comp.id ? 'selected' : ''}`;
+      el.id = comp.id;
+      el.style.left = comp.x + 'px'; 
+      el.style.top = comp.y + 'px';
+      el.style.width = comp.w + 'px'; 
+      el.style.height = comp.h + 'px';
 
-  document.getElementById('inp-type').addEventListener('change', e => {
-    params.type = e.target.value;
-    updateUI();
-  });
-  document.getElementById('inp-probe').addEventListener('change', e => {
-    params.probe = e.target.value;
-    simChart.data.datasets[1].label = `CH2: ${e.target.options[e.target.selectedIndex].text}`;
-  });
-}
+      el.innerHTML = `
+        <div class="comp-title">${comp.name}</div>
+        <div class="comp-value">${comp.val} ${comp.unit}</div>
+      `;
 
-function updateUI() {
-  const isAC = params.type === 'AC';
-  document.querySelectorAll('.param-ac').forEach(e => e.style.display = isAC ? 'block' : 'none');
-  resetSim();
-}
+      comp.terminals.forEach(term => {
+        const t = document.createElement('div');
+        t.className = 'terminal';
+        t.id = term.id;
+        t.style.left = (term.x - 7) + 'px'; 
+        t.style.top = (term.y - 7) + 'px';
+        
+        if(term.label) {
+          const lbl = document.createElement('div');
+          lbl.className = 'terminal-label';
+          lbl.innerText = term.label;
+          lbl.style.left = '-2px'; lbl.style.top = '-16px';
+          t.appendChild(lbl);
+        }
 
-function resetSim() {
-  state = { q: 0, i: 0 };
-  tSeries.length = 0;
-  vSrcSeries.length = 0;
-  probeSeries.length = 0;
-  simTime = 0;
-  document.getElementById('sim-warning').style.display = 'none';
-  simChart.update('none');
-}
+        t.addEventListener('mousedown', (e) => startWiring(e, term.id));
+        t.addEventListener('mouseenter', () => t.classList.add('hovered'));
+        t.addEventListener('mouseleave', () => t.classList.remove('hovered'));
+        t.addEventListener('mouseup', (e) => finishWiring(e, term.id));
+        el.appendChild(t);
+      });
 
-function triggerPulse() {
-  // Briefly injects voltage offset
-  state.q += (5 * (params.C / 1000)); 
-}
+      el.addEventListener('mousedown', (e) => {
+        if(e.target.classList.contains('terminal')) return;
+        selectComponent(comp.id);
+        isDragging = true; 
+        draggedComp = comp;
+        dragElement = el; // Cache for performance
+        dragOffsetX = e.clientX - comp.x; 
+        dragOffsetY = e.clientY - comp.y;
+        el.style.zIndex = 100;
+      });
 
-function updatePhysics() {
-  const SUB = 40; 
-  const DT = DT_FRAME / SUB;
-  let v_src = 0, v_c = 0, v_r = 0, v_l = 0;
+      workspace.appendChild(el);
+    });
+  }
 
-  for (let step = 0; step < SUB; step++) {
-    if (params.type === 'DC') {
-      v_src = params.V;
-    } else {
-      v_src = params.V * Math.sin(2 * Math.PI * params.freq * simTime);
+  function getTerminalCoords(id1, id2) {
+    const t1 = document.getElementById(id1);
+    const t2 = document.getElementById(id2);
+    if(!t1 || !t2) return null;
+    const rect1 = t1.getBoundingClientRect();
+    const rect2 = t2.getBoundingClientRect();
+    const wsRect = workspace.getBoundingClientRect();
+    return {
+      x1: rect1.left - wsRect.left + 7, y1: rect1.top - wsRect.top + 7,
+      x2: rect2.left - wsRect.left + 7, y2: rect2.top - wsRect.top + 7
+    };
+  }
+
+  function generatePath(x1, y1, x2, y2) {
+    const dy = Math.abs(y2 - y1);
+    const controlY = Math.max(y1, y2) + dy * 0.5 + 40; 
+    return `M ${x1} ${y1} C ${x1} ${controlY}, ${x2} ${controlY}, ${x2} ${y2}`;
+  }
+
+  function renderWires() {
+    svgCanvas.innerHTML = '';
+    wires.forEach(wire => {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      line.setAttribute('class', 'wire');
+      const coords = getTerminalCoords(wire.from, wire.to);
+      if(coords) {
+        line.setAttribute('d', generatePath(coords.x1, coords.y1, coords.x2, coords.y2));
+        svgCanvas.appendChild(line);
+      }
+    });
+  }
+
+  function startWiring(e, terminalId) {
+    e.stopPropagation();
+    isWiring = true; 
+    startTerminalId = terminalId;
+    activeWireLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    activeWireLine.setAttribute('class', 'wire wire-active');
+    svgCanvas.appendChild(activeWireLine);
+  }
+
+  function finishWiring(e, terminalId) {
+    e.stopPropagation();
+    if(isWiring && startTerminalId !== terminalId) {
+      // Prevent duplicate wiring
+      const exists = wires.some(w => 
+        (w.from === startTerminalId && w.to === terminalId) || 
+        (w.to === startTerminalId && w.from === terminalId)
+      );
+      if(!exists) wires.push({ from: startTerminalId, to: terminalId });
+    }
+    cleanupWiring(); 
+    renderWires();
+  }
+
+  function cleanupWiring() {
+    isWiring = false; 
+    startTerminalId = null;
+    if(activeWireLine) { activeWireLine.remove(); activeWireLine = null; }
+  }
+
+  window.addEventListener('mousemove', (e) => {
+    const wsRect = workspace.getBoundingClientRect();
+    
+    // Wire dragging logic
+    if(isWiring && activeWireLine) {
+      const t1 = document.getElementById(startTerminalId);
+      if(!t1) return;
+      const rect1 = t1.getBoundingClientRect();
+      const x1 = rect1.left - wsRect.left + 7;
+      const y1 = rect1.top - wsRect.top + 7;
+      let x2 = e.clientX - wsRect.left;
+      let y2 = e.clientY - wsRect.top;
+      activeWireLine.setAttribute('d', generatePath(x1, y1, x2, y2));
     }
 
-    // Convert C to Farads (from mF)
-    const C_farads = params.C / 1000.0;
-    
-    v_c = state.q / C_farads;
-    v_r = state.i * params.R;
-    
-    // L * di/dt = V_src - V_R - V_C
-    v_l = v_src - v_r - v_c;
-    const di_dt = v_l / params.L;
+    // Component dragging logic
+    if(isDragging && draggedComp && dragElement) {
+      let newX = Math.max(0, Math.min(e.clientX - dragOffsetX, wsRect.width - draggedComp.w));
+      let newY = Math.max(0, Math.min(e.clientY - dragOffsetY, wsRect.height - draggedComp.h));
+      draggedComp.x = newX; 
+      draggedComp.y = newY;
+      
+      dragElement.style.left = newX + 'px'; 
+      dragElement.style.top = newY + 'px';
+      
+      // Update wires dynamically while dragging
+      renderWires();
+    }
+  });
 
-    state.i += di_dt * DT;
-    state.q += state.i * DT;
-    simTime += DT;
+  window.addEventListener('mouseup', () => {
+    if(isWiring) cleanupWiring();
+    if(isDragging && dragElement) {
+      dragElement.style.zIndex = 10;
+      isDragging = false; 
+      draggedComp = null;
+      dragElement = null;
+    }
+  });
 
-    if (Math.abs(state.i) > 100) {
-      handleCrash();
-      return;
+  function selectComponent(id) {
+    selectedComponentId = id; 
+    renderComponents();
+    const comp = componentsData.find(c => c.id === id);
+    if(comp && noSelection && configForm) {
+      noSelection.style.display = 'none'; 
+      configForm.style.display = 'flex';
+      if(propName) propName.value = comp.name; 
+      if(propValue) propValue.value = comp.val; 
+      if(propUnit) propUnit.value = comp.unit;
     }
   }
 
-  // Determine what CH2 shows
-  let probeVal = 0;
-  if (params.probe === 'I') probeVal = state.i;
-  else if (params.probe === 'VR') probeVal = v_r;
-  else if (params.probe === 'VC') probeVal = v_c;
-  else if (params.probe === 'VL') probeVal = v_l;
-
-  updateDMM(v_src, state.i, v_r, v_c, v_l);
-  pushHistory(v_src, probeVal);
-  updateChartsMaybe();
-}
-
-function updateDMM(vSrc, i, vr, vc, vl) {
-  document.getElementById('dmm-vsrc').innerText = vSrc.toFixed(2) + ' V';
-  document.getElementById('dmm-i').innerText = i.toFixed(3) + ' A';
-  document.getElementById('dmm-vr').innerText = vr.toFixed(2) + ' V';
-  document.getElementById('dmm-vc').innerText = vc.toFixed(2) + ' V';
-  document.getElementById('dmm-vl').innerText = vl.toFixed(2) + ' V';
-}
-
-function pushHistory(ch1, ch2) {
-  tSeries.push(simTime.toFixed(2));
-  vSrcSeries.push(ch1);
-  probeSeries.push(ch2);
-
-  if (tSeries.length > MAX_HISTORY) {
-    tSeries.shift();
-    vSrcSeries.shift();
-    probeSeries.shift();
+  function updateComponentFromForm() {
+    if(!selectedComponentId) return;
+    const comp = componentsData.find(c => c.id === selectedComponentId);
+    if(comp) {
+      if(propName) comp.name = propName.value; 
+      if(propValue) comp.val = parseFloat(propValue.value) || 0; 
+      if(propUnit) comp.unit = propUnit.value;
+      
+      const el = document.getElementById(comp.id);
+      if(el) {
+        el.querySelector('.comp-title').innerText = comp.name;
+        el.querySelector('.comp-value').innerText = `${comp.val} ${comp.unit}`;
+      }
+    }
   }
-}
 
-function updateChartsMaybe() {
-  const now = performance.now();
-  if (now - lastChartUpdate < CHART_UPDATE_MS) return;
-  lastChartUpdate = now;
+  if(propName) propName.addEventListener('input', updateComponentFromForm);
+  if(propValue) propValue.addEventListener('input', updateComponentFromForm);
+  if(propUnit) propUnit.addEventListener('input', updateComponentFromForm);
 
-  let minX = (simTime <= 10) ? 0 : simTime - 10;
-  simChart.options.scales.x.min = minX;
-  simChart.options.scales.x.max = minX + 10;
-  simChart.update('none');
-}
+  const clearBtn = document.getElementById('clearWiresBtn');
+  if(clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      wires = []; 
+      renderWires();
+    });
+  }
 
-function handleCrash() {
-  document.getElementById('sim-warning').style.display = 'flex';
-  setTimeout(() => resetSim(), 1500);
-}
-
-function loop() {
-  updatePhysics();
-  requestAnimationFrame(loop);
-}
+  // Initialize Data
+  renderComponents();
+  renderWires();
+});

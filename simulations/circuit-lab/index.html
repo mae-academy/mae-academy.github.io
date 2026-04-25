@@ -1,76 +1,102 @@
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MAE Academy — Electric Circuit Lab</title>
+  <title>MAE Academy — Virtual Circuit Lab</title>
 
   <link rel="icon" type="image/svg+xml" href="../../assets/favicon-16.svg">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="../../css/global.css">
   <link rel="stylesheet" href="style.css">
+
+  <style>
+    body { background-color: #f7f9fa; margin: 0; padding: 0; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 40px 20px; }
+  </style>
 </head>
 
 <body>
   <div id="navbar"></div>
   <script>
     fetch('../components/navbar.html')
-      .then(res => res.text())
-      .then(data => {
-        document.getElementById('navbar').innerHTML = data;
-        const pt = document.getElementById("pageTitle");
-        if(pt) pt.textContent = "Virtual Electric Circuits Lab";
-      }).catch(e => console.log("Navbar placeholder"));
+      .then(res => res.ok ? res.text() : '')
+      .then(data => { 
+        if(data) {
+          document.getElementById('navbar').innerHTML = data;
+          // Dynamically update the header title if your template uses an ID of 'pageTitle'
+          const pageTitle = document.getElementById("pageTitle");
+          if(pageTitle) pageTitle.textContent = "Virtual Circuit Lab";
+        }
+      })
+      .catch(e => console.log("Navbar skipped (local or path issue)"));
   </script>
 
-  <main>
-    <div class="container builder-layout">
-      
-      <aside class="builder-sidebar panel">
-        <div class="colHead">Components</div>
-        <div class="tool-grid">
-          <button class="modeBtn" draggable="true" data-type="resistor">Resistor (R)</button>
-          <button class="modeBtn" draggable="true" data-type="capacitor">Capacitor (C)</button>
-          <button class="modeBtn" draggable="true" data-type="inductor">Inductor (L)</button>
-          <button class="modeBtn" draggable="true" data-type="dc-source">DC Source</button>
-          <button class="modeBtn" draggable="true" data-type="ac-source">Func Gen</button>
-        </div>
-
-        <div class="colHead" style="margin-top: 24px;">Tools</div>
-        <div class="tool-grid">
-          <button class="modeBtn active" id="tool-wire">Draw Wire</button>
-          <button class="modeBtn" id="tool-probe">Place Probe</button>
-        </div>
-      </aside>
-
-      <section class="builder-workspace panel">
-        <div class="panelLabel">
-          <span>Schematic Canvas</span>
-          <span class="small">Drag components here</span>
-        </div>
-        <div id="circuit-canvas" class="grid-canvas"></div>
-      </section>
-
-      <section class="builder-instruments">
-        <div class="panel dmm-panel">
-          <div class="panelLabel"><span>Multimeter</span></div>
-          <div class="dmm-screen">
-            <span class="dmm-val" id="dmm-readout">0.00 V</span>
+  <main id="top">
+    <div class="container">
+      <div class="headRow">
+        <div class="titleWrap">
+          <div>
+            <h2>Virtual Circuit Lab</h2>
+            <div class="sub">Drag components • Connect terminals • Edit values dynamically</div>
           </div>
         </div>
+      </div>
 
-        <div class="panel scope-panel">
-          <div class="panelLabel"><span>Oscilloscope (Node Voltage)</span></div>
-          <div class="chartWrap" style="height: 180px;">
-            <canvas id="scopeCanvas"></canvas>
-          </div>
+      <div class="simContainer">
+        <div class="workspace" id="workspace">
+          <svg id="wireCanvas"></svg>
         </div>
-      </section>
 
+        <div class="panel">
+          <div class="colHead">Properties</div>
+          
+          <div id="noSelection" style="font-size: 12px; font-weight: 800; color: rgba(9, 16, 42, 0.55);">
+            Select a component to edit its values.
+          </div>
+
+          <div id="configForm" style="display: none; flex-direction: column; gap: 16px;">
+            <div class="group">
+              <label>Designator</label>
+              <input type="text" id="propName" autocomplete="off">
+            </div>
+            <div class="group">
+              <label>Value</label>
+              <input type="number" id="propValue" step="any" autocomplete="off">
+            </div>
+            <div class="group">
+              <label>Unit</label>
+              <input type="text" id="propUnit" autocomplete="off">
+            </div>
+          </div>
+
+          <div style="flex-grow: 1;"></div>
+          
+          <button class="primaryBtn" type="button" id="clearWiresBtn">Clear Wires</button>
+          <div class="hint">Click & drag between circular terminals to route wires.</div>
+        </div>
+      </div>
     </div>
   </main>
-  
+
   <div id="footer"></div>
+  <script>
+    fetch('../components/footer.html')
+      .then(res => res.ok ? res.text() : '')
+      .then(data => { 
+        if(data) {
+          document.getElementById('footer').innerHTML = data;
+          const currentYear = document.getElementById('year');
+          if (currentYear) currentYear.textContent = new Date().getFullYear();
+        }
+      })
+      .catch(e => console.log("Footer skipped (local or path issue)"));
+  </script>
+
+  <script src="../../js/global.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
