@@ -1,0 +1,140 @@
+main {
+  padding: 44px 0 70px;
+}
+
+/* Builder Layout Grid */
+.builder-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  grid-template-rows: minmax(500px, 60vh) auto;
+  gap: 16px;
+}
+
+.builder-sidebar {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.builder-workspace {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.builder-instruments {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 16px;
+}
+
+/* Reusing your Panel Styles */
+.panel {
+  border: 1px solid rgba(9,16,42,.12);
+  border-radius: var(--radius, 16px);
+  background: rgba(255,255,255,.85);
+  padding: 16px;
+  box-shadow: 0 10px 20px rgba(16,24,40,.06);
+}
+
+.panelLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 900;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.colHead {
+  font-weight: 1000;
+  font-size: 13px;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  color: rgba(9,16,42,.88);
+  border-bottom: 2px solid rgba(9,16,42,.14);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+/* Sidebar Buttons */
+.tool-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modeBtn {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(9,16,42,.10);
+  border-radius: 12px;
+  padding: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  background: rgba(9,16,42,.04);
+  color: rgba(9,16,42,.75);
+  transition: all .15s ease;
+}
+
+.modeBtn:hover {
+  background: rgba(9,16,42,.08);
+  transform: translateY(-1px);
+}
+
+.modeBtn.active {
+  background: linear-gradient(135deg, rgba(8,181,141,.12), rgba(63,111,255,.12));
+  color: #06101a;
+  border-color: rgba(63,111,255,.3);
+  box-shadow: 0 4px 10px rgba(16,24,40,.05);
+}
+
+/* The Dotted Canvas */
+.grid-canvas {
+  flex: 1;
+  background-color: #ffffff;
+  border: 2px solid rgba(9,16,42,.08);
+  border-radius: 12px;
+  /* Creates a dotted grid pattern */
+  background-image: radial-gradient(rgba(9,16,42,.2) 1px, transparent 1px);
+  background-size: 20px 20px;
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+/* DMM Screen */
+.dmm-screen {
+  background: #11151c;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: inset 0 4px 10px rgba(0,0,0,0.5);
+  border: 4px solid #333;
+  height: 100px;
+}
+
+.dmm-val {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: #08b58d;
+  font-size: 32px;
+  font-weight: 900;
+  text-shadow: 0 0 8px rgba(8,181,141,0.5);
+}
+
+/* Responsive adjustments */
+@media (max-width: 980px) {
+  .builder-layout, .builder-instruments {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+  .builder-sidebar, .builder-workspace, .builder-instruments {
+    grid-column: 1;
+  }
+}

@@ -1,240 +1,216 @@
-class CircuitApp {
-  constructor() {
-    this.canvas = document.getElementById('circuitCanvas');
-    this.ctx = this.canvas.getContext('2d');
-    
-    this.oscCanvas = document.getElementById('oscCanvas');
-    this.oscCtx = this.oscCanvas.getContext('2d');
+let simChart = null;
 
-    this.gridSize = 20;
-    this.components = [];
-    this.wires = [];
-    this.currentTool = null;
-    
-    this.isDrawingWire = false;
-    this.wireStart = null;
-    
-    this.selectedComponent = null;
+let params = { type: 'DC', V: 10, freq: 0.5, R: 10, L: 2.0, C: 100, probe: 'VC' };
+let state = { q: 0, i: 0 }; // q = charge (Coulombs), i = current (Amps)
 
-    // Simulation Time
-    this.time = 0;
+const MAX_HISTORY = 600;
+const DT_FRAME = 0.02; 
 
-    this.resize();
-    window.addEventListener('resize', () => this.resize());
-    
-    this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
-    
-    // Start animation loop
-    requestAnimationFrame(() => this.loop());
-  }
+let tSeries = [];
+let vSrcSeries = [];
+let probeSeries = [];
+let simTime = 0;
 
-  resize() {
-    this.canvas.width = this.canvas.parentElement.clientWidth;
-    this.canvas.height = this.canvas.parentElement.clientHeight;
-    
-    this.oscCanvas.width = this.oscCanvas.parentElement.clientWidth;
-    this.oscCanvas.height = this.oscCanvas.parentElement.clientHeight - 30; // offset for title
-  }
+let lastChartUpdate = 0;
+const CHART_UPDATE_MS = 80;
 
-  setTool(tool) {
-    this.currentTool = tool;
-    console.log("Tool selected:", tool);
-  }
+init();
 
-  // Handle Canvas Clicks
-  handleMouseDown(e) {
-    const rect = this.canvas.getBoundingClientRect();
-    const rawX = e.clientX - rect.left;
-    const rawY = e.clientY - rect.top;
-    
-    // Snap to grid
-    const x = Math.round(rawX / this.gridSize) * this.gridSize;
-    const y = Math.round(rawY / this.gridSize) * this.gridSize;
+function init() {
+  bindInputs();
+  makeCharts();
+  updateUI();
 
-    if (this.currentTool === 'Wire') {
-      if (!this.isDrawingWire) {
-        this.isDrawingWire = true;
-        this.wireStart = { x, y };
-      } else {
-        this.wires.push({ start: this.wireStart, end: { x, y } });
-        this.isDrawingWire = false;
-        this.wireStart = null;
-      }
-    } else if (['Resistor', 'Capacitor', 'Inductor', 'DC_Source', 'AC_Source'].includes(this.currentTool)) {
-      this.components.push({
-        type: this.currentTool,
-        x: x,
-        y: y,
-        value: 10, // Default value
-        rotation: 0
-      });
-      this.currentTool = null; // Reset tool after placement
-    } else {
-      // Check for component click to open properties
-      const clicked = this.components.find(c => 
-        Math.abs(c.x - x) < 30 && Math.abs(c.y - y) < 30
-      );
-      if (clicked) {
-        this.openProperties(clicked);
+  const revealEls = document.querySelectorAll(".reveal");
+  const io = new IntersectionObserver((entries) => {
+    for(const e of entries){
+      if(e.isIntersecting){
+        e.target.classList.add("isVisible");
+        io.unobserve(e.target);
       }
     }
-  }
+  }, {threshold: 0.12});
+  revealEls.forEach(el => io.observe(el));
 
-  // UI Modal Handling
-  openProperties(comp) {
-    this.selectedComponent = comp;
-    document.getElementById('propertiesModal').style.display = 'block';
-    document.getElementById('propTitle').innerText = `${comp.type} Properties`;
-    
-    let unit = "Ohms (Ω)";
-    if (comp.type === 'Capacitor') unit = "Microfarads (μF)";
-    if (comp.type === 'Inductor') unit = "Millihenrys (mH)";
-    if (comp.type.includes('Source')) unit = "Volts (V)";
-    
-    document.getElementById('propLabel').innerText = `Value in ${unit}:`;
-    document.getElementById('propInput').value = comp.value;
-  }
+  requestAnimationFrame(loop);
+}
 
-  closeProperties() {
-    document.getElementById('propertiesModal').style.display = 'none';
-    this.selectedComponent = null;
-  }
-
-  saveProperties() {
-    if (this.selectedComponent) {
-      this.selectedComponent.value = parseFloat(document.getElementById('propInput').value);
+function makeCharts() {
+  const simCtx = document.getElementById('simCanvas').getContext('2d');
+  simChart = new Chart(simCtx, {
+    type: 'line',
+    data: {
+      labels: tSeries,
+      datasets: [
+        {
+          label: 'CH1: V_Source',
+          data: vSrcSeries,
+          borderWidth: 2,
+          pointRadius: 0,
+          borderDash: [6, 6],
+          tension: 0.1,
+          borderColor: '#08b58d'
+        },
+        {
+          label: 'CH2: Probe',
+          data: probeSeries,
+          borderWidth: 3,
+          pointRadius: 0,
+          tension: 0.1,
+          borderColor: '#3f6fff'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: true } },
+      scales: {
+        x: {
+          type: 'linear',
+          title: { display: true, text: 'Time (s)' },
+        },
+        y: {
+          title: { display: true, text: 'Amplitude' },
+          suggestedMin: -20,
+          suggestedMax: 20
+        }
+      }
     }
-    this.closeProperties();
-  }
+  });
+}
 
-  // --- Rendering Engine ---
-  drawGrid() {
-    this.ctx.strokeStyle = '#E5E5E5';
-    this.ctx.lineWidth = 1;
-    for (let x = 0; x < this.canvas.width; x += this.gridSize) {
-      this.ctx.beginPath(); this.ctx.moveTo(x, 0); this.ctx.lineTo(x, this.canvas.height); this.ctx.stroke();
-    }
-    for (let y = 0; y < this.canvas.height; y += this.gridSize) {
-      this.ctx.beginPath(); this.ctx.moveTo(0, y); this.ctx.lineTo(this.canvas.width, y); this.ctx.stroke();
-    }
-  }
-
-  drawComponent(c) {
-    this.ctx.save();
-    this.ctx.translate(c.x, c.y);
-    this.ctx.rotate(c.rotation);
-    this.ctx.strokeStyle = '#000';
-    this.ctx.lineWidth = 2;
-    this.ctx.fillStyle = '#fff';
-
-    // Academic Textbook style drawing
-    this.ctx.beginPath();
-    if (c.type === 'Resistor') {
-      this.ctx.moveTo(-20, 0); this.ctx.lineTo(-10, 0);
-      this.ctx.lineTo(-5, -10); this.ctx.lineTo(5, 10); this.ctx.lineTo(10, 0);
-      this.ctx.lineTo(20, 0);
-    } else if (c.type === 'Capacitor') {
-      this.ctx.moveTo(-20, 0); this.ctx.lineTo(-5, 0);
-      this.ctx.moveTo(-5, -15); this.ctx.lineTo(-5, 15);
-      this.ctx.moveTo(5, -15); this.ctx.lineTo(5, 15);
-      this.ctx.moveTo(5, 0); this.ctx.lineTo(20, 0);
-    } else if (c.type === 'DC_Source') {
-      this.ctx.arc(0, 0, 15, 0, Math.PI * 2);
-      this.ctx.moveTo(-20, 0); this.ctx.lineTo(-15, 0);
-      this.ctx.moveTo(15, 0); this.ctx.lineTo(20, 0);
-      this.ctx.fillText("+", -5, -5);
-      this.ctx.fillText("-", -5, 12);
-    } else {
-      // Generic block for Inductors/AC for now
-      this.ctx.rect(-15, -10, 30, 20);
-      this.ctx.moveTo(-20, 0); this.ctx.lineTo(-15, 0);
-      this.ctx.moveTo(15, 0); this.ctx.lineTo(20, 0);
-    }
-    this.ctx.stroke();
-
-    // Value Label
-    this.ctx.fillStyle = '#000';
-    this.ctx.font = '14px "Cambria Math"';
-    this.ctx.fillText(`${c.value}`, -10, -20);
-    
-    this.ctx.restore();
-  }
-
-  drawOscilloscope() {
-    this.oscCtx.clearRect(0, 0, this.oscCanvas.width, this.oscCanvas.height);
-    
-    // Draw Grid
-    this.oscCtx.strokeStyle = '#E5E5E5';
-    this.oscCtx.lineWidth = 1;
-    const midY = this.oscCanvas.height / 2;
-    
-    this.oscCtx.beginPath();
-    this.oscCtx.moveTo(0, midY);
-    this.oscCtx.lineTo(this.oscCanvas.width, midY);
-    this.oscCtx.stroke();
-
-    // Mock Simulation Data Stream based on components
-    // (In a full build, this hooks into the MNA node voltages)
-    let amplitude = 0;
-    let freq = 0.05;
-    
-    const hasAC = this.components.find(c => c.type === 'AC_Source');
-    const hasDC = this.components.find(c => c.type === 'DC_Source');
-    
-    if (hasAC) amplitude = hasAC.value;
-    else if (hasDC) amplitude = hasDC.value;
-
-    this.oscCtx.strokeStyle = '#000'; // Strict academic black trace
-    this.oscCtx.lineWidth = 2;
-    this.oscCtx.beginPath();
-    
-    for (let x = 0; x < this.oscCanvas.width; x++) {
-      // Simulate signal: DC is flat, AC is sine
-      let signal = hasAC ? Math.sin((x + this.time) * freq) : 1;
-      let y = midY - (signal * amplitude * 2); 
-      
-      if (x === 0) this.oscCtx.moveTo(x, y);
-      else this.oscCtx.lineTo(x, y);
-    }
-    this.oscCtx.stroke();
-    
-    // Update DMM reading dynamically
-    if (hasAC || hasDC) {
-      document.getElementById('dmmValue').innerText = (hasAC ? amplitude * 0.707 : amplitude).toFixed(2) + " V";
-    }
-  }
-
-  loop() {
-    this.time += 2; // Advance time for oscilloscope
-
-    // Clear Canvas
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.drawGrid();
-
-    // Draw Wires
-    this.ctx.strokeStyle = '#000';
-    this.ctx.lineWidth = 2;
-    this.wires.forEach(w => {
-      this.ctx.beginPath();
-      this.ctx.moveTo(w.start.x, w.start.y);
-      this.ctx.lineTo(w.end.x, w.end.y);
-      this.ctx.stroke();
+function bindInputs() {
+  const bindVal = (id, key) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('input', e => {
+      params[key] = parseFloat(e.target.value);
+      const valEl = document.getElementById(id.replace('inp', 'val'));
+      if(valEl) valEl.innerText = params[key];
     });
+  };
 
-    // Draw active wire
-    if (this.isDrawingWire && this.wireStart) {
-      // We would normally track mouse position here, but omitted for brevity
+  bindVal('inp-v', 'V');
+  bindVal('inp-freq', 'freq');
+  bindVal('inp-r', 'R');
+  bindVal('inp-l', 'L');
+  bindVal('inp-c', 'C');
+
+  document.getElementById('inp-type').addEventListener('change', e => {
+    params.type = e.target.value;
+    updateUI();
+  });
+  document.getElementById('inp-probe').addEventListener('change', e => {
+    params.probe = e.target.value;
+    simChart.data.datasets[1].label = `CH2: ${e.target.options[e.target.selectedIndex].text}`;
+  });
+}
+
+function updateUI() {
+  const isAC = params.type === 'AC';
+  document.querySelectorAll('.param-ac').forEach(e => e.style.display = isAC ? 'block' : 'none');
+  resetSim();
+}
+
+function resetSim() {
+  state = { q: 0, i: 0 };
+  tSeries.length = 0;
+  vSrcSeries.length = 0;
+  probeSeries.length = 0;
+  simTime = 0;
+  document.getElementById('sim-warning').style.display = 'none';
+  simChart.update('none');
+}
+
+function triggerPulse() {
+  // Briefly injects voltage offset
+  state.q += (5 * (params.C / 1000)); 
+}
+
+function updatePhysics() {
+  const SUB = 40; 
+  const DT = DT_FRAME / SUB;
+  let v_src = 0, v_c = 0, v_r = 0, v_l = 0;
+
+  for (let step = 0; step < SUB; step++) {
+    if (params.type === 'DC') {
+      v_src = params.V;
+    } else {
+      v_src = params.V * Math.sin(2 * Math.PI * params.freq * simTime);
     }
 
-    // Draw Components
-    this.components.forEach(c => this.drawComponent(c));
+    // Convert C to Farads (from mF)
+    const C_farads = params.C / 1000.0;
+    
+    v_c = state.q / C_farads;
+    v_r = state.i * params.R;
+    
+    // L * di/dt = V_src - V_R - V_C
+    v_l = v_src - v_r - v_c;
+    const di_dt = v_l / params.L;
 
-    // Update Instruments
-    this.drawOscilloscope();
+    state.i += di_dt * DT;
+    state.q += state.i * DT;
+    simTime += DT;
 
-    requestAnimationFrame(() => this.loop());
+    if (Math.abs(state.i) > 100) {
+      handleCrash();
+      return;
+    }
+  }
+
+  // Determine what CH2 shows
+  let probeVal = 0;
+  if (params.probe === 'I') probeVal = state.i;
+  else if (params.probe === 'VR') probeVal = v_r;
+  else if (params.probe === 'VC') probeVal = v_c;
+  else if (params.probe === 'VL') probeVal = v_l;
+
+  updateDMM(v_src, state.i, v_r, v_c, v_l);
+  pushHistory(v_src, probeVal);
+  updateChartsMaybe();
+}
+
+function updateDMM(vSrc, i, vr, vc, vl) {
+  document.getElementById('dmm-vsrc').innerText = vSrc.toFixed(2) + ' V';
+  document.getElementById('dmm-i').innerText = i.toFixed(3) + ' A';
+  document.getElementById('dmm-vr').innerText = vr.toFixed(2) + ' V';
+  document.getElementById('dmm-vc').innerText = vc.toFixed(2) + ' V';
+  document.getElementById('dmm-vl').innerText = vl.toFixed(2) + ' V';
+}
+
+function pushHistory(ch1, ch2) {
+  tSeries.push(simTime.toFixed(2));
+  vSrcSeries.push(ch1);
+  probeSeries.push(ch2);
+
+  if (tSeries.length > MAX_HISTORY) {
+    tSeries.shift();
+    vSrcSeries.shift();
+    probeSeries.shift();
   }
 }
 
-// Initialize application
-const app = new CircuitApp();
+function updateChartsMaybe() {
+  const now = performance.now();
+  if (now - lastChartUpdate < CHART_UPDATE_MS) return;
+  lastChartUpdate = now;
+
+  let minX = (simTime <= 10) ? 0 : simTime - 10;
+  simChart.options.scales.x.min = minX;
+  simChart.options.scales.x.max = minX + 10;
+  simChart.update('none');
+}
+
+function handleCrash() {
+  document.getElementById('sim-warning').style.display = 'flex';
+  setTimeout(() => resetSim(), 1500);
+}
+
+function loop() {
+  updatePhysics();
+  requestAnimationFrame(loop);
+}
