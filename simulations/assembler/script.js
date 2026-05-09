@@ -50,6 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const t = tok.trim();
         if(!t) return null;
         
+        // Single or double quotes (e.g. 'A' or 'AB')
         if((t.startsWith("'") && t.endsWith("'")) || (t.startsWith('"') && t.endsWith('"'))) {
             const str = t.slice(1, -1);
             if (str.length === 1) return str.charCodeAt(0);
@@ -876,7 +877,6 @@ document.addEventListener("DOMContentLoaded", () => {
         ip = 0;
         dataPtr = dataPtrDefault;
         
-        // MODIFIED: Injected LOOP conditional variants
         const controlFlowOps = [
           "JMP", "JZ", "JE", "JNZ", "JNE", "CALL", "JP", "JPE", "JNP", "JPO",
           "JG", "JGE", "JL", "JLE", "JA", "JAE", "JB", "JBE", "JC", "JNC", "JCXZ",
@@ -1546,7 +1546,6 @@ document.addEventListener("DOMContentLoaded", () => {
               break;
             }
 
-            // INJECTED: Complete LOOP* instruction variants
             case "LOOP":{
               if(inst.args.length !== 1) throw new Error("LOOP needs 1 operand");
               setReg16("CX", (getReg16("CX") - 1) & 0xFFFF);
@@ -1559,7 +1558,6 @@ document.addEventListener("DOMContentLoaded", () => {
               if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
               setReg16("CX", (getReg16("CX") - 1) & 0xFFFF);
               const target = evalOperand(a0);
-              // Loop if CX != 0 AND Zero Flag is SET (Equal/Zero)
               cpu.regs.IP = (getReg16("CX") !== 0 && cpu.flags.ZF === 1) ? clamp16(target) : nextIP;
               cpu.cycles++;
               break;
@@ -1568,12 +1566,12 @@ document.addEventListener("DOMContentLoaded", () => {
               if(inst.args.length !== 1) throw new Error(op + " needs 1 operand");
               setReg16("CX", (getReg16("CX") - 1) & 0xFFFF);
               const target = evalOperand(a0);
-              // Loop if CX != 0 AND Zero Flag is CLEAR (Not Equal/Not Zero)
               cpu.regs.IP = (getReg16("CX") !== 0 && cpu.flags.ZF === 0) ? clamp16(target) : nextIP;
               cpu.cycles++;
               break;
             }
 
+            // MODIFIED: تفعيل حقيقي للمقاطعات وإدخال المستخدم
             case "INT": {
               if(inst.args.length !== 1) throw new Error("INT needs 1 operand");
               const intNum = evalOperand(a0) & 0xFF;
@@ -1613,15 +1611,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 if(func === 0x01) {
                   // Read character from stdin (with echo)
-                  // For now, just clear AL (no input available)
-                  setReg8("AL", 0);
+                  let input = prompt("INT 21h, AH=01h - Read Character:\nPlease enter a single character:");
+                  let charCode = (input && input.length > 0) ? input.charCodeAt(0) : 0;
+                  setReg8("AL", charCode);
+                  if (charCode !== 0) {
+                      screenWriteChar(String.fromCharCode(charCode));
+                  }
                 }
                 else if(func === 0x02) {
                   // Write character: DL contains the character
                   const ch = String.fromCharCode(getReg8("DL"));
                   if(ch === '\n' || ch === '\r'){
                     screenCurCol = 0;
-                    if(ch === '\n' || ch === '\r'){
+                    if(ch === '\n'){ // \r only returns to column 0, \n goes down
                       screenCurRow++;
                       if(screenCurRow >= SCREEN_ROWS){
                         screenCurRow = SCREEN_ROWS - 1;
@@ -1636,33 +1638,60 @@ document.addEventListener("DOMContentLoaded", () => {
                   // Write string: DS:DX points to string, $ terminated
                   let addr = clamp20((getReg16("DS") << 4) + getReg16("DX"));
                   let byte = read8(addr);
-                  while(byte !== 0x24 && byte !== 0){  // 0x24 is '$'
+                  let limit = 0; // Protection against infinite loop
+                  while(byte !== 0x24 && byte !== 0 && limit < 2000){  // 0x24 is '$'
                     const ch = String.fromCharCode(byte);
                     if(ch === '\n' || ch === '\r'){
                       screenCurCol = 0;
-                      screenCurRow++;
-                      if(screenCurRow >= SCREEN_ROWS){
-                        screenCurRow = SCREEN_ROWS - 1;
-                        scrollScreenUp(1);
+                      if(ch === '\n'){
+                        screenCurRow++;
+                        if(screenCurRow >= SCREEN_ROWS){
+                          screenCurRow = SCREEN_ROWS - 1;
+                          scrollScreenUp(1);
+                        }
                       }
                     } else {
                       screenWriteChar(ch);
                     }
                     addr++;
                     byte = read8(addr);
+                    limit++;
                   }
                 }
                 else if(func === 0x0A) {
                   // Read line: DS:DX points to input buffer
                   // Format: [max_len][actual_len][buffer]
                   const bufAddr = clamp20((getReg16("DS") << 4) + getReg16("DX"));
-                  // For now, just clear the actual_len field
-                  write8(bufAddr + 1, 0);
+                  const maxLen = read8(bufAddr);
+                  if (maxLen > 0) {
+                      let input = prompt(`INT 21h, AH=0Ah - Read String:\nEnter up to ${maxLen - 1} characters:`) || "";
+                      input = input.substring(0, maxLen - 1); 
+                      write8(bufAddr + 1, input.length); 
+                      for (let i = 0; i < input.length; i++) {
+                          write8(bufAddr + 2 + i, input.charCodeAt(i));
+                          screenWriteChar(input[i]); 
+                      }
+                      write8(bufAddr + 2 + input.length, 0x0D); 
+                  }
                 }
+                else if (func === 0x4C) {
+                  // Exit Program
+                  logLine("Program terminated by INT 21h, AH=4Ch", "ok");
+                  setStatus("Stopped (INT 21h)","ok");
+                  cpu.regs.IP = nextIP;
+                  return false; 
+                }
+              }
+              else if (intNum === 0x20) {
+                  // Program Terminate
+                  logLine("Program terminated by INT 20h", "ok");
+                  setStatus("Stopped (INT 20h)","ok");
+                  cpu.regs.IP = nextIP;
+                  return false;
               }
               
               cpu.regs.IP = nextIP;
-              cpu.cycles++;
+              cpu.cycles += 10; // generic cycle cost
               refreshScreen();
               break;
             }
