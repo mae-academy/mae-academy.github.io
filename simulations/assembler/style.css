@@ -330,16 +330,16 @@
     .screenDisplay{
       border:1px solid rgba(9,16,42,.12);
       border-radius:16px;
-      background: #000;
+      background: #000; /* حافظ على الخلفية السوداء الأساسية هنا */
       padding:12px;
       overflow:auto;
       max-height:360px;
       font-family:var(--mono);
       font-size:11px;
       line-height:1.4;
-      color: #00ff00;
+      /* color: #00ff00;  <--- احذف هذا السطر تماماً */
       white-space:pre;
-      box-shadow: inset 0 1px 0 rgba(15,23,42,.04), 0 0 12px rgba(0,255,0,.08);
+      box-shadow: inset 0 1px 0 rgba(15,23,42,.04);
       letter-spacing:0.5px;
     }
     .screenDisplay .line{
