@@ -102,6 +102,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const dataPtrDefault = 0x0100;
       let breakpoints = new Set();
 
+      // --- Screen Display (25x80) ---
+      const SCREEN_ROWS = 25;
+      const SCREEN_COLS = 80;
+      let screen = [];
+      for(let i=0; i<SCREEN_ROWS; i++) screen[i] = new Array(SCREEN_COLS).fill(' ');
+      let screenCurRow = 0;
+      let screenCurCol = 0;
+
       // --- Time-Travel Debugging & Memory Sync Variables ---
       let executionHistory = [];
       let memChangesThisStep = [];
@@ -428,6 +436,62 @@ document.addEventListener("DOMContentLoaded", () => {
         write8(a+1, (d >>> 8) & 0xFF);
         write8(a+2, (d >>> 16) & 0xFF);
         write8(a+3, (d >>> 24) & 0xFF);
+      }
+
+      // ---- Screen Display Functions (INT 10h, INT 21h) ----
+      function refreshScreen(){
+        const screenEl = el("screenDisplay");
+        if(!screenEl) return;
+        let html = "";
+        for(let r=0; r<SCREEN_ROWS; r++){
+          let line = "";
+          for(let c=0; c<SCREEN_COLS; c++){
+            const ch = screen[r][c] || ' ';
+            line += ch.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;');
+          }
+          html += `<div class="line">${line}</div>`;
+        }
+        screenEl.innerHTML = html;
+      }
+
+      function screenWriteChar(ch){
+        screen[screenCurRow][screenCurCol] = ch;
+        screenCurCol++;
+        if(screenCurCol >= SCREEN_COLS){
+          screenCurCol = 0;
+          screenCurRow++;
+          if(screenCurRow >= SCREEN_ROWS){
+            screenCurRow = SCREEN_ROWS - 1;
+            scrollScreenUp(1);
+          }
+        }
+      }
+
+      function scrollScreenUp(lines){
+        for(let i=0; i<lines && i<SCREEN_ROWS; i++){
+          screen.shift();
+          screen.push(new Array(SCREEN_COLS).fill(' '));
+        }
+      }
+
+      function scrollScreenDown(lines){
+        for(let i=0; i<lines && i<SCREEN_ROWS; i++){
+          screen.pop();
+          screen.unshift(new Array(SCREEN_COLS).fill(' '));
+        }
+      }
+
+      function screenClearArea(top, left, bottom, right, attr){
+        for(let r=top; r<=bottom && r<SCREEN_ROWS; r++){
+          for(let c=left; c<=right && c<SCREEN_COLS; c++){
+            screen[r][c] = ' ';
+          }
+        }
+      }
+
+      function screenSetCursor(row, col){
+        screenCurRow = Math.max(0, Math.min(row, SCREEN_ROWS-1));
+        screenCurCol = Math.max(0, Math.min(col, SCREEN_COLS-1));
       }
 
       function parseMemInside(inside){
@@ -920,10 +984,16 @@ document.addEventListener("DOMContentLoaded", () => {
         executionHistory = []; 
         lastModifiedAddrs.clear(); 
         
+        // Clear screen
+        for(let i=0; i<SCREEN_ROWS; i++) screen[i] = new Array(SCREEN_COLS).fill(' ');
+        screenCurRow = 0;
+        screenCurCol = 0;
+        
         if(!keepMemory) mem.fill(0);
         updateUI();
         refreshGutter();
         refreshMemory();
+        refreshScreen();
       }
 
       function stepOnce(){
@@ -1504,6 +1574,99 @@ document.addEventListener("DOMContentLoaded", () => {
               break;
             }
 
+            case "INT": {
+              if(inst.args.length !== 1) throw new Error("INT needs 1 operand");
+              const intNum = evalOperand(a0) & 0xFF;
+              
+              if(intNum === 0x10) {
+                // INT 10h - BIOS Video Services
+                const func = getReg8("AH");
+                
+                if(func === 0x02) {
+                  // Set cursor position: DH=row, DL=col
+                  screenSetCursor(getReg8("DH"), getReg8("DL"));
+                } 
+                else if(func === 0x06) {
+                  // Scroll up: AL=lines, CH=top row, CL=left col, DH=bottom row, DL=right col, BH=attr
+                  const lines = getReg8("AL") || 1;
+                  const top = getReg8("CH");
+                  const left = getReg8("CL");
+                  const bottom = getReg8("DH");
+                  const right = getReg8("DL");
+                  screenClearArea(top, left, bottom, right, getReg8("BH"));
+                  scrollScreenUp(lines);
+                }
+                else if(func === 0x07) {
+                  // Scroll down: AL=lines, CH=top row, CL=left col, DH=bottom row, DL=right col, BH=attr
+                  const lines = getReg8("AL") || 1;
+                  const top = getReg8("CH");
+                  const left = getReg8("CL");
+                  const bottom = getReg8("DH");
+                  const right = getReg8("DL");
+                  screenClearArea(top, left, bottom, right, getReg8("BH"));
+                  scrollScreenDown(lines);
+                }
+              }
+              else if(intNum === 0x21) {
+                // INT 21h - DOS Services
+                const func = getReg8("AH");
+                
+                if(func === 0x01) {
+                  // Read character from stdin (with echo)
+                  // For now, just clear AL (no input available)
+                  setReg8("AL", 0);
+                }
+                else if(func === 0x02) {
+                  // Write character: DL contains the character
+                  const ch = String.fromCharCode(getReg8("DL"));
+                  if(ch === '\n' || ch === '\r'){
+                    screenCurCol = 0;
+                    if(ch === '\n' || ch === '\r'){
+                      screenCurRow++;
+                      if(screenCurRow >= SCREEN_ROWS){
+                        screenCurRow = SCREEN_ROWS - 1;
+                        scrollScreenUp(1);
+                      }
+                    }
+                  } else {
+                    screenWriteChar(ch);
+                  }
+                }
+                else if(func === 0x09) {
+                  // Write string: DS:DX points to string, $ terminated
+                  let addr = clamp20((getReg16("DS") << 4) + getReg16("DX"));
+                  let byte = read8(addr);
+                  while(byte !== 0x24 && byte !== 0){  // 0x24 is '$'
+                    const ch = String.fromCharCode(byte);
+                    if(ch === '\n' || ch === '\r'){
+                      screenCurCol = 0;
+                      screenCurRow++;
+                      if(screenCurRow >= SCREEN_ROWS){
+                        screenCurRow = SCREEN_ROWS - 1;
+                        scrollScreenUp(1);
+                      }
+                    } else {
+                      screenWriteChar(ch);
+                    }
+                    addr++;
+                    byte = read8(addr);
+                  }
+                }
+                else if(func === 0x0A) {
+                  // Read line: DS:DX points to input buffer
+                  // Format: [max_len][actual_len][buffer]
+                  const bufAddr = clamp20((getReg16("DS") << 4) + getReg16("DX"));
+                  // For now, just clear the actual_len field
+                  write8(bufAddr + 1, 0);
+                }
+              }
+              
+              cpu.regs.IP = nextIP;
+              cpu.cycles++;
+              refreshScreen();
+              break;
+            }
+
             default:
               throw new Error(`Unknown instruction "${op}"`);
           }
@@ -1554,7 +1717,7 @@ document.addEventListener("DOMContentLoaded", () => {
             setStatus(`Paused at breakpoint (line ${curLine})`,"run");
             logLine(`Paused at breakpoint on line ${curLine}.`, "warn");
             autoSyncMemoryView();
-            updateUI(); refreshMemory(); refreshGutter();
+            updateUI(); refreshMemory(); refreshGutter(); refreshScreen();
             return;
           }
 
@@ -1562,7 +1725,7 @@ document.addEventListener("DOMContentLoaded", () => {
           steps++;
           if(!ok) {
               autoSyncMemoryView();
-              updateUI(); refreshMemory(); refreshGutter();
+              updateUI(); refreshMemory(); refreshGutter(); refreshScreen();
               return;
           }
 
@@ -1570,7 +1733,7 @@ document.addEventListener("DOMContentLoaded", () => {
             setStatus("Paused (Trap Flag)", "run");
             logLine(`Trap Flag active: Paused after instruction at line ${curLine}.`, "warn");
             autoSyncMemoryView();
-            updateUI(); refreshMemory(); refreshGutter();
+            updateUI(); refreshMemory(); refreshGutter(); refreshScreen();
             return;
           }
         }
@@ -1578,7 +1741,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setStatus("Stopped (max steps)","err");
         logLine("Stopped: exceeded max steps (possible infinite loop).", "err");
         autoSyncMemoryView();
-        updateUI(); refreshMemory(); refreshGutter();
+        updateUI(); refreshMemory(); refreshGutter(); refreshScreen();
       }
 
       // ---- UI ----
@@ -1698,6 +1861,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateUI(); 
         refreshMemory(); 
         refreshGutter();
+        refreshScreen();
 
         if(!ok) setStatus("Stopped","ok");
       });
@@ -1728,6 +1892,7 @@ document.addEventListener("DOMContentLoaded", () => {
           updateUI();
           refreshMemory();
           refreshGutter();
+          refreshScreen();
           const currentLine = ipToLine.get(cpu.regs.IP);
           logLine(`Stepped back to line ${currentLine !== undefined ? currentLine : '?'}.`, "ok");
         });
@@ -1959,6 +2124,7 @@ HLT
         refreshGutter();
         updateUI();
         refreshMemory();
+        refreshScreen();
         setStatus("Idle","idle");
         clearOutput();
         logLine("Tip: Assemble first to validate OFFSET/DB/DW/DD and labels.", "ok");

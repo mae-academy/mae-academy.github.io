@@ -92,6 +92,7 @@
                 <span>Inspector</span>
                 <div class="tabs">
                   <div class="tab active" data-tab="memory">Memory</div>
+                  <div class="tab" data-tab="screen">Screen</div>
                   <div class="tab" data-tab="output">Output</div>
                 </div>
               </div>
@@ -104,6 +105,11 @@
                     <span class="pill">64KB RAM</span>
                   </div>
                   <div class="memDump" id="memDump"></div>
+                </div>
+
+                <div class="tabContent" id="tab-screen">
+                  <div class="screenDisplay" id="screenDisplay"></div>
+                  <div class="hint">INT 10h (02h, 06h, 07h) • INT 21h (01h, 02h, 09h, 0Ah)</div>
                 </div>
 
                 <div class="tabContent" id="tab-output">

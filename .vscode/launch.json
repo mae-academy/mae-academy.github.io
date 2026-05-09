@@ -16,7 +16,7 @@
             "type": "chrome",
             "request": "launch",
             "name": "Launch Chrome against localhost",
-            "url": "https://mae-academy.github.io/simulations/circuit-lab/",
+            "url": "https://mae-academy.github.io/simulations/assembler/",
             "webRoot": "${workspaceFolder}"
         }
     ]

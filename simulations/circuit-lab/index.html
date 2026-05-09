@@ -9,30 +9,106 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  
+  <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
 
   <link rel="stylesheet" href="../../css/global.css">
-  <link rel="stylesheet" href="style.css">
 
   <style>
     body { background-color: #f7f9fa; margin: 0; padding: 0; }
     .container { max-width: 1400px; margin: 0 auto; padding: 40px 20px; }
+
+    /* Header Alignment (Matching Simulations Hub) */
+    .headRow {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      margin-top: 16px; margin-bottom: 44px; flex-wrap: wrap; gap: 16px;
+    }
+    .headRow h1 { margin: 0; font-size: 56px; font-weight: 900; letter-spacing: -2px; line-height: 1.05; color: rgba(9, 16, 42, 0.95); }
+    .headRow .sub { margin-top: 12px; font-size: 16px; font-weight: 700; color: rgba(9, 16, 42, 0.55); }
+    
+    .headerActionBtn {
+      text-decoration: none; background: #ffffff; color: rgba(9, 16, 42, 0.95);
+      border: 1px solid rgba(9, 16, 42, 0.12); padding: 12px 20px; border-radius: 12px;
+      font-weight: 800; font-size: 14px; box-shadow: 0 4px 12px rgba(16, 24, 40, 0.04);
+      transition: transform 0.1s, box-shadow 0.2s; margin-bottom: 6px; 
+    }
+    .headerActionBtn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(16, 24, 40, 0.06); }
+    @media (max-width: 768px) { .headRow h1 { font-size: 40px; letter-spacing: -1px; } .headRow { flex-direction: column; align-items: flex-start; } }
+
+    /* Virtual Lab Styles */
+    .simContainer {
+      position: relative; background-color: rgba(255, 255, 255, 0.80);
+      background-image: radial-gradient(600px 300px at 70% 10%, rgba(8, 181, 141, 0.08), transparent 60%), radial-gradient(600px 300px at 20% 70%, rgba(63, 111, 255, 0.08), transparent 60%);
+      border: 1px solid rgba(9, 16, 42, 0.12); border-radius: calc(16px + 4px);
+      box-shadow: 0 12px 30px rgba(16, 24, 40, 0.08); padding: 20px;
+      display: grid; grid-template-columns: 1fr 300px; gap: 20px; min-height: 700px; z-index: 1;
+    }
+
+    .workspace {
+      position: relative; background-color: rgba(255, 255, 255, 0.6);
+      border: 1px dashed rgba(9, 16, 42, 0.22); border-radius: 16px; z-index: 5;
+      overflow: hidden; min-height: 600px;
+      background-image: linear-gradient(rgba(9, 16, 42, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(9, 16, 42, 0.03) 1px, transparent 1px); background-size: 20px 20px;
+    }
+    #wireCanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+    .wire { stroke: #3f6fff; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .wire-active { stroke: #08b58d; stroke-dasharray: 8 4; animation: dash 1s linear infinite; }
+    @keyframes dash { to { stroke-dashoffset: -12; } }
+
+    /* Components & Icons */
+    .component {
+      position: absolute; background: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(9, 16, 42, 0.12); border-radius: 12px;
+      box-shadow: 0 10px 20px rgba(16, 24, 40, 0.06); padding: 8px 12px; z-index: 10;
+      cursor: grab; user-select: none; transition: border-color 0.2s, box-shadow 0.2s;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .component:active { cursor: grabbing; }
+    .component.selected { border-color: rgba(63, 111, 255, 0.6); box-shadow: 0 0 0 4px rgba(63, 111, 255, 0.12); }
+    
+    .comp-icon { font-size: 24px; color: rgba(9, 16, 42, 0.6); margin-bottom: 2px; transition: color 0.2s; }
+    .component.selected .comp-icon { color: #3f6fff; }
+    .comp-title { font-weight: 900; font-size: 13px; text-align: center; color: rgba(9, 16, 42, 0.95); margin-bottom: 2px; }
+    .comp-value { font-weight: 800; font-size: 12px; color: #3f6fff; text-align: center; }
+
+    /* Terminals */
+    .terminal {
+      width: 14px; height: 14px; background: #fff; border: 3px solid rgba(9, 16, 42, 0.6);
+      border-radius: 50%; position: absolute; cursor: crosshair; z-index: 20; transition: transform 0.2s, border-color 0.2s;
+    }
+    .terminal:hover, .terminal.hovered { transform: scale(1.4); border-color: #08b58d; }
+    .terminal-label { position: absolute; font-size: 10px; font-weight: 900; color: rgba(9, 16, 42, 0.55); pointer-events: none; }
+
+    /* Sidebar */
+    .panel {
+      position: relative; background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(9, 16, 42, 0.12);
+      border-radius: 16px; padding: 20px; z-index: 10; display: flex; flex-direction: column; gap: 16px;
+    }
+    .colHead { font-weight: 1000; font-size: 13px; letter-spacing: 0.8px; text-transform: uppercase; color: rgba(9, 16, 42, 0.95); border-bottom: 2px solid rgba(9, 16, 42, 0.12); padding-bottom: 8px; }
+    .group { display: flex; flex-direction: column; gap: 6px; }
+    .group label { font-weight: 800; font-size: 12px; color: rgba(9, 16, 42, 0.95); }
+    input[type="number"], input[type="text"] {
+      width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(9, 16, 42, 0.12);
+      font-weight: 900; background: #fff; outline: none; transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    input:focus { box-shadow: 0 0 0 4px rgba(63, 111, 255, 0.12); border-color: rgba(63, 111, 255, 0.35); }
+    .primaryBtn {
+      width: 100%; border: none; border-radius: 12px; padding: 12px 14px;
+      background: linear-gradient(135deg, #08b58d, #3f6fff); color: #06101a; font-weight: 1000; cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s; margin-top: auto;
+    }
+    .primaryBtn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(16, 24, 40, 0.06); }
+    .hint { font-size: 11px; font-weight: 700; color: rgba(9, 16, 42, 0.55); text-align: center; margin-top: 8px; }
+    @media (max-width: 980px) { .simContainer { grid-template-columns: 1fr; } }
   </style>
 </head>
 
 <body>
   <div id="navbar"></div>
   <script>
-    fetch('../components/navbar.html')
-      .then(res => res.ok ? res.text() : '')
-      .then(data => { 
-        if(data) {
-          document.getElementById('navbar').innerHTML = data;
-          // Dynamically update the header title if your template uses an ID of 'pageTitle'
-          const pageTitle = document.getElementById("pageTitle");
-          if(pageTitle) pageTitle.textContent = "Virtual Circuit Lab";
-        }
-      })
-      .catch(e => console.log("Navbar skipped (local or path issue)"));
+    fetch('../components/navbar.html').then(res => res.ok ? res.text() : '').then(data => { 
+      if(data) { document.getElementById('navbar').innerHTML = data; const pageTitle = document.getElementById("pageTitle"); if(pageTitle) pageTitle.textContent = "Virtual Circuit Lab"; }
+    }).catch(e => console.log("Navbar skipped"));
   </script>
 
   <main id="top">
@@ -40,41 +116,26 @@
       <div class="headRow">
         <div class="titleWrap">
           <div>
-            <h2>Virtual Circuit Lab</h2>
+            <h1>Virtual Circuit Lab</h1>
             <div class="sub">Drag components • Connect terminals • Edit values dynamically</div>
           </div>
         </div>
+        <a href="../index.html" class="headerActionBtn">Simulations</a>
       </div>
 
       <div class="simContainer">
         <div class="workspace" id="workspace">
           <svg id="wireCanvas"></svg>
         </div>
-
         <div class="panel">
           <div class="colHead">Properties</div>
-          
-          <div id="noSelection" style="font-size: 12px; font-weight: 800; color: rgba(9, 16, 42, 0.55);">
-            Select a component to edit its values.
-          </div>
-
+          <div id="noSelection" style="font-size: 12px; font-weight: 800; color: rgba(9, 16, 42, 0.55);">Select a component to edit its values.</div>
           <div id="configForm" style="display: none; flex-direction: column; gap: 16px;">
-            <div class="group">
-              <label>Designator</label>
-              <input type="text" id="propName" autocomplete="off">
-            </div>
-            <div class="group">
-              <label>Value</label>
-              <input type="number" id="propValue" step="any" autocomplete="off">
-            </div>
-            <div class="group">
-              <label>Unit</label>
-              <input type="text" id="propUnit" autocomplete="off">
-            </div>
+            <div class="group"><label>Designator</label><input type="text" id="propName" autocomplete="off"></div>
+            <div class="group"><label>Value</label><input type="number" id="propValue" step="any" autocomplete="off"></div>
+            <div class="group"><label>Unit</label><input type="text" id="propUnit" autocomplete="off"></div>
           </div>
-
           <div style="flex-grow: 1;"></div>
-          
           <button class="primaryBtn" type="button" id="clearWiresBtn">Clear Wires</button>
           <div class="hint">Click & drag between circular terminals to route wires.</div>
         </div>
@@ -84,19 +145,163 @@
 
   <div id="footer"></div>
   <script>
-    fetch('../components/footer.html')
-      .then(res => res.ok ? res.text() : '')
-      .then(data => { 
-        if(data) {
-          document.getElementById('footer').innerHTML = data;
-          const currentYear = document.getElementById('year');
-          if (currentYear) currentYear.textContent = new Date().getFullYear();
-        }
-      })
-      .catch(e => console.log("Footer skipped (local or path issue)"));
+    fetch('../components/footer.html').then(res => res.ok ? res.text() : '').then(data => { 
+      if(data) { document.getElementById('footer').innerHTML = data; const currentYear = document.getElementById('year'); if (currentYear) currentYear.textContent = new Date().getFullYear(); }
+    }).catch(e => console.log("Footer skipped"));
   </script>
 
   <script src="../../js/global.js"></script>
-  <script src="script.js"></script>
+  
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const workspace = document.getElementById('workspace');
+      const svgCanvas = document.getElementById('wireCanvas');
+      const propName = document.getElementById('propName');
+      const propValue = document.getElementById('propValue');
+      const propUnit = document.getElementById('propUnit');
+      const configForm = document.getElementById('configForm');
+      const noSelection = document.getElementById('noSelection');
+
+      if (!workspace || !svgCanvas) return;
+
+      let selectedComponentId = null;
+      let isWiring = false;
+      let activeWireLine = null;
+      let startTerminalId = null;
+      let isDragging = false;
+      let draggedComp = null;
+      let dragElement = null;
+      let dragOffsetX = 0;
+      let dragOffsetY = 0;
+      let wires = [];
+
+      // Component Data with Icons and 75px heights
+      let componentsData = [
+        { id: 'src1', icon: 'tabler:battery-4', name: 'DC Source 1', val: 12, unit: 'V', x: 40, y: 40, w: 120, h: 90, terminals: [{id: 't1', x: 20, y: 90, label: '+'}, {id: 't2', x: 100, y: 90, label: '-'}] },
+        { id: 'src2', icon: 'tabler:wave-sine', name: 'Func Gen', val: 50, unit: 'Hz', x: 40, y: 160, w: 120, h: 90, terminals: [{id: 't3', x: 20, y: 90, label: '+'}, {id: 't4', x: 100, y: 90, label: '-'}] },
+        { id: 'dmm', icon: 'tabler:gauge', name: 'Multimeter', val: 0.00, unit: 'V', x: 220, y: 40, w: 120, h: 90, terminals: [{id: 't5', x: 20, y: 90, label: 'V/Ω'}, {id: 't6', x: 100, y: 90, label: 'COM'}] },
+        { id: 'osc', icon: 'tabler:activity', name: 'Oscilloscope', val: 0, unit: 'ms/div', x: 380, y: 40, w: 180, h: 100, terminals: [{id: 't7', x: 30, y: 100, label: 'CH1+'}, {id: 't8', x: 70, y: 100, label: 'CH1-'}, {id: 't9', x: 110, y: 100, label: 'CH2+'}, {id: 't10', x: 150, y: 100, label: 'CH2-'}] },
+        
+        { id: 'r1', icon: 'tabler:circuit-resistor', name: 'R1', val: 200, unit: 'Ω', x: 200, y: 220, w: 80, h: 75, terminals: [{id: 't11', x: -7, y: 38, label: ''}, {id: 't12', x: 80, y: 38, label: ''}] },
+        { id: 'r2', icon: 'tabler:circuit-resistor', name: 'R2', val: 330, unit: 'Ω', x: 320, y: 220, w: 80, h: 75, terminals: [{id: 't13', x: -7, y: 38, label: ''}, {id: 't14', x: 80, y: 38, label: ''}] },
+        { id: 'c1', icon: 'tabler:circuit-capacitor', name: 'C1', val: 20, unit: 'µF', x: 200, y: 320, w: 80, h: 75, terminals: [{id: 't15', x: -7, y: 38, label: ''}, {id: 't16', x: 80, y: 38, label: ''}] },
+        { id: 'c2', icon: 'tabler:circuit-capacitor', name: 'C2', val: 47, unit: 'µF', x: 320, y: 320, w: 80, h: 75, terminals: [{id: 't17', x: -7, y: 38, label: ''}, {id: 't18', x: 80, y: 38, label: ''}] },
+        { id: 'l1', icon: 'tabler:circuit-inductor', name: 'L1', val: 0.2, unit: 'mH', x: 200, y: 420, w: 80, h: 75, terminals: [{id: 't19', x: -7, y: 38, label: ''}, {id: 't20', x: 80, y: 38, label: ''}] },
+        { id: 'l2', icon: 'tabler:circuit-inductor', name: 'L2', val: 1.0, unit: 'mH', x: 320, y: 420, w: 80, h: 75, terminals: [{id: 't21', x: -7, y: 38, label: ''}, {id: 't22', x: 80, y: 38, label: ''}] }
+      ];
+
+      function renderComponents() {
+        Array.from(workspace.children).forEach(child => { if (child.id !== 'wireCanvas') child.remove(); });
+        componentsData.forEach(comp => {
+          const el = document.createElement('div');
+          el.className = `component ${selectedComponentId === comp.id ? 'selected' : ''}`;
+          el.id = comp.id; el.style.left = comp.x + 'px'; el.style.top = comp.y + 'px';
+          el.style.width = comp.w + 'px'; el.style.height = comp.h + 'px';
+          el.innerHTML = `<div class="comp-icon"><span class="iconify" data-icon="${comp.icon}"></span></div><div class="comp-title">${comp.name}</div><div class="comp-value">${comp.val} ${comp.unit}</div>`;
+          comp.terminals.forEach(term => {
+            const t = document.createElement('div'); t.className = 'terminal'; t.id = term.id;
+            t.style.left = (term.x - 7) + 'px'; t.style.top = (term.y - 7) + 'px';
+            if(term.label) { const lbl = document.createElement('div'); lbl.className = 'terminal-label'; lbl.innerText = term.label; lbl.style.left = '-2px'; lbl.style.top = '-16px'; t.appendChild(lbl); }
+            t.addEventListener('mousedown', (e) => startWiring(e, term.id));
+            t.addEventListener('mouseenter', () => t.classList.add('hovered'));
+            t.addEventListener('mouseleave', () => t.classList.remove('hovered'));
+            t.addEventListener('mouseup', (e) => finishWiring(e, term.id));
+            el.appendChild(t);
+          });
+          el.addEventListener('mousedown', (e) => {
+            if(e.target.classList.contains('terminal')) return;
+            selectComponent(comp.id); isDragging = true; draggedComp = comp; dragElement = el; 
+            dragOffsetX = e.clientX - comp.x; dragOffsetY = e.clientY - comp.y; el.style.zIndex = 100;
+          });
+          workspace.appendChild(el);
+        });
+      }
+
+      function getTerminalCoords(id1, id2) {
+        const t1 = document.getElementById(id1); const t2 = document.getElementById(id2);
+        if(!t1 || !t2) return null;
+        const rect1 = t1.getBoundingClientRect(); const rect2 = t2.getBoundingClientRect(); const wsRect = workspace.getBoundingClientRect();
+        return { x1: rect1.left - wsRect.left + 7, y1: rect1.top - wsRect.top + 7, x2: rect2.left - wsRect.left + 7, y2: rect2.top - wsRect.top + 7 };
+      }
+
+      function generatePath(x1, y1, x2, y2) {
+        const dy = Math.abs(y2 - y1); const controlY = Math.max(y1, y2) + dy * 0.5 + 40; 
+        return `M ${x1} ${y1} C ${x1} ${controlY}, ${x2} ${controlY}, ${x2} ${y2}`;
+      }
+
+      function renderWires() {
+        svgCanvas.innerHTML = '';
+        wires.forEach(wire => {
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          line.setAttribute('class', 'wire');
+          const coords = getTerminalCoords(wire.from, wire.to);
+          if(coords) { line.setAttribute('d', generatePath(coords.x1, coords.y1, coords.x2, coords.y2)); svgCanvas.appendChild(line); }
+        });
+      }
+
+      function startWiring(e, terminalId) {
+        e.stopPropagation(); isWiring = true; startTerminalId = terminalId;
+        activeWireLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        activeWireLine.setAttribute('class', 'wire wire-active'); svgCanvas.appendChild(activeWireLine);
+      }
+
+      function finishWiring(e, terminalId) {
+        e.stopPropagation();
+        if(isWiring && startTerminalId !== terminalId) {
+          const exists = wires.some(w => (w.from === startTerminalId && w.to === terminalId) || (w.to === startTerminalId && w.from === terminalId));
+          if(!exists) wires.push({ from: startTerminalId, to: terminalId });
+        }
+        cleanupWiring(); renderWires();
+      }
+
+      function cleanupWiring() { isWiring = false; startTerminalId = null; if(activeWireLine) { activeWireLine.remove(); activeWireLine = null; } }
+
+      window.addEventListener('mousemove', (e) => {
+        const wsRect = workspace.getBoundingClientRect();
+        if(isWiring && activeWireLine) {
+          const t1 = document.getElementById(startTerminalId); if(!t1) return;
+          const rect1 = t1.getBoundingClientRect();
+          activeWireLine.setAttribute('d', generatePath(rect1.left - wsRect.left + 7, rect1.top - wsRect.top + 7, e.clientX - wsRect.left, e.clientY - wsRect.top));
+        }
+        if(isDragging && draggedComp && dragElement) {
+          let newX = Math.max(0, Math.min(e.clientX - dragOffsetX, wsRect.width - draggedComp.w));
+          let newY = Math.max(0, Math.min(e.clientY - dragOffsetY, wsRect.height - draggedComp.h));
+          draggedComp.x = newX; draggedComp.y = newY; dragElement.style.left = newX + 'px'; dragElement.style.top = newY + 'px'; renderWires();
+        }
+      });
+
+      window.addEventListener('mouseup', () => {
+        if(isWiring) cleanupWiring();
+        if(isDragging && dragElement) { dragElement.style.zIndex = 10; isDragging = false; draggedComp = null; dragElement = null; }
+      });
+
+      function selectComponent(id) {
+        selectedComponentId = id; renderComponents();
+        const comp = componentsData.find(c => c.id === id);
+        if(comp && noSelection && configForm) {
+          noSelection.style.display = 'none'; configForm.style.display = 'flex';
+          if(propName) propName.value = comp.name; if(propValue) propValue.value = comp.val; if(propUnit) propUnit.value = comp.unit;
+        }
+      }
+
+      function updateComponentFromForm() {
+        if(!selectedComponentId) return;
+        const comp = componentsData.find(c => c.id === selectedComponentId);
+        if(comp) {
+          if(propName) comp.name = propName.value; if(propValue) comp.val = parseFloat(propValue.value) || 0; if(propUnit) comp.unit = propUnit.value;
+          const el = document.getElementById(comp.id);
+          if(el) { el.querySelector('.comp-title').innerText = comp.name; el.querySelector('.comp-value').innerText = `${comp.val} ${comp.unit}`; }
+        }
+      }
+
+      if(propName) propName.addEventListener('input', updateComponentFromForm);
+      if(propValue) propValue.addEventListener('input', updateComponentFromForm);
+      if(propUnit) propUnit.addEventListener('input', updateComponentFromForm);
+      const clearBtn = document.getElementById('clearWiresBtn');
+      if(clearBtn) clearBtn.addEventListener('click', () => { wires = []; renderWires(); });
+
+      renderComponents(); renderWires();
+    });
+  </script>
 </body>
 </html>
