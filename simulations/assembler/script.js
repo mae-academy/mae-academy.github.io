@@ -50,6 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const t = tok.trim();
         if(!t) return null;
         
+        // Single or double quotes (e.g. 'A' or 'AB')
         if((t.startsWith("'") && t.endsWith("'")) || (t.startsWith('"') && t.endsWith('"'))) {
             const str = t.slice(1, -1);
             if (str.length === 1) return str.charCodeAt(0);
@@ -106,9 +107,35 @@ document.addEventListener("DOMContentLoaded", () => {
       const SCREEN_ROWS = 25;
       const SCREEN_COLS = 80;
       let screen = [];
-      for(let i=0; i<SCREEN_ROWS; i++) screen[i] = new Array(SCREEN_COLS).fill(' ');
+      
+      const VGA_COLORS = [
+          "#000000", "#0000AA", "#00AA00", "#00AAAA", 
+          "#AA0000", "#AA00AA", "#AA5500", "#AAAAAA",
+          "#555555", "#5555FF", "#55FF55", "#55FFFF", 
+          "#FF5555", "#FF55FF", "#FFFF55", "#FFFFFF"
+      ];
+
+      function getCssFromAttr(attr) {
+          const bgIndex = (attr >> 4) & 0x0F;
+          const fgIndex = attr & 0x0F;
+          return `color: ${VGA_COLORS[fgIndex]}; background-color: ${VGA_COLORS[bgIndex]};`;
+      }
+
+      function initScreen() {
+          screen = [];
+          for(let r=0; r<SCREEN_ROWS; r++){
+              let row = [];
+              for(let c=0; c<SCREEN_COLS; c++){
+                  row.push({ char: ' ', attr: 0x07 }); 
+              }
+              screen.push(row);
+          }
+      }
+      initScreen();
+
       let screenCurRow = 0;
       let screenCurCol = 0;
+      let currentAttr = 0x07; 
 
       // --- Time-Travel Debugging & Memory Sync Variables ---
       let executionHistory = [];
@@ -444,47 +471,53 @@ document.addEventListener("DOMContentLoaded", () => {
         if(!screenEl) return;
         let html = "";
         for(let r=0; r<SCREEN_ROWS; r++){
-          let line = "";
+          let lineHtml = "";
           for(let c=0; c<SCREEN_COLS; c++){
-            const ch = screen[r][c] || ' ';
-            line += ch.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;');
+            const cell = screen[r][c];
+            const ch = cell.char.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;');
+            const style = getCssFromAttr(cell.attr);
+            lineHtml += `<span style="${style}">${ch}</span>`;
           }
-          html += `<div class="line">${line}</div>`;
+          html += `<div class="line" style="display: flex; white-space: pre;">${lineHtml}</div>`;
         }
         screenEl.innerHTML = html;
       }
 
-      function screenWriteChar(ch){
-        screen[screenCurRow][screenCurCol] = ch;
+      function screenWriteChar(ch, attr = currentAttr){
+        screen[screenCurRow][screenCurCol] = { char: ch, attr: attr };
         screenCurCol++;
         if(screenCurCol >= SCREEN_COLS){
           screenCurCol = 0;
           screenCurRow++;
           if(screenCurRow >= SCREEN_ROWS){
             screenCurRow = SCREEN_ROWS - 1;
-            scrollScreenUp(1);
+            scrollScreenUp(1, attr);
           }
         }
       }
 
-      function scrollScreenUp(lines){
+      function scrollScreenUp(lines, attr = 0x07){
         for(let i=0; i<lines && i<SCREEN_ROWS; i++){
           screen.shift();
-          screen.push(new Array(SCREEN_COLS).fill(' '));
+          let newRow = [];
+          for(let c=0; c<SCREEN_COLS; c++) newRow.push({ char: ' ', attr: attr });
+          screen.push(newRow);
         }
       }
 
-      function scrollScreenDown(lines){
+      function scrollScreenDown(lines, attr = 0x07){
         for(let i=0; i<lines && i<SCREEN_ROWS; i++){
           screen.pop();
-          screen.unshift(new Array(SCREEN_COLS).fill(' '));
+          let newRow = [];
+          for(let c=0; c<SCREEN_COLS; c++) newRow.push({ char: ' ', attr: attr });
+          screen.unshift(newRow);
         }
       }
 
       function screenClearArea(top, left, bottom, right, attr){
         for(let r=top; r<=bottom && r<SCREEN_ROWS; r++){
           for(let c=left; c<=right && c<SCREEN_COLS; c++){
-            screen[r][c] = ' ';
+            screen[r][c] = { char: ' ', attr: attr };
           }
         }
       }
@@ -984,7 +1017,7 @@ document.addEventListener("DOMContentLoaded", () => {
         lastModifiedAddrs.clear(); 
         
         // Clear screen
-        for(let i=0; i<SCREEN_ROWS; i++) screen[i] = new Array(SCREEN_COLS).fill(' ');
+        initScreen();
         screenCurRow = 0;
         screenCurCol = 0;
         
@@ -1589,8 +1622,9 @@ document.addEventListener("DOMContentLoaded", () => {
                   const left = getReg8("CL");
                   const bottom = getReg8("DH");
                   const right = getReg8("DL");
-                  screenClearArea(top, left, bottom, right, getReg8("BH"));
-                  scrollScreenUp(lines);
+                  const attr = getReg8("BH");
+                  screenClearArea(top, left, bottom, right, attr);
+                  if (lines > 0) scrollScreenUp(lines, attr);
                 }
                 else if(func === 0x07) {
                   // Scroll down: AL=lines, CH=top row, CL=left col, DH=bottom row, DL=right col, BH=attr
@@ -1599,8 +1633,9 @@ document.addEventListener("DOMContentLoaded", () => {
                   const left = getReg8("CL");
                   const bottom = getReg8("DH");
                   const right = getReg8("DL");
-                  screenClearArea(top, left, bottom, right, getReg8("BH"));
-                  scrollScreenDown(lines);
+                  const attr = getReg8("BH");
+                  screenClearArea(top, left, bottom, right, attr);
+                  if (lines > 0) scrollScreenDown(lines, attr);
                 }
               }
               else if(intNum === 0x21) {
@@ -1621,7 +1656,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   const ch = String.fromCharCode(getReg8("DL"));
                   if(ch === '\n' || ch === '\r'){
                     screenCurCol = 0;
-                    if(ch === '\n'){ // \r only returns to column 0, \n goes down
+                    if(ch === '\n'){ 
                       screenCurRow++;
                       if(screenCurRow >= SCREEN_ROWS){
                         screenCurRow = SCREEN_ROWS - 1;
@@ -1636,8 +1671,8 @@ document.addEventListener("DOMContentLoaded", () => {
                   // Write string: DS:DX points to string, $ terminated
                   let addr = clamp20((getReg16("DS") << 4) + getReg16("DX"));
                   let byte = read8(addr);
-                  let limit = 0; // Protection against infinite loop
-                  while(byte !== 0x24 && byte !== 0 && limit < 2000){  // 0x24 is '$'
+                  let limit = 0; 
+                  while(byte !== 0x24 && byte !== 0 && limit < 2000){  
                     const ch = String.fromCharCode(byte);
                     if(ch === '\n' || ch === '\r'){
                       screenCurCol = 0;
@@ -1689,7 +1724,7 @@ document.addEventListener("DOMContentLoaded", () => {
               }
               
               cpu.regs.IP = nextIP;
-              cpu.cycles += 10; // generic cycle cost
+              cpu.cycles += 10;
               refreshScreen();
               break;
             }
@@ -2108,7 +2143,6 @@ STR1 DB 'Assembly'
 LENGTH EQU ($-STR1)
 STR2 DB LENGTH DUP(0)`,
 
-          // INJECTED: NEW EXAMPLES FOR INTERRUPTS
           ex14: `; --- Ex 14: INT 21h Print String (09h) & Char (02h) ---
 ORG 100h
 MOV DX, OFFSET MSG
@@ -2145,7 +2179,7 @@ BUFFER DB 20     ; Allow up to 20 chars
        DB 20 DUP(0) ; Empty space
 `,
 
-          ex16: `; --- Ex 16: INT 10h Screen Manipulation ---
+          ex16: `; --- Ex 16: INT 10h Screen Control ---
 ORG 100h
 ; Note: These screen manipulations only work if you have the visual screen rendering enabled!
 
@@ -2163,7 +2197,7 @@ MOV CH, 0        ; Top row
 MOV CL, 0        ; Left column
 MOV DH, 24       ; Bottom row
 MOV DL, 79       ; Right column
-MOV BH, 07h      ; Normal text attribute
+MOV BH, 07h      ; Normal text attribute (Light Gray on Black)
 INT 10h          ; Call BIOS
 
 INT 20h          ; Terminate
