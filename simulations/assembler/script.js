@@ -50,7 +50,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const t = tok.trim();
         if(!t) return null;
         
-        // Single or double quotes (e.g. 'A' or 'AB')
         if((t.startsWith("'") && t.endsWith("'")) || (t.startsWith('"') && t.endsWith('"'))) {
             const str = t.slice(1, -1);
             if (str.length === 1) return str.charCodeAt(0);
@@ -103,11 +102,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const dataPtrDefault = 0x0100;
       let breakpoints = new Set();
 
-      // --- Screen Display (25x80) ---
+      // --- Screen Display (25x80) WITH COLOR ATTRIBUTES ---
       const SCREEN_ROWS = 25;
       const SCREEN_COLS = 80;
       let screen = [];
       
+      // Standard 16 DOS/VGA Colors
       const VGA_COLORS = [
           "#000000", "#0000AA", "#00AA00", "#00AAAA", 
           "#AA0000", "#AA00AA", "#AA5500", "#AAAAAA",
@@ -121,21 +121,8 @@ document.addEventListener("DOMContentLoaded", () => {
           return `color: ${VGA_COLORS[fgIndex]}; background-color: ${VGA_COLORS[bgIndex]};`;
       }
 
-      function initScreen() {
-          screen = [];
-          for(let r=0; r<SCREEN_ROWS; r++){
-              let row = [];
-              for(let c=0; c<SCREEN_COLS; c++){
-                  row.push({ char: ' ', attr: 0x07 }); 
-              }
-              screen.push(row);
-          }
-      }
-      initScreen();
-
       let screenCurRow = 0;
       let screenCurCol = 0;
-      let currentAttr = 0x07; 
 
       // --- Time-Travel Debugging & Memory Sync Variables ---
       let executionHistory = [];
@@ -465,7 +452,7 @@ document.addEventListener("DOMContentLoaded", () => {
         write8(a+3, (d >>> 24) & 0xFF);
       }
 
-      // ---- Screen Display Functions (INT 10h, INT 21h) ----
+      // ---- REWRITTEN: Screen Display Functions (INT 10h, INT 21h) ----
       function refreshScreen(){
         const screenEl = el("screenDisplay");
         if(!screenEl) return;
@@ -474,24 +461,28 @@ document.addEventListener("DOMContentLoaded", () => {
           let lineHtml = "";
           for(let c=0; c<SCREEN_COLS; c++){
             const cell = screen[r][c];
-            const ch = cell.char.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;');
+            // Format chars carefully to respect HTML spacing
+            const ch = cell.char === ' ' ? '&nbsp;' : cell.char.replace(/</g,'&lt;').replace(/>/g,'&gt;');
             const style = getCssFromAttr(cell.attr);
             lineHtml += `<span style="${style}">${ch}</span>`;
           }
-          html += `<div class="line" style="display: flex; white-space: pre;">${lineHtml}</div>`;
+          // The wrapping div should have appropriate height so spans align perfectly
+          html += `<div class="line" style="height: 1.4em;">${lineHtml}</div>`;
         }
         screenEl.innerHTML = html;
       }
 
-      function screenWriteChar(ch, attr = currentAttr){
-        screen[screenCurRow][screenCurCol] = { char: ch, attr: attr };
+      function screenWriteChar(ch, attr = 0x07){
+        if(screenCurRow < SCREEN_ROWS && screenCurCol < SCREEN_COLS) {
+            screen[screenCurRow][screenCurCol] = { char: ch, attr: attr };
+        }
         screenCurCol++;
         if(screenCurCol >= SCREEN_COLS){
           screenCurCol = 0;
           screenCurRow++;
           if(screenCurRow >= SCREEN_ROWS){
             screenCurRow = SCREEN_ROWS - 1;
-            scrollScreenUp(1, attr);
+            scrollScreenUp(1, 0x07);
           }
         }
       }
@@ -1016,10 +1007,10 @@ document.addEventListener("DOMContentLoaded", () => {
         executionHistory = []; 
         lastModifiedAddrs.clear(); 
         
-        // Clear screen
-        initScreen();
+        // Clear screen properly with object structure
         screenCurRow = 0;
         screenCurCol = 0;
+        initScreen();
         
         if(!keepMemory) mem.fill(0);
         updateUI();
@@ -1616,26 +1607,67 @@ document.addEventListener("DOMContentLoaded", () => {
                   screenSetCursor(getReg8("DH"), getReg8("DL"));
                 } 
                 else if(func === 0x06) {
-                  // Scroll up: AL=lines, CH=top row, CL=left col, DH=bottom row, DL=right col, BH=attr
-                  const lines = getReg8("AL") || 1;
+                  // Scroll up
+                  const lines = getReg8("AL");
                   const top = getReg8("CH");
                   const left = getReg8("CL");
                   const bottom = getReg8("DH");
                   const right = getReg8("DL");
                   const attr = getReg8("BH");
-                  screenClearArea(top, left, bottom, right, attr);
-                  if (lines > 0) scrollScreenUp(lines, attr);
+                  
+                  if (lines === 0) {
+                      screenClearArea(top, left, bottom, right, attr);
+                  } else {
+                      screenClearArea(top, left, bottom, right, attr);
+                      scrollScreenUp(lines, attr);
+                  }
                 }
                 else if(func === 0x07) {
-                  // Scroll down: AL=lines, CH=top row, CL=left col, DH=bottom row, DL=right col, BH=attr
-                  const lines = getReg8("AL") || 1;
+                  // Scroll down
+                  const lines = getReg8("AL");
                   const top = getReg8("CH");
                   const left = getReg8("CL");
                   const bottom = getReg8("DH");
                   const right = getReg8("DL");
                   const attr = getReg8("BH");
-                  screenClearArea(top, left, bottom, right, attr);
-                  if (lines > 0) scrollScreenDown(lines, attr);
+                  
+                  if (lines === 0) {
+                      screenClearArea(top, left, bottom, right, attr);
+                  } else {
+                      screenClearArea(top, left, bottom, right, attr);
+                      scrollScreenDown(lines, attr);
+                  }
+                }
+                else if (func === 0x09) {
+                  // Write Character and Attribute at Cursor Position
+                  const chStr = String.fromCharCode(getReg8("AL"));
+                  const attr = getReg8("BL");
+                  let count = getReg16("CX");
+                  if(count === 0) count = 1;
+                  
+                  let r = screenCurRow;
+                  let c = screenCurCol;
+                  for(let i=0; i<count; i++) {
+                      if(c < SCREEN_COLS) {
+                          screen[r][c] = { char: chStr, attr: attr };
+                          c++;
+                      }
+                  }
+                }
+                else if (func === 0x0A) {
+                  // Write Character at Cursor Position (retain current attr)
+                  const chStr = String.fromCharCode(getReg8("AL"));
+                  let count = getReg16("CX");
+                  if(count === 0) count = 1;
+                  
+                  let r = screenCurRow;
+                  let c = screenCurCol;
+                  for(let i=0; i<count; i++) {
+                      if(c < SCREEN_COLS) {
+                          screen[r][c] = { char: chStr, attr: screen[r][c].attr };
+                          c++;
+                      }
+                  }
                 }
               }
               else if(intNum === 0x21) {
@@ -1643,7 +1675,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 const func = getReg8("AH");
                 
                 if(func === 0x01) {
-                  // Read character from stdin (with echo)
                   let input = prompt("INT 21h, AH=01h - Read Character:\nPlease enter a single character:");
                   let charCode = (input && input.length > 0) ? input.charCodeAt(0) : 0;
                   setReg8("AL", charCode);
@@ -1652,7 +1683,6 @@ document.addEventListener("DOMContentLoaded", () => {
                   }
                 }
                 else if(func === 0x02) {
-                  // Write character: DL contains the character
                   const ch = String.fromCharCode(getReg8("DL"));
                   if(ch === '\n' || ch === '\r'){
                     screenCurCol = 0;
@@ -1668,7 +1698,6 @@ document.addEventListener("DOMContentLoaded", () => {
                   }
                 }
                 else if(func === 0x09) {
-                  // Write string: DS:DX points to string, $ terminated
                   let addr = clamp20((getReg16("DS") << 4) + getReg16("DX"));
                   let byte = read8(addr);
                   let limit = 0; 
@@ -1692,8 +1721,6 @@ document.addEventListener("DOMContentLoaded", () => {
                   }
                 }
                 else if(func === 0x0A) {
-                  // Read line: DS:DX points to input buffer
-                  // Format: [max_len][actual_len][buffer]
                   const bufAddr = clamp20((getReg16("DS") << 4) + getReg16("DX"));
                   const maxLen = read8(bufAddr);
                   if (maxLen > 0) {
@@ -1708,7 +1735,6 @@ document.addEventListener("DOMContentLoaded", () => {
                   }
                 }
                 else if (func === 0x4C) {
-                  // Exit Program
                   logLine("Program terminated by INT 21h, AH=4Ch", "ok");
                   setStatus("Stopped (INT 21h)","ok");
                   cpu.regs.IP = nextIP;
@@ -1716,7 +1742,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
               }
               else if (intNum === 0x20) {
-                  // Program Terminate
                   logLine("Program terminated by INT 20h", "ok");
                   setStatus("Stopped (INT 20h)","ok");
                   cpu.regs.IP = nextIP;
@@ -2181,7 +2206,6 @@ BUFFER DB 20     ; Allow up to 20 chars
 
           ex16: `; --- Ex 16: INT 10h Screen Control ---
 ORG 100h
-; Note: These screen manipulations only work if you have the visual screen rendering enabled!
 
 ; 1. Move Cursor to Middle of Screen (Row 12, Col 40)
 MOV AH, 02h      ; Set Cursor Position
@@ -2201,8 +2225,27 @@ MOV BH, 07h      ; Normal text attribute (Light Gray on Black)
 INT 10h          ; Call BIOS
 
 INT 20h          ; Terminate
-`
+`,
+          // INJECTED: Example 17 showing off the new Screen Color Attributes
+          ex17: `; --- Ex 17: INT 10h Screen Colors (AH=09h) ---
+ORG 100h
 
+; 1. Move Cursor to Middle Left
+MOV AH, 02h      
+MOV DH, 12       ; Row
+MOV DL, 30       ; Col
+MOV BH, 0        
+INT 10h          
+
+; 2. Write 'X' with Red Background and Yellow Text
+; Attribute Byte: 4Eh (4=Red BG, E=Yellow FG)
+MOV AH, 09h      ; Write Char & Attribute
+MOV AL, 'X'      ; The character
+MOV BL, 4Eh      ; Attribute
+MOV CX, 15       ; Print 15 times!
+INT 10h
+
+INT 20h          ; Terminate`
         };
 
         codeEl.value = EX[v];
@@ -2269,7 +2312,8 @@ HLT
             <option value="ex13">13. String Reverse ($)</option>
             <option value="ex14">14. INT 21h Print String & Char</option>
             <option value="ex15">15. INT 21h Read String & Char</option>
-            <option value="ex16">16. INT 10h Screen Control</option>`;
+            <option value="ex16">16. INT 10h Screen Control</option>
+            <option value="ex17">17. INT 10h Screen Colors</option>`;
         }
       }
 
