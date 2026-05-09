@@ -50,7 +50,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const t = tok.trim();
         if(!t) return null;
         
-        // Single or double quotes (e.g. 'A' or 'AB')
         if((t.startsWith("'") && t.endsWith("'")) || (t.startsWith('"') && t.endsWith('"'))) {
             const str = t.slice(1, -1);
             if (str.length === 1) return str.charCodeAt(0);
@@ -1571,7 +1570,6 @@ document.addEventListener("DOMContentLoaded", () => {
               break;
             }
 
-            // MODIFIED: تفعيل حقيقي للمقاطعات وإدخال المستخدم
             case "INT": {
               if(inst.args.length !== 1) throw new Error("INT needs 1 operand");
               const intNum = evalOperand(a0) & 0xFF;
@@ -2108,7 +2106,68 @@ HLT
 
 STR1 DB 'Assembly'
 LENGTH EQU ($-STR1)
-STR2 DB LENGTH DUP(0)`
+STR2 DB LENGTH DUP(0)`,
+
+          // INJECTED: NEW EXAMPLES FOR INTERRUPTS
+          ex14: `; --- Ex 14: INT 21h Print String (09h) & Char (02h) ---
+ORG 100h
+MOV DX, OFFSET MSG
+MOV AH, 09h      ; Print String function
+INT 21h          ; Call DOS
+
+MOV DL, 'A'      ; Load 'A' into DL
+MOV AH, 02h      ; Print Char function
+INT 21h          ; Call DOS
+
+MOV AH, 4Ch      ; Terminate Program function
+INT 21h          ; Call DOS
+
+MSG DB 'Hello, World!', 0Dh, 0Ah, '$' ; 0D=CR, 0A=LF
+`,
+
+          ex15: `; --- Ex 15: INT 21h Read String (0Ah) & Char (01h) ---
+ORG 100h
+
+; 1. Request user to type a string
+MOV DX, OFFSET BUFFER
+MOV AH, 0Ah      ; Buffered Keyboard Input
+INT 21h          ; Call DOS (Will Prompt User)
+
+; 2. Request user to type a single char
+MOV AH, 01h      ; Read Character from Standard Input
+INT 21h          ; Call DOS (Will Prompt User)
+
+INT 20h          ; Terminate Program
+
+; Buffer Format: [Max Length] [Actual Length (Filled by DOS)] [Buffer Space...]
+BUFFER DB 20     ; Allow up to 20 chars
+       DB ?      ; Space for actual length 
+       DB 20 DUP(0) ; Empty space
+`,
+
+          ex16: `; --- Ex 16: INT 10h Screen Manipulation ---
+ORG 100h
+; Note: These screen manipulations only work if you have the visual screen rendering enabled!
+
+; 1. Move Cursor to Middle of Screen (Row 12, Col 40)
+MOV AH, 02h      ; Set Cursor Position
+MOV DH, 12       ; Row (0-24)
+MOV DL, 40       ; Col (0-79)
+MOV BH, 0        ; Page number
+INT 10h          ; Call BIOS
+
+; 2. Scroll Window Up
+MOV AH, 06h      ; Scroll Up function
+MOV AL, 5        ; Lines to scroll (5 lines)
+MOV CH, 0        ; Top row
+MOV CL, 0        ; Left column
+MOV DH, 24       ; Bottom row
+MOV DL, 79       ; Right column
+MOV BH, 07h      ; Normal text attribute
+INT 10h          ; Call BIOS
+
+INT 20h          ; Terminate
+`
 
         };
 
@@ -2173,7 +2232,10 @@ HLT
             <option value="ex10">10. LEA & Memory</option>
             <option value="ex11">11. Negative Hex & XCHG</option>
             <option value="ex12">12. CMP & Conditional Jumps</option>
-            <option value="ex13">13. String Reverse ($)</option>`;
+            <option value="ex13">13. String Reverse ($)</option>
+            <option value="ex14">14. INT 21h Print String & Char</option>
+            <option value="ex15">15. INT 21h Read String & Char</option>
+            <option value="ex16">16. INT 10h Screen Control</option>`;
         }
       }
 
