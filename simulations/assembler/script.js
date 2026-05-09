@@ -107,35 +107,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const SCREEN_ROWS = 25;
       const SCREEN_COLS = 80;
       let screen = [];
-      
-      const VGA_COLORS = [
-          "#000000", "#0000AA", "#00AA00", "#00AAAA", 
-          "#AA0000", "#AA00AA", "#AA5500", "#AAAAAA",
-          "#555555", "#5555FF", "#55FF55", "#55FFFF", 
-          "#FF5555", "#FF55FF", "#FFFF55", "#FFFFFF"
-      ];
-
-      function getCssFromAttr(attr) {
-          const bgIndex = (attr >> 4) & 0x0F;
-          const fgIndex = attr & 0x0F;
-          return `color: ${VGA_COLORS[fgIndex]}; background-color: ${VGA_COLORS[bgIndex]};`;
-      }
-
-      function initScreen() {
-          screen = [];
-          for(let r=0; r<SCREEN_ROWS; r++){
-              let row = [];
-              for(let c=0; c<SCREEN_COLS; c++){
-                  row.push({ char: ' ', attr: 0x07 }); 
-              }
-              screen.push(row);
-          }
-      }
-      initScreen();
-
+      for(let i=0; i<SCREEN_ROWS; i++) screen[i] = new Array(SCREEN_COLS).fill(' ');
       let screenCurRow = 0;
       let screenCurCol = 0;
-      let currentAttr = 0x07; 
 
       // --- Time-Travel Debugging & Memory Sync Variables ---
       let executionHistory = [];
@@ -471,53 +445,47 @@ document.addEventListener("DOMContentLoaded", () => {
         if(!screenEl) return;
         let html = "";
         for(let r=0; r<SCREEN_ROWS; r++){
-          let lineHtml = "";
+          let line = "";
           for(let c=0; c<SCREEN_COLS; c++){
-            const cell = screen[r][c];
-            const ch = cell.char.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;');
-            const style = getCssFromAttr(cell.attr);
-            lineHtml += `<span style="${style}">${ch}</span>`;
+            const ch = screen[r][c] || ' ';
+            line += ch.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;');
           }
-          html += `<div class="line" style="display: flex; white-space: pre;">${lineHtml}</div>`;
+          html += `<div class="line">${line}</div>`;
         }
         screenEl.innerHTML = html;
       }
 
-      function screenWriteChar(ch, attr = currentAttr){
-        screen[screenCurRow][screenCurCol] = { char: ch, attr: attr };
+      function screenWriteChar(ch){
+        screen[screenCurRow][screenCurCol] = ch;
         screenCurCol++;
         if(screenCurCol >= SCREEN_COLS){
           screenCurCol = 0;
           screenCurRow++;
           if(screenCurRow >= SCREEN_ROWS){
             screenCurRow = SCREEN_ROWS - 1;
-            scrollScreenUp(1, attr);
+            scrollScreenUp(1);
           }
         }
       }
 
-      function scrollScreenUp(lines, attr = 0x07){
+      function scrollScreenUp(lines){
         for(let i=0; i<lines && i<SCREEN_ROWS; i++){
           screen.shift();
-          let newRow = [];
-          for(let c=0; c<SCREEN_COLS; c++) newRow.push({ char: ' ', attr: attr });
-          screen.push(newRow);
+          screen.push(new Array(SCREEN_COLS).fill(' '));
         }
       }
 
-      function scrollScreenDown(lines, attr = 0x07){
+      function scrollScreenDown(lines){
         for(let i=0; i<lines && i<SCREEN_ROWS; i++){
           screen.pop();
-          let newRow = [];
-          for(let c=0; c<SCREEN_COLS; c++) newRow.push({ char: ' ', attr: attr });
-          screen.unshift(newRow);
+          screen.unshift(new Array(SCREEN_COLS).fill(' '));
         }
       }
 
       function screenClearArea(top, left, bottom, right, attr){
         for(let r=top; r<=bottom && r<SCREEN_ROWS; r++){
           for(let c=left; c<=right && c<SCREEN_COLS; c++){
-            screen[r][c] = { char: ' ', attr: attr };
+            screen[r][c] = ' ';
           }
         }
       }
@@ -1017,7 +985,7 @@ document.addEventListener("DOMContentLoaded", () => {
         lastModifiedAddrs.clear(); 
         
         // Clear screen
-        initScreen();
+        for(let i=0; i<SCREEN_ROWS; i++) screen[i] = new Array(SCREEN_COLS).fill(' ');
         screenCurRow = 0;
         screenCurCol = 0;
         
@@ -1603,6 +1571,7 @@ document.addEventListener("DOMContentLoaded", () => {
               break;
             }
 
+            // MODIFIED: تفعيل حقيقي للمقاطعات وإدخال المستخدم
             case "INT": {
               if(inst.args.length !== 1) throw new Error("INT needs 1 operand");
               const intNum = evalOperand(a0) & 0xFF;
@@ -1622,9 +1591,8 @@ document.addEventListener("DOMContentLoaded", () => {
                   const left = getReg8("CL");
                   const bottom = getReg8("DH");
                   const right = getReg8("DL");
-                  const attr = getReg8("BH");
-                  screenClearArea(top, left, bottom, right, attr);
-                  if (lines > 0) scrollScreenUp(lines, attr);
+                  screenClearArea(top, left, bottom, right, getReg8("BH"));
+                  scrollScreenUp(lines);
                 }
                 else if(func === 0x07) {
                   // Scroll down: AL=lines, CH=top row, CL=left col, DH=bottom row, DL=right col, BH=attr
@@ -1633,9 +1601,8 @@ document.addEventListener("DOMContentLoaded", () => {
                   const left = getReg8("CL");
                   const bottom = getReg8("DH");
                   const right = getReg8("DL");
-                  const attr = getReg8("BH");
-                  screenClearArea(top, left, bottom, right, attr);
-                  if (lines > 0) scrollScreenDown(lines, attr);
+                  screenClearArea(top, left, bottom, right, getReg8("BH"));
+                  scrollScreenDown(lines);
                 }
               }
               else if(intNum === 0x21) {
@@ -1656,7 +1623,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   const ch = String.fromCharCode(getReg8("DL"));
                   if(ch === '\n' || ch === '\r'){
                     screenCurCol = 0;
-                    if(ch === '\n'){ 
+                    if(ch === '\n'){ // \r only returns to column 0, \n goes down
                       screenCurRow++;
                       if(screenCurRow >= SCREEN_ROWS){
                         screenCurRow = SCREEN_ROWS - 1;
@@ -1671,8 +1638,8 @@ document.addEventListener("DOMContentLoaded", () => {
                   // Write string: DS:DX points to string, $ terminated
                   let addr = clamp20((getReg16("DS") << 4) + getReg16("DX"));
                   let byte = read8(addr);
-                  let limit = 0; 
-                  while(byte !== 0x24 && byte !== 0 && limit < 2000){  
+                  let limit = 0; // Protection against infinite loop
+                  while(byte !== 0x24 && byte !== 0 && limit < 2000){  // 0x24 is '$'
                     const ch = String.fromCharCode(byte);
                     if(ch === '\n' || ch === '\r'){
                       screenCurCol = 0;
@@ -1724,7 +1691,7 @@ document.addEventListener("DOMContentLoaded", () => {
               }
               
               cpu.regs.IP = nextIP;
-              cpu.cycles += 10;
+              cpu.cycles += 10; // generic cycle cost
               refreshScreen();
               break;
             }
@@ -2141,67 +2108,7 @@ HLT
 
 STR1 DB 'Assembly'
 LENGTH EQU ($-STR1)
-STR2 DB LENGTH DUP(0)`,
-
-          ex14: `; --- Ex 14: INT 21h Print String (09h) & Char (02h) ---
-ORG 100h
-MOV DX, OFFSET MSG
-MOV AH, 09h      ; Print String function
-INT 21h          ; Call DOS
-
-MOV DL, 'A'      ; Load 'A' into DL
-MOV AH, 02h      ; Print Char function
-INT 21h          ; Call DOS
-
-MOV AH, 4Ch      ; Terminate Program function
-INT 21h          ; Call DOS
-
-MSG DB 'Hello, World!', 0Dh, 0Ah, '$' ; 0D=CR, 0A=LF
-`,
-
-          ex15: `; --- Ex 15: INT 21h Read String (0Ah) & Char (01h) ---
-ORG 100h
-
-; 1. Request user to type a string
-MOV DX, OFFSET BUFFER
-MOV AH, 0Ah      ; Buffered Keyboard Input
-INT 21h          ; Call DOS (Will Prompt User)
-
-; 2. Request user to type a single char
-MOV AH, 01h      ; Read Character from Standard Input
-INT 21h          ; Call DOS (Will Prompt User)
-
-INT 20h          ; Terminate Program
-
-; Buffer Format: [Max Length] [Actual Length (Filled by DOS)] [Buffer Space...]
-BUFFER DB 20     ; Allow up to 20 chars
-       DB ?      ; Space for actual length 
-       DB 20 DUP(0) ; Empty space
-`,
-
-          ex16: `; --- Ex 16: INT 10h Screen Control ---
-ORG 100h
-; Note: These screen manipulations only work if you have the visual screen rendering enabled!
-
-; 1. Move Cursor to Middle of Screen (Row 12, Col 40)
-MOV AH, 02h      ; Set Cursor Position
-MOV DH, 12       ; Row (0-24)
-MOV DL, 40       ; Col (0-79)
-MOV BH, 0        ; Page number
-INT 10h          ; Call BIOS
-
-; 2. Scroll Window Up
-MOV AH, 06h      ; Scroll Up function
-MOV AL, 5        ; Lines to scroll (5 lines)
-MOV CH, 0        ; Top row
-MOV CL, 0        ; Left column
-MOV DH, 24       ; Bottom row
-MOV DL, 79       ; Right column
-MOV BH, 07h      ; Normal text attribute (Light Gray on Black)
-INT 10h          ; Call BIOS
-
-INT 20h          ; Terminate
-`
+STR2 DB LENGTH DUP(0)`
 
         };
 
@@ -2266,10 +2173,7 @@ HLT
             <option value="ex10">10. LEA & Memory</option>
             <option value="ex11">11. Negative Hex & XCHG</option>
             <option value="ex12">12. CMP & Conditional Jumps</option>
-            <option value="ex13">13. String Reverse ($)</option>
-            <option value="ex14">14. INT 21h Print String & Char</option>
-            <option value="ex15">15. INT 21h Read String & Char</option>
-            <option value="ex16">16. INT 10h Screen Control</option>`;
+            <option value="ex13">13. String Reverse ($)</option>`;
         }
       }
 
