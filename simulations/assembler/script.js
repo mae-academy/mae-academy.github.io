@@ -103,13 +103,23 @@ document.addEventListener("DOMContentLoaded", () => {
       const dataPtrDefault = 0x0100;
       let breakpoints = new Set();
 
-      // --- Screen Display (25x80) ---
+      // --- Screen Display (25x80) with Color Support ---
       const SCREEN_ROWS = 25;
       const SCREEN_COLS = 80;
+      const PALETTE = [
+        '#000000', '#0000AA', '#00AA00', '#00AAAA',
+        '#AA0000', '#AA00AA', '#AAAA00', '#AAAAAA',
+        '#555555', '#5555FF', '#55FF55', '#55FFFF',
+        '#FF5555', '#FF55FF', '#FFFF55', '#FFFFFF'
+      ];
       let screen = [];
-      for(let i=0; i<SCREEN_ROWS; i++) screen[i] = new Array(SCREEN_COLS).fill(' ');
+      for(let i=0; i<SCREEN_ROWS; i++) {
+        screen[i] = new Array(SCREEN_COLS);
+        for(let j=0; j<SCREEN_COLS; j++) screen[i][j] = { ch: ' ', attr: 0x07 }; // 0x07 = white text on black
+      }
       let screenCurRow = 0;
       let screenCurCol = 0;
+      let currentAttribute = 0x07; // Default: white on black
 
       // --- Time-Travel Debugging & Memory Sync Variables ---
       let executionHistory = [];
@@ -440,6 +450,14 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // ---- Screen Display Functions (INT 10h, INT 21h) ----
+      function getColorStyle(attr) {
+        const fg = attr & 0x0F;
+        const bg = (attr >> 4) & 0x0F;
+        const fgColor = PALETTE[fg];
+        const bgColor = PALETTE[bg];
+        return `color:${fgColor};background-color:${bgColor};`;
+      }
+
       function refreshScreen(){
         const screenEl = el("screenDisplay");
         if(!screenEl) return;
@@ -447,16 +465,19 @@ document.addEventListener("DOMContentLoaded", () => {
         for(let r=0; r<SCREEN_ROWS; r++){
           let line = "";
           for(let c=0; c<SCREEN_COLS; c++){
-            const ch = screen[r][c] || ' ';
-            line += ch.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;');
+            const cell = screen[r][c];
+            const ch = (cell.ch || ' ').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'&nbsp;');
+            const style = getColorStyle(cell.attr);
+            line += `<span style="${style}">${ch}</span>`;
           }
           html += `<div class="line">${line}</div>`;
         }
         screenEl.innerHTML = html;
       }
 
-      function screenWriteChar(ch){
-        screen[screenCurRow][screenCurCol] = ch;
+      function screenWriteChar(ch, attr = null){
+        const a = attr !== null ? attr : currentAttribute;
+        screen[screenCurRow][screenCurCol] = { ch: ch, attr: a };
         screenCurCol++;
         if(screenCurCol >= SCREEN_COLS){
           screenCurCol = 0;
@@ -471,21 +492,25 @@ document.addEventListener("DOMContentLoaded", () => {
       function scrollScreenUp(lines){
         for(let i=0; i<lines && i<SCREEN_ROWS; i++){
           screen.shift();
-          screen.push(new Array(SCREEN_COLS).fill(' '));
+          const newRow = new Array(SCREEN_COLS);
+          for(let j=0; j<SCREEN_COLS; j++) newRow[j] = { ch: ' ', attr: 0x07 };
+          screen.push(newRow);
         }
       }
 
       function scrollScreenDown(lines){
         for(let i=0; i<lines && i<SCREEN_ROWS; i++){
           screen.pop();
-          screen.unshift(new Array(SCREEN_COLS).fill(' '));
+          const newRow = new Array(SCREEN_COLS);
+          for(let j=0; j<SCREEN_COLS; j++) newRow[j] = { ch: ' ', attr: 0x07 };
+          screen.unshift(newRow);
         }
       }
 
       function screenClearArea(top, left, bottom, right, attr){
         for(let r=top; r<=bottom && r<SCREEN_ROWS; r++){
           for(let c=left; c<=right && c<SCREEN_COLS; c++){
-            screen[r][c] = ' ';
+            screen[r][c] = { ch: ' ', attr: attr & 0xFF };
           }
         }
       }
@@ -984,10 +1009,14 @@ document.addEventListener("DOMContentLoaded", () => {
         executionHistory = []; 
         lastModifiedAddrs.clear(); 
         
-        // Clear screen
-        for(let i=0; i<SCREEN_ROWS; i++) screen[i] = new Array(SCREEN_COLS).fill(' ');
+        // Clear screen with new color structure
+        for(let i=0; i<SCREEN_ROWS; i++) {
+          screen[i] = new Array(SCREEN_COLS);
+          for(let j=0; j<SCREEN_COLS; j++) screen[i][j] = { ch: ' ', attr: 0x07 };
+        }
         screenCurRow = 0;
         screenCurCol = 0;
+        currentAttribute = 0x07; // Reset to white on black
         
         if(!keepMemory) mem.fill(0);
         updateUI();
@@ -1583,7 +1612,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 if(func === 0x02) {
                   // Set cursor position: DH=row, DL=col
                   screenSetCursor(getReg8("DH"), getReg8("DL"));
-                } 
+                }
+                else if(func === 0x09) {
+                  // Write character with attribute: AL=char, BH=page(ignored), CX=count, BL=attr
+                  const ch = String.fromCharCode(getReg8("AL"));
+                  const attr = getReg8("BL");
+                  const count = getReg16("CX");
+                  for(let i=0; i<count && i<1000; i++) {
+                    screenWriteChar(ch, attr);
+                  }
+                }
                 else if(func === 0x06) {
                   // Scroll up: AL=lines, CH=top row, CL=left col, DH=bottom row, DL=right col, BH=attr
                   const lines = getReg8("AL") || 1;
@@ -1591,7 +1629,9 @@ document.addEventListener("DOMContentLoaded", () => {
                   const left = getReg8("CL");
                   const bottom = getReg8("DH");
                   const right = getReg8("DL");
-                  screenClearArea(top, left, bottom, right, getReg8("BH"));
+                  const attr = getReg8("BH");
+                  screenClearArea(top, left, bottom, right, attr);
+                  currentAttribute = attr; // Set current attribute for subsequent writes
                   scrollScreenUp(lines);
                 }
                 else if(func === 0x07) {
@@ -1601,7 +1641,9 @@ document.addEventListener("DOMContentLoaded", () => {
                   const left = getReg8("CL");
                   const bottom = getReg8("DH");
                   const right = getReg8("DL");
-                  screenClearArea(top, left, bottom, right, getReg8("BH"));
+                  const attr = getReg8("BH");
+                  screenClearArea(top, left, bottom, right, attr);
+                  currentAttribute = attr; // Set current attribute for subsequent writes
                   scrollScreenDown(lines);
                 }
               }
@@ -1615,7 +1657,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   let charCode = (input && input.length > 0) ? input.charCodeAt(0) : 0;
                   setReg8("AL", charCode);
                   if (charCode !== 0) {
-                      screenWriteChar(String.fromCharCode(charCode));
+                      screenWriteChar(String.fromCharCode(charCode), currentAttribute);
                   }
                 }
                 else if(func === 0x02) {
@@ -1631,7 +1673,7 @@ document.addEventListener("DOMContentLoaded", () => {
                       }
                     }
                   } else {
-                    screenWriteChar(ch);
+                    screenWriteChar(ch, currentAttribute);
                   }
                 }
                 else if(func === 0x09) {
@@ -1651,7 +1693,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         }
                       }
                     } else {
-                      screenWriteChar(ch);
+                      screenWriteChar(ch, currentAttribute);
                     }
                     addr++;
                     byte = read8(addr);
@@ -1669,7 +1711,7 @@ document.addEventListener("DOMContentLoaded", () => {
                       write8(bufAddr + 1, input.length); 
                       for (let i = 0; i < input.length; i++) {
                           write8(bufAddr + 2 + i, input.charCodeAt(i));
-                          screenWriteChar(input[i]); 
+                          screenWriteChar(input[i], currentAttribute); 
                       }
                       write8(bufAddr + 2 + input.length, 0x0D); 
                   }
